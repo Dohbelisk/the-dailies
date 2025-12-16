@@ -1,0 +1,43 @@
+{
+  "name": "puzzle-daily",
+  "version": "1.0.0",
+  "description": "Daily puzzle game with Sudoku, Killer Sudoku, Crossword, and Word Search",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"backend,admin\" -c \"bgBlue.bold,bgMagenta.bold\" \"npm run dev:backend\" \"npm run dev:admin\"",
+    "dev:backend": "cd backend && npm run start:dev",
+    "dev:admin": "cd admin-portal && npm run dev",
+    "build": "npm run build:backend && npm run build:admin",
+    "build:backend": "cd backend && npm run build",
+    "build:admin": "cd admin-portal && npm run build",
+    "install:all": "npm install && cd backend && npm install && cd ../admin-portal && npm install && cd ..",
+    "seed": "cd backend && npm run seed",
+    "test": "cd backend && npm run test",
+    "lint": "npm run lint:backend && npm run lint:admin",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:admin": "cd admin-portal && npm run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/puzzle-daily.git"
+  },
+  "keywords": [
+    "puzzle",
+    "sudoku",
+    "crossword",
+    "word-search",
+    "game",
+    "nestjs",
+    "react",
+    "flutter"
+  ],
+  "author": "Wayne Steedman",
+  "license": "MIT"
+}

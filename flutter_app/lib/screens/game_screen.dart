@@ -1,0 +1,966 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
+import 'package:confetti/confetti.dart';
+
+import '../models/game_models.dart';
+import '../providers/game_provider.dart';
+import '../services/game_service.dart';
+import '../services/admob_service.dart';
+import '../services/hint_service.dart';
+import '../services/audio_service.dart';
+import '../services/challenge_service.dart';
+import '../services/api_service.dart';
+import '../widgets/sudoku_grid.dart';
+import '../widgets/killer_sudoku_grid.dart';
+import '../widgets/crossword_grid.dart';
+import '../widgets/word_search_grid.dart';
+import '../widgets/number_pad.dart';
+import '../widgets/keyboard_input.dart';
+import '../widgets/game_timer.dart';
+import '../widgets/completion_dialog.dart';
+import '../widgets/feedback_dialog.dart';
+import '../models/feedback_models.dart';
+
+class GameScreen extends StatefulWidget {
+  final DailyPuzzle? puzzle;
+  final String? puzzleId;
+  final String? challengeId;
+
+  const GameScreen({
+    super.key,
+    this.puzzle,
+    this.puzzleId,
+    this.challengeId,
+  }) : assert(puzzle != null || puzzleId != null, 'Either puzzle or puzzleId must be provided');
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+  late ConfettiController _confettiController;
+  Timer? _timer;
+  bool _isPaused = false;
+  final AdMobService _adMobService = AdMobService();
+  final HintService _hintService = HintService();
+  final AudioService _audioService = AudioService();
+
+  DailyPuzzle? _puzzle;
+  bool _isLoading = true;
+  String? _loadError;
+
+  bool get isChallenge => widget.challengeId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializePuzzle();
+    });
+  }
+
+  Future<void> _initializePuzzle() async {
+    if (widget.puzzle != null) {
+      // Puzzle provided directly
+      _puzzle = widget.puzzle;
+      _loadPuzzleIntoProvider();
+    } else if (widget.puzzleId != null) {
+      // Need to fetch puzzle by ID
+      try {
+        final apiService = Provider.of<ApiService>(context, listen: false);
+        final puzzle = await apiService.getPuzzle(widget.puzzleId!);
+        if (puzzle != null) {
+          _puzzle = puzzle;
+          _loadPuzzleIntoProvider();
+        } else {
+          setState(() {
+            _loadError = 'Puzzle not found';
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        setState(() {
+          _loadError = 'Failed to load puzzle: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _loadPuzzleIntoProvider() {
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    gameProvider.loadPuzzle(_puzzle!);
+    setState(() {
+      _isLoading = false;
+    });
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!_isPaused && mounted) {
+        final gameProvider = Provider.of<GameProvider>(context, listen: false);
+        gameProvider.tick();
+        _checkCompletion();
+      }
+    });
+  }
+
+  void _checkCompletion() {
+    if (_puzzle == null) return;
+
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    bool isComplete = false;
+
+    switch (_puzzle!.gameType) {
+      case GameType.sudoku:
+      case GameType.killerSudoku:
+        isComplete = gameProvider.checkSudokuComplete();
+        break;
+      case GameType.crossword:
+        isComplete = gameProvider.checkCrosswordComplete();
+        break;
+      case GameType.wordSearch:
+        isComplete = gameProvider.checkWordSearchComplete();
+        break;
+    }
+
+    if (isComplete) {
+      _timer?.cancel();
+      _confettiController.play();
+      _audioService.playComplete();
+      _showCompletionDialog();
+    }
+  }
+
+  void _showCompletionDialog() {
+    if (_puzzle == null) return;
+
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    final score = gameProvider.calculateScore();
+
+    // Submit score to regular endpoint
+    final gameService = Provider.of<GameService>(context, listen: false);
+    gameService.submitScore(
+      _puzzle!.id,
+      gameProvider.elapsedSeconds,
+      score,
+    );
+
+    // If this is a challenge, also submit to challenge endpoint
+    if (isChallenge) {
+      _submitChallengeResult(score, gameProvider.elapsedSeconds, gameProvider.mistakes);
+    }
+
+    // Show completion dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => CompletionDialog(
+        puzzle: _puzzle!,
+        time: gameProvider.elapsedSeconds,
+        score: score,
+        mistakes: gameProvider.mistakes,
+        hintsUsed: gameProvider.hintsUsed,
+        isChallenge: isChallenge,
+      ),
+    );
+  }
+
+  Future<void> _submitChallengeResult(int score, int time, int mistakes) async {
+    try {
+      final challengeService = Provider.of<ChallengeService>(context, listen: false);
+      await challengeService.submitResult(
+        challengeId: widget.challengeId!,
+        score: score,
+        time: time,
+        mistakes: mistakes,
+      );
+    } catch (e) {
+      // Silently fail - the user already sees their completion
+      debugPrint('Failed to submit challenge result: $e');
+    }
+  }
+
+  void _togglePause() {
+    setState(() {
+      _isPaused = !_isPaused;
+    });
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    if (_isPaused) {
+      gameProvider.pause();
+    } else {
+      gameProvider.resume();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    // Show loading state
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                isChallenge ? 'Loading challenge...' : 'Loading puzzle...',
+                style: theme.textTheme.titleMedium,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show error state
+    if (_loadError != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: theme.colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _loadError!,
+                style: theme.textTheme.titleMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Go Back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.colorScheme.background,
+                  theme.colorScheme.surface,
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(context),
+                Expanded(
+                  child: _isPaused
+                      ? _buildPausedOverlay(context)
+                      : _buildGameContent(context),
+                ),
+              ],
+            ),
+          ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              particleDrag: 0.05,
+              emissionFrequency: 0.05,
+              numberOfParticles: 30,
+              gravity: 0.1,
+              shouldLoop: false,
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.secondary,
+                Colors.amber,
+                Colors.pink,
+                Colors.purple,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () {
+              final gameProvider = Provider.of<GameProvider>(context, listen: false);
+              gameProvider.reset();
+              Navigator.pop(context);
+            },
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (isChallenge) ...[
+                      Icon(
+                        Icons.sports_esports_rounded,
+                        size: 18,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      _puzzle!.gameType.displayName,
+                      style: theme.textTheme.titleLarge,
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    _puzzle!.difficulty.stars,
+                    (index) => Icon(
+                      Icons.star_rounded,
+                      size: 14,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Consumer<GameProvider>(
+            builder: (context, gameProvider, _) {
+              return Row(
+                children: [
+                  GameTimer(seconds: gameProvider.elapsedSeconds),
+                  IconButton(
+                    icon: Icon(
+                      _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                    ),
+                    onPressed: _togglePause,
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0);
+  }
+
+  Widget _buildPausedOverlay(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.pause_circle_filled_rounded,
+            size: 80,
+            color: theme.colorScheme.primary.withOpacity(0.5),
+          ),
+          const SizedBox(height: 24),
+          Text('Paused', style: theme.textTheme.headlineLarge),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.play_arrow_rounded),
+            label: const Text('Resume'),
+            onPressed: _togglePause,
+          ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            icon: const Icon(Icons.flag_outlined, size: 18),
+            label: const Text('Report Issue'),
+            onPressed: () {
+              FeedbackDialog.show(
+                context,
+                puzzleId: _puzzle?.id,
+                gameType: _puzzle?.gameType,
+                difficulty: _puzzle?.difficulty,
+                puzzleDate: _puzzle?.date,
+                initialType: FeedbackType.puzzleMistake,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGameContent(BuildContext context) {
+    if (_puzzle == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    switch (_puzzle!.gameType) {
+      case GameType.sudoku:
+        return _buildSudokuContent(context);
+      case GameType.killerSudoku:
+        return _buildKillerSudokuContent(context);
+      case GameType.crossword:
+        return _buildCrosswordContent(context);
+      case GameType.wordSearch:
+        return _buildWordSearchContent(context);
+    }
+  }
+
+  Widget _buildSudokuContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.sudokuPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Column(
+          children: [
+            _buildSudokuInfoBar(context, gameProvider),
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SudokuGrid(
+                    puzzle: gameProvider.sudokuPuzzle!,
+                    selectedRow: gameProvider.selectedRow,
+                    selectedCol: gameProvider.selectedCol,
+                    onCellTap: (row, col) {
+                      gameProvider.selectCell(row, col);
+                      _audioService.playTap();
+                    },
+                  ),
+                ),
+              ).animate().fadeIn(delay: 200.ms, duration: 500.ms).scale(begin: const Offset(0.95, 0.95)),
+            ),
+            NumberPad(
+              notesMode: gameProvider.notesMode,
+              onNumberTap: (number) {
+                final wasCorrect = gameProvider.enterNumber(number);
+                if (gameProvider.notesMode) {
+                  _audioService.playNoteToggle();
+                } else if (wasCorrect == true) {
+                  _audioService.playSuccess();
+                } else if (wasCorrect == false) {
+                  _audioService.playError();
+                } else {
+                  _audioService.playNumberPlaced();
+                }
+              },
+              onClearTap: () {
+                gameProvider.clearCell();
+                _audioService.playTap();
+              },
+              onNotesTap: () {
+                gameProvider.toggleNotesMode();
+                _audioService.playTap();
+              },
+              onHintTap: () => _handleHintTap(gameProvider),
+            ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(begin: 0.2, end: 0),
+            const SizedBox(height: 16),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _handleHintTap(GameProvider gameProvider) async {
+    // Check if hint is available
+    bool canUseHint = await _hintService.useHint();
+
+    if (canUseHint) {
+      gameProvider.useHint();
+      _audioService.playHint();
+      setState(() {}); // Refresh to update hint count display
+    } else {
+      // No hints available, offer rewarded video ad
+      _showGetHintsDialog();
+    }
+  }
+
+  void _showGetHintsDialog() {
+    final theme = Theme.of(context);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.lightbulb_outline_rounded, color: theme.colorScheme.primary),
+            const SizedBox(width: 12),
+            const Text('Out of Hints'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'You\'ve used all your free hints for today!',
+              style: theme.textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.play_circle_outline, color: theme.colorScheme.primary, size: 32),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Watch a short video to get 3 more hints!',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Not Now'),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.video_library_rounded),
+            label: const Text('Watch Video'),
+            onPressed: () async {
+              Navigator.pop(context);
+              await _watchVideoForHints();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _watchVideoForHints() async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    bool success = await _hintService.watchAdForHints();
+
+    // Close loading indicator
+    if (mounted) Navigator.pop(context);
+
+    if (success) {
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Text('You got 3 more hints! (${_hintService.availableHints} available)'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      setState(() {}); // Refresh to update hint count
+    } else {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Failed to load ad. Please try again.'),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildKillerSudokuContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.killerSudokuPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Column(
+          children: [
+            _buildSudokuInfoBar(context, gameProvider),
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: KillerSudokuGrid(
+                    puzzle: gameProvider.killerSudokuPuzzle!,
+                    selectedRow: gameProvider.selectedRow,
+                    selectedCol: gameProvider.selectedCol,
+                    onCellTap: (row, col) {
+                      gameProvider.selectCell(row, col);
+                      _audioService.playTap();
+                    },
+                  ),
+                ),
+              ).animate().fadeIn(delay: 200.ms, duration: 500.ms).scale(begin: const Offset(0.95, 0.95)),
+            ),
+            NumberPad(
+              notesMode: gameProvider.notesMode,
+              onNumberTap: (number) {
+                final wasCorrect = gameProvider.enterNumber(number);
+                if (gameProvider.notesMode) {
+                  _audioService.playNoteToggle();
+                } else if (wasCorrect == true) {
+                  _audioService.playSuccess();
+                } else if (wasCorrect == false) {
+                  _audioService.playError();
+                } else {
+                  _audioService.playNumberPlaced();
+                }
+              },
+              onClearTap: () {
+                gameProvider.clearCell();
+                _audioService.playTap();
+              },
+              onNotesTap: () {
+                gameProvider.toggleNotesMode();
+                _audioService.playTap();
+              },
+              onHintTap: () => _handleHintTap(gameProvider),
+            ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(begin: 0.2, end: 0),
+            const SizedBox(height: 16),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSudokuInfoBar(BuildContext context, GameProvider gameProvider) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildInfoItem(
+            context,
+            icon: Icons.close_rounded,
+            label: 'Mistakes',
+            value: '${gameProvider.mistakes}',
+            color: gameProvider.mistakes > 0 ? theme.colorScheme.error : null,
+          ),
+          _buildInfoItem(
+            context,
+            icon: Icons.lightbulb_outline_rounded,
+            label: 'Available',
+            value: _hintService.isPremium ? '∞' : '${_hintService.availableHints}',
+            color: theme.colorScheme.primary,
+          ),
+          _buildInfoItem(
+            context,
+            icon: Icons.help_outline_rounded,
+            label: 'Used',
+            value: '${gameProvider.hintsUsed}',
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 100.ms, duration: 400.ms);
+  }
+
+  Widget _buildInfoItem(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? color,
+  }) {
+    final theme = Theme.of(context);
+    
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color ?? theme.colorScheme.onSurface.withOpacity(0.6)),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6))),
+            Text(value, style: theme.textTheme.titleMedium?.copyWith(color: color, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCrosswordContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.crosswordPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Column(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: CrosswordGrid(
+                  puzzle: gameProvider.crosswordPuzzle!,
+                  selectedRow: gameProvider.selectedRow,
+                  selectedCol: gameProvider.selectedCol,
+                  selectedClue: gameProvider.selectedClue,
+                  onCellTap: (row, col) => gameProvider.selectCell(row, col),
+                ),
+              ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+            ),
+            if (gameProvider.selectedClue != null)
+              _buildClueDisplay(context, gameProvider.selectedClue!),
+            Expanded(
+              flex: 2,
+              child: _buildCluesList(context, gameProvider),
+            ),
+            KeyboardInput(
+              onLetterTap: (letter) {
+                gameProvider.enterLetter(letter);
+                _audioService.playTap();
+              },
+              onDeleteTap: () {
+                gameProvider.deleteLetter();
+                _audioService.playTap();
+              },
+            ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(begin: 0.2, end: 0),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildClueDisplay(BuildContext context, CrosswordClue clue) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '${clue.number}${clue.direction == 'across' ? 'A' : 'D'}',
+              style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onPrimary, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(clue.clue, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCluesList(BuildContext context, GameProvider gameProvider) {
+    final theme = Theme.of(context);
+    final puzzle = gameProvider.crosswordPuzzle!;
+    
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          TabBar(
+            tabs: const [Tab(text: 'ACROSS'), Tab(text: 'DOWN')],
+            labelColor: theme.colorScheme.primary,
+            unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
+            indicatorColor: theme.colorScheme.primary,
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildCluesListView(context, puzzle.acrossClues, gameProvider),
+                _buildCluesListView(context, puzzle.downClues, gameProvider),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCluesListView(BuildContext context, List<CrosswordClue> clues, GameProvider gameProvider) {
+    final theme = Theme.of(context);
+    
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: clues.length,
+      itemBuilder: (context, index) {
+        final clue = clues[index];
+        final isSelected = gameProvider.selectedClue == clue;
+        
+        return ListTile(
+          dense: true,
+          selected: isSelected,
+          selectedTileColor: theme.colorScheme.primary.withOpacity(0.1),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          leading: Text('${clue.number}', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: isSelected ? theme.colorScheme.primary : null)),
+          title: Text(clue.clue, style: theme.textTheme.bodyMedium),
+          onTap: () => gameProvider.selectClue(clue),
+        );
+      },
+    );
+  }
+
+  Widget _buildWordSearchContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.wordSearchPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final puzzle = gameProvider.wordSearchPuzzle!;
+
+        return Column(
+          children: [
+            // Theme and progress
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (puzzle.theme != null)
+                    Text(
+                      'Theme: ${puzzle.theme}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  Text(
+                    '${puzzle.foundCount}/${puzzle.words.length} found',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ],
+              ),
+            ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
+            
+            // Grid
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: WordSearchGrid(
+                  puzzle: puzzle,
+                  currentSelection: gameProvider.currentSelection,
+                  onSelectionStart: (row, col) {
+                    gameProvider.startWordSelection(row, col);
+                    _audioService.playTap();
+                  },
+                  onSelectionUpdate: gameProvider.extendWordSelection,
+                  onSelectionEnd: () {
+                    final found = gameProvider.endWordSelection();
+                    if (found) {
+                      _audioService.playWordFound();
+                    }
+                    return found;
+                  },
+                ),
+              ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+            ),
+            
+            // Word list
+            Container(
+              height: 120,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildWordList(context, puzzle),
+            ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(begin: 0.2, end: 0),
+            
+            const SizedBox(height: 16),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildWordList(BuildContext context, WordSearchPuzzle puzzle) {
+    final theme = Theme.of(context);
+    
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      alignment: WrapAlignment.center,
+      children: puzzle.words.map((word) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: word.found
+                ? theme.colorScheme.primary.withOpacity(0.2)
+                : theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: word.found
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface.withOpacity(0.2),
+            ),
+          ),
+          child: Text(
+            word.word,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              decoration: word.found ? TextDecoration.lineThrough : null,
+              color: word.found
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface,
+              fontWeight: word.found ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}

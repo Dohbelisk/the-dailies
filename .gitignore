@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Flutter
+flutter_app/.dart_tool/
+flutter_app/.packages
+flutter_app/build/
+flutter_app/*.iml
+flutter_app/.metadata
+flutter_app/pubspec.lock
+flutter_app/ios/Pods/
+flutter_app/ios/.symlinks/
+flutter_app/android/.gradle/
+flutter_app/android/app/build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+backend.log
+admin-portal.log
+flutter.log
+
+# Testing
+coverage/
+
+# Misc
+*.tgz
+.cache/

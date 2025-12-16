@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: puzzle-daily-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=puzzle-daily
+    networks:
+      - puzzle-network
+
+  # NestJS Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: puzzle-daily-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/puzzle-daily
+      - JWT_SECRET=${JWT_SECRET:-puzzle-daily-super-secret-key-change-in-production}
+    depends_on:
+      - mongodb
+    networks:
+      - puzzle-network
+
+  # React Admin Portal
+  admin:
+    build:
+      context: ./admin-portal
+      dockerfile: Dockerfile
+    container_name: puzzle-daily-admin
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - puzzle-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  puzzle-network:
+    driver: bridge
