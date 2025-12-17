@@ -2,15 +2,15 @@
 ///
 /// Values are set at compile time using --dart-define flags.
 ///
-/// Development (default):
+/// Development (default - uses localhost):
 ///   flutter run
 ///
-/// Production:
-///   flutter run --dart-define=ENV=production --dart-define=API_URL=https://api.thedailies.app
-///   flutter build apk --dart-define=ENV=production --dart-define=API_URL=https://api.thedailies.app
+/// Development (with real backend on local network):
+///   flutter run --dart-define=API_URL=http://YOUR_LOCAL_IP:3000/api
 ///
-/// Staging:
-///   flutter run --dart-define=ENV=staging --dart-define=API_URL=https://staging-api.thedailies.app
+/// Production (Render):
+///   flutter run --dart-define=ENV=production --dart-define=API_URL=https://the-dailies-api.onrender.com/api
+///   flutter build apk --dart-define=ENV=production --dart-define=API_URL=https://the-dailies-api.onrender.com/api
 class Environment {
   static const String environment = String.fromEnvironment(
     'ENV',
