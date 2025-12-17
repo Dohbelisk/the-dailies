@@ -345,12 +345,18 @@ class CrosswordPuzzle {
       return row.map<String?>((cell) => cell == null ? null : '').toList();
     }).toList();
     
-    final clues = cluesData.map((c) => CrosswordClue.fromJson(c)).toList();
-    
+    // Filter out clues with null positions (invalid data from generator)
+    final validCluesData = cluesData.where((c) =>
+      c['startRow'] != null && c['startCol'] != null && c['number'] != null
+    ).toList();
+    final clues = validCluesData.map((c) => CrosswordClue.fromJson(c)).toList();
+
     // Calculate cell numbers
     final cellNumbers = List.generate(rows, (_) => List<int?>.filled(cols, null));
     for (final clue in clues) {
-      cellNumbers[clue.startRow][clue.startCol] = clue.number;
+      if (clue.startRow < rows && clue.startCol < cols) {
+        cellNumbers[clue.startRow][clue.startCol] = clue.number;
+      }
     }
 
     return CrosswordPuzzle(
