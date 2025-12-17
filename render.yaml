@@ -22,7 +22,6 @@ services:
   - type: web
     name: the-dailies-admin
     runtime: static
-    region: oregon
     rootDir: admin-portal
     buildCommand: npm install && npm run build
     staticPublishPath: dist
