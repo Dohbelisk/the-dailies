@@ -293,14 +293,14 @@ async function seedDateRange() {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    // Clear all existing puzzles
-    console.log('\n🗑️  Clearing all existing puzzles...');
-    const deleteResult = await Puzzle.deleteMany({});
-    console.log(`✅ Deleted ${deleteResult.deletedCount} puzzles`);
+    // Clear all existing puzzles (comment out to preserve existing)
+    // console.log('\n🗑️  Clearing all existing puzzles...');
+    // const deleteResult = await Puzzle.deleteMany({});
+    // console.log(`✅ Deleted ${deleteResult.deletedCount} puzzles`);
 
-    // Define date range: November 1, 2025 to January 1, 2026
-    const startDate = new Date('2025-11-01');
-    const endDate = new Date('2026-01-01');
+    // Define date range: December 15, 2025 to December 25, 2025
+    const startDate = new Date('2025-12-15');
+    const endDate = new Date('2025-12-25');
 
     // Calculate number of days
     const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
