@@ -53,12 +53,18 @@ class GameProvider extends ChangeNotifier {
     _notesMode = false;
     _currentSelection = null;
     
+    // Merge puzzleData with solution for models that need it
+    final puzzleDataWithSolution = {
+      ...(puzzle.puzzleData as Map<String, dynamic>),
+      if (puzzle.solution != null) 'solution': puzzle.solution,
+    };
+
     switch (puzzle.gameType) {
       case GameType.sudoku:
-        _sudokuPuzzle = SudokuPuzzle.fromJson(puzzle.puzzleData as Map<String, dynamic>);
+        _sudokuPuzzle = SudokuPuzzle.fromJson(puzzleDataWithSolution);
         break;
       case GameType.killerSudoku:
-        _killerSudokuPuzzle = KillerSudokuPuzzle.fromJson(puzzle.puzzleData as Map<String, dynamic>);
+        _killerSudokuPuzzle = KillerSudokuPuzzle.fromJson(puzzleDataWithSolution);
         break;
       case GameType.crossword:
         _crosswordPuzzle = CrosswordPuzzle.fromJson(puzzle.puzzleData as Map<String, dynamic>);

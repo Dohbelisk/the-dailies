@@ -155,13 +155,24 @@ class SudokuPuzzle {
   }) : notes = notes ?? List.generate(9, (_) => List.generate(9, (_) => <int>{}));
 
   factory SudokuPuzzle.fromJson(Map<String, dynamic> json) {
-    final gridData = json['grid'] as List;
-    final solutionData = json['solution'] as List;
-    
+    // Handle grid - can be direct array or nested in 'grid' property
+    final gridData = (json['grid'] is List) ? json['grid'] as List : [];
+
+    // Handle solution - can be direct array, nested in 'grid' property, or null
+    List solutionData;
+    if (json['solution'] is List) {
+      solutionData = json['solution'] as List;
+    } else if (json['solution'] is Map && json['solution']['grid'] != null) {
+      solutionData = json['solution']['grid'] as List;
+    } else {
+      // Fallback to empty grid if no solution provided
+      solutionData = gridData;
+    }
+
     final grid = gridData.map<List<int?>>((row) {
       return (row as List).map<int?>((cell) => cell == 0 ? null : cell as int).toList();
     }).toList();
-    
+
     final solution = solutionData.map<List<int>>((row) {
       return (row as List).map<int>((cell) => cell as int).toList();
     }).toList();
