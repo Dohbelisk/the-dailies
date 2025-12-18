@@ -6,9 +6,11 @@ import '../providers/theme_provider.dart';
 import '../services/audio_service.dart';
 import '../services/purchase_service.dart';
 import '../services/consent_service.dart';
+import '../services/config_service.dart';
 import '../widgets/feedback_dialog.dart';
 import 'legal/privacy_policy_screen.dart';
 import 'legal/terms_of_service_screen.dart';
+import 'debug_menu_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -27,6 +29,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final PurchaseService _purchaseService = PurchaseService();
   final AudioService _audioService = AudioService();
   final ConsentService _consentService = ConsentService();
+  final ConfigService _configService = ConfigService();
+
+  // Debug menu unlock
+  int _versionTapCount = 0;
+  static const int _tapsToUnlock = 7;
 
   // Purchase state
   bool _isPremium = false;
@@ -116,6 +123,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: Colors.red,
       ),
     );
+  }
+
+  void _onVersionTap() {
+    // Check if debug menu is enabled via feature flag
+    if (!_configService.isFeatureEnabled('debug_menu_enabled')) {
+      return;
+    }
+
+    setState(() {
+      _versionTapCount++;
+    });
+
+    if (_versionTapCount >= _tapsToUnlock) {
+      // Reset counter and open debug menu
+      setState(() {
+        _versionTapCount = 0;
+      });
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const DebugMenuScreen()),
+      );
+    } else if (_versionTapCount >= 4) {
+      // Show hint after 4 taps
+      final remaining = _tapsToUnlock - _versionTapCount;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$remaining more taps to unlock debug menu'),
+          duration: const Duration(milliseconds: 500),
+        ),
+      );
+    }
   }
 
   Future<void> _handlePurchase() async {
@@ -221,7 +260,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             context,
             icon: Icons.info_outline_rounded,
             title: 'Version',
-            subtitle: '1.0.0',
+            subtitle: _configService.isInitialized
+                ? _configService.fullVersion
+                : '1.0.0',
+            onTap: _onVersionTap,
           ).animate().fadeIn(delay: 450.ms, duration: 400.ms).slideX(begin: 0.1, end: 0),
           _buildSettingTile(
             context,

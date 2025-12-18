@@ -75,11 +75,29 @@ class CrosswordGrid extends StatelessWidget {
       );
     }
 
+    // Determine background color and border
     Color backgroundColor = theme.colorScheme.surface;
+    Border? cellBorder;
+
     if (isSelected) {
-      backgroundColor = theme.colorScheme.primary.withOpacity(0.4);
+      // Current cursor cell - intense highlight with thicker border
+      backgroundColor = theme.colorScheme.primary.withOpacity(0.5);
+      cellBorder = Border.all(
+        color: theme.colorScheme.primary,
+        width: 2.5,
+      );
     } else if (isHighlighted) {
+      // Part of selected word - lighter highlight
       backgroundColor = theme.colorScheme.primary.withOpacity(0.15);
+      cellBorder = Border.all(
+        color: theme.colorScheme.primary.withOpacity(0.4),
+        width: 1,
+      );
+    } else {
+      cellBorder = Border.all(
+        color: theme.colorScheme.onSurface.withOpacity(0.3),
+        width: 0.5,
+      );
     }
 
     final isCorrect = userValue?.toUpperCase() == correctValue?.toUpperCase();
@@ -90,10 +108,7 @@ class CrosswordGrid extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
-          border: Border.all(
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
-            width: 0.5,
-          ),
+          border: cellBorder,
         ),
         child: Stack(
           children: [
@@ -107,7 +122,9 @@ class CrosswordGrid extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: isSelected
+                        ? theme.colorScheme.onPrimary.withOpacity(0.8)
+                        : theme.colorScheme.onSurface.withOpacity(0.6),
                   ),
                 ),
               ),
@@ -121,7 +138,9 @@ class CrosswordGrid extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: hasValue && !isCorrect && _showErrors
                       ? theme.colorScheme.error
-                      : theme.colorScheme.onSurface,
+                      : isSelected
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSurface,
                 ),
               ),
             ),

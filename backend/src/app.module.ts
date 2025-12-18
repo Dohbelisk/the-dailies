@@ -9,6 +9,7 @@ import { FriendsModule } from './friends/friends.module';
 import { ChallengesModule } from './challenges/challenges.module';
 import { EmailModule } from './email/email.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { AppConfigModule } from './config/config.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { FeedbackModule } from './feedback/feedback.module';
     ChallengesModule,
     EmailModule,
     FeedbackModule,
+    AppConfigModule,
   ],
 })
 export class AppModule {}

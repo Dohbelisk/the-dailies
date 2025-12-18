@@ -187,33 +187,181 @@ class GameProvider extends ChangeNotifier {
   // Crossword methods
   void selectClue(CrosswordClue clue) {
     _selectedClue = clue;
+    // Move to the first empty cell in the clue, or the start if all filled
+    _moveToFirstEmptyInClue(clue);
+    notifyListeners();
+  }
+
+  /// Select a cell in the crossword grid
+  /// If the cell belongs to multiple clues (intersection), tapping again toggles direction
+  void selectCrosswordCell(int row, int col) {
+    if (_crosswordPuzzle == null) return;
+
+    // Can't select black cells
+    if (_crosswordPuzzle!.grid[row][col] == null) return;
+
+    // Find clues that contain this cell
+    final cluesAtCell = _getCluesAtCell(row, col);
+
+    if (cluesAtCell.isEmpty) return;
+
+    // If tapping the same cell, toggle between across/down
+    if (_selectedRow == row && _selectedCol == col && cluesAtCell.length > 1) {
+      // Find current direction and switch
+      final currentDirection = _selectedClue?.direction;
+      final otherClue = cluesAtCell.firstWhere(
+        (c) => c.direction != currentDirection,
+        orElse: () => cluesAtCell.first,
+      );
+      _selectedClue = otherClue;
+    } else {
+      // New cell - prefer across, or use whatever is available
+      _selectedClue = cluesAtCell.firstWhere(
+        (c) => c.direction == 'across',
+        orElse: () => cluesAtCell.first,
+      );
+    }
+
+    _selectedRow = row;
+    _selectedCol = col;
+    notifyListeners();
+  }
+
+  /// Get all clues that contain a specific cell
+  List<CrosswordClue> _getCluesAtCell(int row, int col) {
+    if (_crosswordPuzzle == null) return [];
+
+    return _crosswordPuzzle!.clues.where((clue) {
+      if (clue.direction == 'across') {
+        return row == clue.startRow &&
+            col >= clue.startCol &&
+            col < clue.startCol + clue.length;
+      } else {
+        return col == clue.startCol &&
+            row >= clue.startRow &&
+            row < clue.startRow + clue.length;
+      }
+    }).toList();
+  }
+
+  /// Move cursor to first empty cell in the given clue
+  void _moveToFirstEmptyInClue(CrosswordClue clue) {
+    if (_crosswordPuzzle == null) return;
+
+    for (int i = 0; i < clue.length; i++) {
+      final r = clue.direction == 'across' ? clue.startRow : clue.startRow + i;
+      final c = clue.direction == 'across' ? clue.startCol + i : clue.startCol;
+
+      final userValue = _crosswordPuzzle!.userGrid[r][c];
+      if (userValue == null || userValue.isEmpty) {
+        _selectedRow = r;
+        _selectedCol = c;
+        return;
+      }
+    }
+
+    // All filled, go to start
     _selectedRow = clue.startRow;
     _selectedCol = clue.startCol;
-    notifyListeners();
+  }
+
+  /// Check if a clue is completely filled (all cells have letters)
+  bool _isClueComplete(CrosswordClue clue) {
+    if (_crosswordPuzzle == null) return false;
+
+    for (int i = 0; i < clue.length; i++) {
+      final r = clue.direction == 'across' ? clue.startRow : clue.startRow + i;
+      final c = clue.direction == 'across' ? clue.startCol + i : clue.startCol;
+
+      final userValue = _crosswordPuzzle!.userGrid[r][c];
+      if (userValue == null || userValue.isEmpty) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Find the next incomplete clue after the current one
+  CrosswordClue? _findNextIncompleteClue() {
+    if (_crosswordPuzzle == null || _selectedClue == null) return null;
+
+    final allClues = _crosswordPuzzle!.clues;
+    final currentIndex = allClues.indexOf(_selectedClue!);
+
+    // Search from after current clue to the end
+    for (int i = currentIndex + 1; i < allClues.length; i++) {
+      if (!_isClueComplete(allClues[i])) {
+        return allClues[i];
+      }
+    }
+
+    // Wrap around: search from start to current clue
+    for (int i = 0; i < currentIndex; i++) {
+      if (!_isClueComplete(allClues[i])) {
+        return allClues[i];
+      }
+    }
+
+    // All clues are complete
+    return null;
+  }
+
+  /// Find next empty cell in current clue direction
+  void _moveToNextEmptyInClue() {
+    if (_crosswordPuzzle == null || _selectedClue == null ||
+        _selectedRow == null || _selectedCol == null) return;
+
+    final clue = _selectedClue!;
+
+    // Get current position index within the clue
+    int currentIndex;
+    if (clue.direction == 'across') {
+      currentIndex = _selectedCol! - clue.startCol;
+    } else {
+      currentIndex = _selectedRow! - clue.startRow;
+    }
+
+    // Search from current position to end of word
+    for (int i = currentIndex + 1; i < clue.length; i++) {
+      final r = clue.direction == 'across' ? clue.startRow : clue.startRow + i;
+      final c = clue.direction == 'across' ? clue.startCol + i : clue.startCol;
+
+      final userValue = _crosswordPuzzle!.userGrid[r][c];
+      if (userValue == null || userValue.isEmpty) {
+        _selectedRow = r;
+        _selectedCol = c;
+        return;
+      }
+    }
+
+    // Current word is complete - move to next incomplete word
+    final nextClue = _findNextIncompleteClue();
+    if (nextClue != null) {
+      _selectedClue = nextClue;
+      _moveToFirstEmptyInClue(nextClue);
+      return;
+    }
+
+    // All words complete - stay at end of current word
+    if (clue.direction == 'across') {
+      _selectedCol = clue.startCol + clue.length - 1;
+    } else {
+      _selectedRow = clue.startRow + clue.length - 1;
+    }
   }
 
   void enterLetter(String letter) {
     if (_crosswordPuzzle == null || _selectedRow == null || _selectedCol == null) return;
-    
+
     if (_crosswordPuzzle!.grid[_selectedRow!][_selectedCol!] == null) return;
-    
+
     _crosswordPuzzle!.userGrid[_selectedRow!][_selectedCol!] = letter.toUpperCase();
-    
-    // Move to next cell
+
+    // Move to next empty cell in the word
     if (_selectedClue != null) {
-      if (_selectedClue!.direction == 'across') {
-        if (_selectedCol! < _crosswordPuzzle!.cols - 1 &&
-            _crosswordPuzzle!.grid[_selectedRow!][_selectedCol! + 1] != null) {
-          _selectedCol = _selectedCol! + 1;
-        }
-      } else {
-        if (_selectedRow! < _crosswordPuzzle!.rows - 1 &&
-            _crosswordPuzzle!.grid[_selectedRow! + 1][_selectedCol!] != null) {
-          _selectedRow = _selectedRow! + 1;
-        }
-      }
+      _moveToNextEmptyInClue();
     }
-    
+
     notifyListeners();
   }
 

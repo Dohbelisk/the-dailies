@@ -16,10 +16,12 @@ import 'services/purchase_service.dart';
 import 'services/friends_service.dart';
 import 'services/challenge_service.dart';
 import 'services/consent_service.dart';
+import 'services/config_service.dart';
 import 'providers/theme_provider.dart';
 import 'providers/game_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/theme_selection_screen.dart';
+import 'widgets/version_dialogs.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +53,9 @@ void main() async {
   // Initialize Audio Service
   await AudioService().initialize();
 
+  // Initialize Config Service (feature flags and versioning)
+  await ConfigService().initialize();
+
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -77,6 +82,7 @@ class TheDailiesApp extends StatefulWidget {
 
 class _TheDailiesAppState extends State<TheDailiesApp> {
   bool _themeSelectionComplete = false;
+  final ConfigService _configService = ConfigService();
 
   void _onThemeSelectionComplete() {
     setState(() {
@@ -137,7 +143,10 @@ class _TheDailiesAppState extends State<TheDailiesApp> {
             theme: _buildTheme(themeProvider.isDarkMode),
             home: showThemeSelection
                 ? ThemeSelectionScreen(onComplete: _onThemeSelectionComplete)
-                : const HomeScreen(),
+                : _VersionCheckWrapper(
+                    configService: _configService,
+                    child: const HomeScreen(),
+                  ),
           );
         },
       ),
@@ -251,5 +260,96 @@ class _TheDailiesAppState extends State<TheDailiesApp> {
         ),
       ),
     );
+  }
+}
+
+/// Wrapper widget that checks app version on startup and shows appropriate dialogs
+class _VersionCheckWrapper extends StatefulWidget {
+  final ConfigService configService;
+  final Widget child;
+
+  const _VersionCheckWrapper({
+    required this.configService,
+    required this.child,
+  });
+
+  @override
+  State<_VersionCheckWrapper> createState() => _VersionCheckWrapperState();
+}
+
+class _VersionCheckWrapperState extends State<_VersionCheckWrapper> {
+  bool _versionCheckComplete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Perform version check after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkVersion();
+    });
+  }
+
+  Future<void> _checkVersion() async {
+    final status = widget.configService.checkVersionStatus();
+    final config = widget.configService.appConfig;
+
+    // Check maintenance mode first
+    if (config.maintenanceMode) {
+      if (mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => MaintenanceDialog(config: config),
+        );
+      }
+      return; // Stay blocked
+    }
+
+    // Check for force update (non-dismissable)
+    if (status == VersionStatus.forceUpdate) {
+      if (mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => ForceUpdateDialog(
+            config: config,
+            currentVersion: widget.configService.currentVersion,
+          ),
+        );
+      }
+      return; // Stay blocked
+    }
+
+    // Check for optional update (dismissable)
+    if (status == VersionStatus.updateAvailable) {
+      if (mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (_) => UpdateAvailableDialog(
+            config: config,
+            currentVersion: widget.configService.currentVersion,
+            onDismiss: () {
+              setState(() {
+                _versionCheckComplete = true;
+              });
+            },
+          ),
+        );
+      }
+    }
+
+    // Mark as complete
+    if (mounted) {
+      setState(() {
+        _versionCheckComplete = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Always show the child, dialogs will overlay when needed
+    return widget.child;
   }
 }

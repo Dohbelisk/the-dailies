@@ -51,6 +51,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   String? _loadError;
 
+  // Crossword clue list controllers
+  TabController? _cluesTabController;
+  final ScrollController _acrossScrollController = ScrollController();
+  final ScrollController _downScrollController = ScrollController();
+  CrosswordClue? _previousSelectedClue;
+
   bool get isChallenge => widget.challengeId != null;
 
   @override
@@ -104,6 +110,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void dispose() {
     _timer?.cancel();
     _confettiController.dispose();
+    _cluesTabController?.dispose();
+    _acrossScrollController.dispose();
+    _downScrollController.dispose();
     super.dispose();
   }
 
@@ -735,11 +744,63 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
+  /// Scroll to the selected clue in the clue list and switch tabs if needed
+  void _scrollToSelectedClue(CrosswordClue clue, CrosswordPuzzle puzzle) {
+    // Ensure tab controller is initialized
+    if (_cluesTabController == null) return;
+
+    // Switch to the correct tab
+    final isAcross = clue.direction == 'across';
+    final targetTabIndex = isAcross ? 0 : 1;
+
+    if (_cluesTabController!.index != targetTabIndex) {
+      _cluesTabController!.animateTo(targetTabIndex);
+    }
+
+    // Find the index of this clue in the appropriate list
+    final clueList = isAcross ? puzzle.acrossClues : puzzle.downClues;
+    final clueIndex = clueList.indexWhere((c) => c.number == clue.number);
+
+    if (clueIndex == -1) return;
+
+    // Scroll to the clue (approximate height per item ~48-56 pixels for dense ListTile)
+    final scrollController = isAcross ? _acrossScrollController : _downScrollController;
+    const itemHeight = 52.0;
+    final targetOffset = (clueIndex * itemHeight).clamp(
+      0.0,
+      scrollController.hasClients ? scrollController.position.maxScrollExtent : double.infinity,
+    );
+
+    // Only scroll if controller is attached
+    if (scrollController.hasClients) {
+      scrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   Widget _buildCrosswordContent(BuildContext context) {
     return Consumer<GameProvider>(
       builder: (context, gameProvider, _) {
         if (gameProvider.crosswordPuzzle == null) {
           return const Center(child: CircularProgressIndicator());
+        }
+
+        final puzzle = gameProvider.crosswordPuzzle!;
+        final selectedClue = gameProvider.selectedClue;
+
+        // Initialize tab controller if needed
+        _cluesTabController ??= TabController(length: 2, vsync: this);
+
+        // Detect clue change and scroll to it
+        if (selectedClue != null && selectedClue != _previousSelectedClue) {
+          _previousSelectedClue = selectedClue;
+          // Schedule scroll after build completes
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToSelectedClue(selectedClue, puzzle);
+          });
         }
 
         return Column(
@@ -749,16 +810,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: CrosswordGrid(
-                  puzzle: gameProvider.crosswordPuzzle!,
+                  puzzle: puzzle,
                   selectedRow: gameProvider.selectedRow,
                   selectedCol: gameProvider.selectedCol,
-                  selectedClue: gameProvider.selectedClue,
-                  onCellTap: (row, col) => gameProvider.selectCell(row, col),
+                  selectedClue: selectedClue,
+                  onCellTap: (row, col) => gameProvider.selectCrosswordCell(row, col),
                 ),
               ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
             ),
-            if (gameProvider.selectedClue != null)
-              _buildClueDisplay(context, gameProvider.selectedClue!),
+            if (selectedClue != null)
+              _buildClueDisplay(context, selectedClue),
             Expanded(
               flex: 2,
               child: _buildCluesList(context, gameProvider),
@@ -812,46 +873,58 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Widget _buildCluesList(BuildContext context, GameProvider gameProvider) {
     final theme = Theme.of(context);
     final puzzle = gameProvider.crosswordPuzzle!;
-    
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          TabBar(
-            tabs: const [Tab(text: 'ACROSS'), Tab(text: 'DOWN')],
-            labelColor: theme.colorScheme.primary,
-            unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
-            indicatorColor: theme.colorScheme.primary,
+
+    return Column(
+      children: [
+        TabBar(
+          controller: _cluesTabController,
+          tabs: const [Tab(text: 'ACROSS'), Tab(text: 'DOWN')],
+          labelColor: theme.colorScheme.primary,
+          unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
+          indicatorColor: theme.colorScheme.primary,
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _cluesTabController,
+            children: [
+              _buildCluesListView(context, puzzle.acrossClues, gameProvider, _acrossScrollController),
+              _buildCluesListView(context, puzzle.downClues, gameProvider, _downScrollController),
+            ],
           ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _buildCluesListView(context, puzzle.acrossClues, gameProvider),
-                _buildCluesListView(context, puzzle.downClues, gameProvider),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildCluesListView(BuildContext context, List<CrosswordClue> clues, GameProvider gameProvider) {
+  Widget _buildCluesListView(
+    BuildContext context,
+    List<CrosswordClue> clues,
+    GameProvider gameProvider,
+    ScrollController scrollController,
+  ) {
     final theme = Theme.of(context);
-    
+
     return ListView.builder(
+      controller: scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: clues.length,
       itemBuilder: (context, index) {
         final clue = clues[index];
-        final isSelected = gameProvider.selectedClue == clue;
-        
+        final isSelected = gameProvider.selectedClue?.number == clue.number &&
+            gameProvider.selectedClue?.direction == clue.direction;
+
         return ListTile(
           dense: true,
           selected: isSelected,
           selectedTileColor: theme.colorScheme.primary.withOpacity(0.1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          leading: Text('${clue.number}', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: isSelected ? theme.colorScheme.primary : null)),
+          leading: Text(
+            '${clue.number}',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: isSelected ? theme.colorScheme.primary : null,
+            ),
+          ),
           title: Text(clue.clue, style: theme.textTheme.bodyMedium),
           onTap: () => gameProvider.selectClue(clue),
         );
