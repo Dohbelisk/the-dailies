@@ -411,7 +411,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+          color: theme.colorScheme.onSurface.withOpacity(0.1),
         ),
       ),
       child: Column(
@@ -420,7 +420,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: Icon(
               Icons.ads_click_rounded,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
             ),
             title: Text(
               'Personalized Ads',
@@ -429,7 +429,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(
               'See ads relevant to your interests',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
             trailing: Switch(
@@ -440,13 +440,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ),
-          Divider(height: 1, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+          Divider(height: 1, color: theme.colorScheme.onSurface.withOpacity(0.1)),
 
           // Analytics Toggle
           ListTile(
             leading: Icon(
               Icons.analytics_outlined,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
             ),
             title: Text(
               'Usage Analytics',
@@ -455,7 +455,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(
               'Help us improve the app',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
             trailing: Switch(
@@ -466,13 +466,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ),
-          Divider(height: 1, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+          Divider(height: 1, color: theme.colorScheme.onSurface.withOpacity(0.1)),
 
           // Privacy Policy
           ListTile(
             leading: Icon(
               Icons.privacy_tip_outlined,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
             ),
             title: Text(
               'Privacy Policy',
@@ -480,20 +480,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             trailing: Icon(
               Icons.chevron_right_rounded,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              color: theme.colorScheme.onSurface.withOpacity(0.4),
             ),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
             ),
           ),
-          Divider(height: 1, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+          Divider(height: 1, color: theme.colorScheme.onSurface.withOpacity(0.1)),
 
           // Terms of Service
           ListTile(
             leading: Icon(
               Icons.description_outlined,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
             ),
             title: Text(
               'Terms of Service',
@@ -501,7 +501,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             trailing: Icon(
               Icons.chevron_right_rounded,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              color: theme.colorScheme.onSurface.withOpacity(0.4),
             ),
             onTap: () => Navigator.push(
               context,
