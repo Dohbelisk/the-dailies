@@ -6,6 +6,7 @@ import { generateKillerSudoku } from 'killer-sudoku-generator';
 import { generate as generateWordSearchPuzzle } from '@sbj42/word-search-generator';
 
 // Crossword generator (npm package)
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const clg = require('crossword-layout-generator');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/the-dailies';
@@ -196,7 +197,7 @@ function createWordSearch(words: string[], theme: string, rows = 12, cols = 12):
 }
 
 // Generate Crossword using crossword-layout-generator
-function createCrossword(wordsWithClues: Array<{ word: string; clue: string }>, targetRows = 13, targetCols = 13): {
+function createCrossword(wordsWithClues: Array<{ word: string; clue: string }>, _targetRows = 13, _targetCols = 13): {
   rows: number;
   cols: number;
   grid: (string | null)[][];

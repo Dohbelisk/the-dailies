@@ -233,7 +233,7 @@ class _TheDailiesAppState extends State<TheDailiesApp> {
           color: colorScheme.onBackground,
         ),
       ),
-      cardTheme: CardThemeData(
+      cardTheme: CardTheme(
         color: colorScheme.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
