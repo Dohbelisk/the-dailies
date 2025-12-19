@@ -47,9 +47,11 @@ class Environment {
   );
 
   // IAP Product IDs
+  // Subscription product - must be configured in App Store Connect / Google Play Console
+  // with $1.99/month price and 3-day free trial
   static const String iapPremiumProductId = String.fromEnvironment(
     'IAP_PREMIUM_PRODUCT_ID',
-    defaultValue: 'premium_upgrade',
+    defaultValue: 'premium_monthly',
   );
 
   // Helper getters

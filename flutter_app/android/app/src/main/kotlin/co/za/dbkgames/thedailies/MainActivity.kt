@@ -1,4 +1,4 @@
-package com.example.puzzle_daily
+package co.za.dbkgames.thedailies
 
 import io.flutter.embedding.android.FlutterActivity
 

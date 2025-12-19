@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/environment.dart';
@@ -13,8 +15,10 @@ class PurchaseService {
   // Must match the ID configured in App Store Connect / Google Play Console
   static String get premiumProductId => Environment.iapPremiumProductId;
 
-  // SharedPreferences key for premium status backup
-  static const String _premiumPurchasedKey = 'premium_purchased';
+  // SharedPreferences keys
+  static const String _subscriptionActiveKey = 'subscription_active';
+  static const String _subscriptionExpiryKey = 'subscription_expiry';
+  static const String _trialUsedKey = 'trial_used';
 
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   final AdMobService _adMobService = AdMobService();
@@ -24,6 +28,8 @@ class PurchaseService {
   bool _isAvailable = false;
   bool _isPurchasing = false;
   ProductDetails? _premiumProduct;
+  DateTime? _subscriptionExpiry;
+  bool _trialUsed = false;
 
   // Callbacks for UI updates
   Function()? onPurchaseSuccess;
@@ -34,9 +40,25 @@ class PurchaseService {
   bool get isPremium => _adMobService.isPremiumUser;
   bool get isPurchasing => _isPurchasing;
   ProductDetails? get premiumProduct => _premiumProduct;
+  DateTime? get subscriptionExpiry => _subscriptionExpiry;
+  bool get trialUsed => _trialUsed;
 
   // Get the price string for display
-  String get premiumPriceString => _premiumProduct?.price ?? '\$4.99';
+  String get premiumPriceString => _premiumProduct?.price ?? '\$1.99/month';
+
+  // Get subscription details for display
+  String get subscriptionDetails {
+    if (_premiumProduct != null) {
+      return '${_premiumProduct!.price}/month';
+    }
+    return '\$1.99/month';
+  }
+
+  // Check if user can get free trial
+  bool get canGetFreeTrial => !_trialUsed;
+
+  // Trial duration display
+  String get trialDuration => '3 days';
 
   /// Initialize the purchase service
   Future<void> initialize() async {
@@ -44,9 +66,9 @@ class PurchaseService {
     _isAvailable = await _inAppPurchase.isAvailable();
 
     if (!_isAvailable) {
-      print('In-App Purchases not available on this device');
-      // Still check if we have a local record of premium purchase
-      await _checkLocalPremiumStatus();
+      debugPrint('In-App Purchases not available on this device');
+      // Still check if we have a local record of subscription
+      await _checkLocalSubscriptionStatus();
       return;
     }
 
@@ -54,16 +76,19 @@ class PurchaseService {
     _purchaseSubscription = _inAppPurchase.purchaseStream.listen(
       _handlePurchaseUpdates,
       onDone: () => _purchaseSubscription?.cancel(),
-      onError: (error) => print('Purchase stream error: $error'),
+      onError: (error) => debugPrint('Purchase stream error: $error'),
     );
 
     // Load product details
     await _loadProducts();
 
-    // Check for any pending purchases
-    await _checkLocalPremiumStatus();
+    // Check subscription status
+    await _checkLocalSubscriptionStatus();
 
-    print('PurchaseService initialized. Available: $_isAvailable, Premium: $isPremium');
+    // Load trial status
+    await _loadTrialStatus();
+
+    debugPrint('PurchaseService initialized. Available: $_isAvailable, Premium: $isPremium');
   }
 
   /// Load available products from the store
@@ -72,34 +97,61 @@ class PurchaseService {
       final response = await _inAppPurchase.queryProductDetails({premiumProductId});
 
       if (response.error != null) {
-        print('Error loading products: ${response.error}');
+        debugPrint('Error loading products: ${response.error}');
         return;
       }
 
       if (response.notFoundIDs.isNotEmpty) {
-        print('Products not found: ${response.notFoundIDs}');
+        debugPrint('Products not found: ${response.notFoundIDs}');
         // This is expected in development/testing
       }
 
       if (response.productDetails.isNotEmpty) {
         _premiumProduct = response.productDetails.first;
-        print('Premium product loaded: ${_premiumProduct!.title} - ${_premiumProduct!.price}');
+        debugPrint('Premium subscription loaded: ${_premiumProduct!.title} - ${_premiumProduct!.price}');
       }
     } catch (e) {
-      print('Exception loading products: $e');
+      debugPrint('Exception loading products: $e');
     }
   }
 
-  /// Check local storage for premium status (backup in case store is unavailable)
-  Future<void> _checkLocalPremiumStatus() async {
+  /// Check local storage for subscription status
+  Future<void> _checkLocalSubscriptionStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    final isPurchased = prefs.getBool(_premiumPurchasedKey) ?? false;
+    final isActive = prefs.getBool(_subscriptionActiveKey) ?? false;
+    final expiryTimestamp = prefs.getInt(_subscriptionExpiryKey);
 
-    if (isPurchased && !_adMobService.isPremiumUser) {
-      // Restore premium status from local backup
+    if (expiryTimestamp != null) {
+      _subscriptionExpiry = DateTime.fromMillisecondsSinceEpoch(expiryTimestamp);
+
+      // Check if subscription has expired
+      if (_subscriptionExpiry!.isAfter(DateTime.now())) {
+        if (!_adMobService.isPremiumUser) {
+          await _adMobService.setPremiumStatus(true);
+          debugPrint('Subscription status restored from local storage');
+        }
+      } else {
+        // Subscription expired
+        await _revokeSubscription();
+        debugPrint('Subscription expired');
+      }
+    } else if (isActive && !_adMobService.isPremiumUser) {
+      // Legacy check for older versions
       await _adMobService.setPremiumStatus(true);
-      print('Premium status restored from local storage');
     }
+  }
+
+  /// Load trial usage status
+  Future<void> _loadTrialStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    _trialUsed = prefs.getBool(_trialUsedKey) ?? false;
+  }
+
+  /// Mark trial as used
+  Future<void> _markTrialUsed() async {
+    _trialUsed = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_trialUsedKey, true);
   }
 
   /// Handle purchase updates from the store
@@ -111,18 +163,18 @@ class PurchaseService {
 
   /// Process a single purchase
   Future<void> _handlePurchase(PurchaseDetails purchase) async {
-    print('Processing purchase: ${purchase.productID} - ${purchase.status}');
+    debugPrint('Processing purchase: ${purchase.productID} - ${purchase.status}');
 
     if (purchase.status == PurchaseStatus.pending) {
       _isPurchasing = true;
-      print('Purchase pending...');
+      debugPrint('Purchase pending...');
       return;
     }
 
     _isPurchasing = false;
 
     if (purchase.status == PurchaseStatus.error) {
-      print('Purchase error: ${purchase.error}');
+      debugPrint('Purchase error: ${purchase.error}');
       onPurchaseError?.call(purchase.error?.message ?? 'Purchase failed');
 
       // Complete the purchase to clear it from the queue
@@ -133,7 +185,7 @@ class PurchaseService {
     }
 
     if (purchase.status == PurchaseStatus.canceled) {
-      print('Purchase canceled');
+      debugPrint('Purchase canceled');
 
       if (purchase.pendingCompletePurchase) {
         await _inAppPurchase.completePurchase(purchase);
@@ -146,7 +198,11 @@ class PurchaseService {
 
       // Verify this is our premium product
       if (purchase.productID == premiumProductId) {
-        await _grantPremium();
+        // Mark trial as used since they subscribed
+        await _markTrialUsed();
+
+        // Grant subscription access
+        await _grantSubscription();
 
         if (purchase.status == PurchaseStatus.restored) {
           onRestoreSuccess?.call();
@@ -162,19 +218,36 @@ class PurchaseService {
     }
   }
 
-  /// Grant premium status to the user
-  Future<void> _grantPremium() async {
+  /// Grant subscription access to the user
+  Future<void> _grantSubscription() async {
     // Update AdMobService (which all other services check)
     await _adMobService.setPremiumStatus(true);
 
-    // Also save locally as backup
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_premiumPurchasedKey, true);
+    // Set expiry to 30 days from now (will be refreshed on restore)
+    _subscriptionExpiry = DateTime.now().add(const Duration(days: 30));
 
-    print('Premium status granted!');
+    // Save locally as backup
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_subscriptionActiveKey, true);
+    await prefs.setInt(_subscriptionExpiryKey, _subscriptionExpiry!.millisecondsSinceEpoch);
+
+    debugPrint('Subscription granted! Expires: $_subscriptionExpiry');
   }
 
-  /// Initiate a premium purchase
+  /// Revoke subscription access
+  Future<void> _revokeSubscription() async {
+    await _adMobService.setPremiumStatus(false);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_subscriptionActiveKey, false);
+    await prefs.remove(_subscriptionExpiryKey);
+
+    _subscriptionExpiry = null;
+
+    debugPrint('Subscription revoked');
+  }
+
+  /// Initiate a subscription purchase
   Future<bool> purchasePremium() async {
     if (!_isAvailable) {
       onPurchaseError?.call('Store not available');
@@ -197,7 +270,7 @@ class PurchaseService {
     }
 
     if (isPremium) {
-      onPurchaseError?.call('Already premium');
+      onPurchaseError?.call('Already subscribed');
       return false;
     }
 
@@ -208,7 +281,8 @@ class PurchaseService {
         productDetails: _premiumProduct!,
       );
 
-      // For non-consumable products, use buyNonConsumable
+      // For subscriptions, we still use buyNonConsumable
+      // The subscription nature is configured in the store (App Store Connect / Play Console)
       final success = await _inAppPurchase.buyNonConsumable(
         purchaseParam: purchaseParam,
       );
@@ -236,9 +310,9 @@ class PurchaseService {
 
     try {
       await _inAppPurchase.restorePurchases();
-      print('Restore purchases initiated');
+      debugPrint('Restore purchases initiated');
     } catch (e) {
-      print('Restore purchases error: $e');
+      debugPrint('Restore purchases error: $e');
       onPurchaseError?.call('Could not restore purchases: $e');
     }
   }
@@ -252,7 +326,19 @@ class PurchaseService {
     if (!_isAvailable) return 'Store Unavailable';
     if (_isPurchasing) return 'Processing...';
     if (_premiumProduct == null) return 'Loading...';
-    return 'Upgrade to Premium';
+    return 'Subscribe to Premium';
+  }
+
+  /// Get subscription status details
+  String getSubscriptionStatusDetails() {
+    if (!isPremium) return '';
+    if (_subscriptionExpiry != null) {
+      final daysLeft = _subscriptionExpiry!.difference(DateTime.now()).inDays;
+      if (daysLeft > 0) {
+        return 'Renews in $daysLeft days';
+      }
+    }
+    return 'Active subscription';
   }
 
   /// Cleanup

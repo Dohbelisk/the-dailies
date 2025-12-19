@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +7,7 @@ import '../providers/theme_provider.dart';
 import '../services/audio_service.dart';
 import '../services/purchase_service.dart';
 import '../services/consent_service.dart';
-import '../services/config_service.dart';
+import '../services/remote_config_service.dart';
 import '../widgets/feedback_dialog.dart';
 import 'legal/privacy_policy_screen.dart';
 import 'legal/terms_of_service_screen.dart';
@@ -29,7 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final PurchaseService _purchaseService = PurchaseService();
   final AudioService _audioService = AudioService();
   final ConsentService _consentService = ConsentService();
-  final ConfigService _configService = ConfigService();
+  final RemoteConfigService _configService = RemoteConfigService();
 
   // Debug menu unlock
   int _versionTapCount = 0;
@@ -127,7 +128,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _onVersionTap() {
     // Check if debug menu is enabled via feature flag
-    if (!_configService.isFeatureEnabled('debug_menu_enabled')) {
+    // In debug mode, always allow access (for development)
+    if (!kDebugMode && !_configService.isFeatureEnabled('debug_menu')) {
       return;
     }
 
@@ -136,15 +138,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
 
     if (_versionTapCount >= _tapsToUnlock) {
-      // Reset counter and open debug menu
+      // Reset counter and show password dialog
       setState(() {
         _versionTapCount = 0;
       });
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const DebugMenuScreen()),
-      );
+      _showDebugPasswordDialog();
     } else if (_versionTapCount >= 4) {
       // Show hint after 4 taps
       final remaining = _tapsToUnlock - _versionTapCount;
@@ -155,6 +154,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     }
+  }
+
+  void _showDebugPasswordDialog() {
+    final passwordController = TextEditingController();
+    const correctPassword = '5nifrenypro';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Debug Access'),
+        content: TextField(
+          controller: passwordController,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Password',
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (value) {
+            if (value == correctPassword) {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DebugMenuScreen()),
+              );
+            } else {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Incorrect password')),
+              );
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (passwordController.text == correctPassword) {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DebugMenuScreen()),
+                );
+              } else {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Incorrect password')),
+                );
+              }
+            },
+            child: const Text('Enter'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handlePurchase() async {
@@ -709,6 +766,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
+                  if (_purchaseService.getSubscriptionStatusDetails().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _purchaseService.getSubscriptionStatusDetails(),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -774,6 +840,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildPremiumFeature(theme, Icons.refresh, 'Unlimited retries'),
           _buildPremiumFeature(theme, Icons.block, 'No ads ever'),
           const SizedBox(height: 20),
+          // Trial banner for eligible users
+          if (_purchaseService.canGetFreeTrial) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.green.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.card_giftcard,
+                    color: Colors.green[700],
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${_purchaseService.trialDuration} free trial available!',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           Row(
             children: [
               Expanded(
@@ -796,9 +895,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Unlock Premium',
-                          style: TextStyle(
+                      : Text(
+                          _purchaseService.canGetFreeTrial
+                              ? 'Start Free Trial'
+                              : 'Subscribe Now',
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
@@ -812,7 +913,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: TextButton(
               onPressed: _isLoading ? null : _handleRestore,
               child: Text(
-                'Restore Purchase',
+                'Restore Subscription',
                 style: TextStyle(
                   color: theme.colorScheme.primary.withOpacity(0.8),
                 ),
@@ -821,10 +922,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           Center(
             child: Text(
-              'One-time purchase. No subscriptions.',
+              _purchaseService.canGetFreeTrial
+                  ? '${_purchaseService.subscriptionDetails} after trial. Cancel anytime.'
+                  : '${_purchaseService.subscriptionDetails}. Cancel anytime.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.5),
               ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],

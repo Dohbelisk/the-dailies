@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/config_service.dart';
+import '../services/remote_config_service.dart';
+import '../services/firebase_service.dart';
 import '../config/environment.dart';
 
 /// Hidden debug menu for developers and testers
@@ -12,7 +13,8 @@ class DebugMenuScreen extends StatefulWidget {
 }
 
 class _DebugMenuScreenState extends State<DebugMenuScreen> {
-  final ConfigService _configService = ConfigService();
+  final RemoteConfigService _configService = RemoteConfigService();
+  final FirebaseService _firebaseService = FirebaseService();
   bool _isRefreshing = false;
 
   @override
@@ -41,6 +43,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     _buildVersionSection(theme),
+                    const SizedBox(height: 24),
+                    _buildFirebaseSection(theme),
                     const SizedBox(height: 24),
                     _buildEnvironmentSection(theme),
                     const SizedBox(height: 24),
@@ -101,6 +105,45 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
     );
   }
 
+  Widget _buildFirebaseSection(ThemeData theme) {
+    final lastFetch = _configService.lastFetch;
+    final fcmToken = _firebaseService.fcmToken;
+
+    return _buildSection(
+      theme,
+      title: 'Firebase',
+      icon: Icons.cloud,
+      children: [
+        _buildInfoRow(
+          'Firebase Core',
+          _firebaseService.isInitialized ? 'Initialized' : 'Not Initialized',
+          valueColor: _firebaseService.isInitialized ? Colors.green : Colors.red,
+        ),
+        _buildInfoRow(
+          'Crashlytics',
+          _firebaseService.crashlyticsEnabled ? 'Enabled' : 'Disabled',
+          valueColor: _firebaseService.crashlyticsEnabled ? Colors.green : Colors.orange,
+        ),
+        _buildInfoRow(
+          'Remote Config',
+          _configService.isInitialized ? 'Initialized' : 'Not Initialized',
+          valueColor: _configService.isInitialized ? Colors.green : Colors.red,
+        ),
+        if (lastFetch != null)
+          _buildInfoRow(
+            'Last Fetch',
+            '${lastFetch.hour}:${lastFetch.minute.toString().padLeft(2, '0')}',
+          ),
+        const Divider(),
+        _buildInfoRow(
+          'FCM Token',
+          fcmToken != null ? '${fcmToken.substring(0, 20)}...' : 'Not Available',
+          copyable: fcmToken != null,
+        ),
+      ],
+    );
+  }
+
   Widget _buildEnvironmentSection(ThemeData theme) {
     return _buildSection(
       theme,
@@ -115,7 +158,7 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
   }
 
   Widget _buildFeatureFlagsSection(ThemeData theme) {
-    final allFlags = _configService.allFlagKeys.toList()..sort();
+    final allStatuses = _configService.allFeatureStatuses..sort((a, b) => a.key.compareTo(b.key));
 
     return _buildSection(
       theme,
@@ -126,28 +169,52 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         child: const Text('Clear Overrides'),
       ),
       children: [
-        if (allFlags.isEmpty)
+        if (allStatuses.isEmpty)
           const Padding(
             padding: EdgeInsets.all(16),
             child: Text('No feature flags loaded'),
           )
         else
-          ...allFlags.map((key) => _buildFlagRow(key, theme)),
+          ...allStatuses.map((status) => _buildFlagRow(status, theme)),
       ],
     );
   }
 
-  Widget _buildFlagRow(String key, ThemeData theme) {
-    final serverValue = _configService.featureFlags[key];
-    final override = _configService.getFlagOverride(key);
-    final effectiveValue = _configService.isFeatureEnabled(key);
-    final hasOverride = override != null;
+  Widget _buildFlagRow(FeatureStatus status, ThemeData theme) {
+    final displayName = status.key.replaceFirst('feature_', '');
+
+    // Determine colors based on status
+    Color statusColor;
+    Color statusBgColor;
+    IconData statusIcon;
+
+    if (status.hasOverride) {
+      statusColor = theme.colorScheme.tertiary;
+      statusBgColor = theme.colorScheme.tertiaryContainer.withOpacity(0.3);
+      statusIcon = status.enabled ? Icons.check : Icons.close;
+    } else if (status.isVersionLocked) {
+      statusColor = Colors.orange;
+      statusBgColor = Colors.orange.withOpacity(0.1);
+      statusIcon = Icons.lock;
+    } else if (status.enabled) {
+      statusColor = Colors.green;
+      statusBgColor = Colors.green.withOpacity(0.1);
+      statusIcon = Icons.check;
+    } else {
+      statusColor = Colors.red;
+      statusBgColor = Colors.red.withOpacity(0.1);
+      statusIcon = Icons.close;
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: hasOverride ? theme.colorScheme.tertiaryContainer.withOpacity(0.3) : null,
+        color: statusBgColor,
         borderRadius: BorderRadius.circular(8),
+        border: status.hasOverride
+            ? Border.all(color: theme.colorScheme.tertiary, width: 2)
+            : null,
       ),
       child: Row(
         children: [
@@ -156,16 +223,23 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  key,
+                  displayName,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (hasOverride)
+                const SizedBox(height: 2),
+                Text(
+                  status.reason,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: statusColor,
+                  ),
+                ),
+                if (status.minVersion.isNotEmpty && status.minVersion != '0.0.0' && !status.hasOverride)
                   Text(
-                    'Server: ${serverValue ?? 'N/A'} → Override: $override',
+                    'Min version: ${status.minVersion}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.tertiary,
+                      color: theme.colorScheme.onSurface.withOpacity(0.5),
                     ),
                   ),
               ],
@@ -173,8 +247,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
           ),
           // Three-state toggle: null (use server), true, false
           PopupMenuButton<bool?>(
-            initialValue: override,
-            onSelected: (value) => _setFlagOverride(key, value),
+            initialValue: status.override,
+            onSelected: (value) => _setFlagOverride(status.key, value),
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: null,
@@ -183,10 +257,17 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
                     Icon(
                       Icons.cloud,
                       size: 18,
-                      color: override == null ? theme.colorScheme.primary : null,
+                      color: !status.hasOverride ? theme.colorScheme.primary : null,
                     ),
                     const SizedBox(width: 8),
-                    Text('Use Server (${serverValue ?? 'N/A'})'),
+                    Expanded(
+                      child: Text(
+                        status.minVersion.isEmpty || status.minVersion == '0.0.0'
+                            ? 'Use Server (disabled)'
+                            : 'Use Server (v${status.minVersion}+)',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -197,7 +278,7 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
                     Icon(
                       Icons.check_circle,
                       size: 18,
-                      color: override == true ? Colors.green : null,
+                      color: status.override == true ? Colors.green : null,
                     ),
                     const SizedBox(width: 8),
                     const Text('Force Enable'),
@@ -211,7 +292,7 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
                     Icon(
                       Icons.cancel,
                       size: 18,
-                      color: override == false ? Colors.red : null,
+                      color: status.override == false ? Colors.red : null,
                     ),
                     const SizedBox(width: 8),
                     const Text('Force Disable'),
@@ -222,32 +303,26 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: effectiveValue
-                    ? Colors.green.withOpacity(0.2)
-                    : Colors.red.withOpacity(0.2),
+                color: statusColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: effectiveValue ? Colors.green : Colors.red,
-                  width: hasOverride ? 2 : 1,
+                  color: statusColor,
+                  width: status.hasOverride ? 2 : 1,
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    effectiveValue ? Icons.check : Icons.close,
-                    size: 16,
-                    color: effectiveValue ? Colors.green : Colors.red,
-                  ),
+                  Icon(statusIcon, size: 16, color: statusColor),
                   const SizedBox(width: 4),
                   Text(
-                    effectiveValue ? 'ON' : 'OFF',
+                    status.enabled ? 'ON' : 'OFF',
                     style: TextStyle(
-                      color: effectiveValue ? Colors.green : Colors.red,
+                      color: statusColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (hasOverride) ...[
+                  if (status.hasOverride) ...[
                     const SizedBox(width: 4),
                     Icon(
                       Icons.edit,
@@ -458,7 +533,7 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
 
   Future<void> _copyDebugInfo() async {
     final config = _configService.appConfig;
-    final flags = _configService.featureFlags;
+    final statuses = _configService.allFeatureStatuses;
 
     final info = '''
 Debug Info - The Dailies
@@ -467,16 +542,22 @@ Version: ${_configService.fullVersion}
 Environment: ${Environment.environment}
 API URL: ${Environment.apiUrl}
 
-Server Config:
+Firebase:
+- Core Initialized: ${_firebaseService.isInitialized}
+- Crashlytics: ${_firebaseService.crashlyticsEnabled ? 'Enabled' : 'Disabled'}
+- Remote Config: ${_configService.isInitialized ? 'Initialized' : 'Not Initialized'}
+- FCM Token: ${_firebaseService.fcmToken ?? 'N/A'}
+
+Remote Config:
 - Latest Version: ${config.latestVersion}
 - Min Version: ${config.minVersion}
 - Maintenance Mode: ${config.maintenanceMode}
 
-Feature Flags:
-${flags.entries.map((e) => '- ${e.key}: ${e.value}').join('\n')}
+Feature Flags (version-based):
+${statuses.map((s) => '- ${s.key}: ${s.enabled ? "ON" : "OFF"} (${s.reason})').join('\n')}
 
 Overrides:
-${_configService.allFlagKeys.where((k) => _configService.hasFlagOverride(k)).map((k) => '- $k: ${_configService.getFlagOverride(k)}').join('\n')}
+${statuses.where((s) => s.hasOverride).map((s) => '- ${s.key}: ${s.override}').join('\n')}
 ''';
 
     await Clipboard.setData(ClipboardData(text: info));

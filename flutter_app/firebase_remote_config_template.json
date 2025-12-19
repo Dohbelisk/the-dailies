@@ -1,0 +1,73 @@
+{
+  "parameters": {
+    "app_latest_version": {
+      "defaultValue": {
+        "value": "1.0.0"
+      },
+      "description": "Latest app version available. Users below this will see 'Update Available' prompt."
+    },
+    "app_min_version": {
+      "defaultValue": {
+        "value": "1.0.0"
+      },
+      "description": "Minimum supported app version. Users below this will be forced to update."
+    },
+    "update_url_ios": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "App Store URL for iOS updates"
+    },
+    "update_url_android": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "Play Store URL for Android updates"
+    },
+    "update_message": {
+      "defaultValue": {
+        "value": "A new version of The Dailies is available with improvements and new features."
+      },
+      "description": "Message shown when optional update is available"
+    },
+    "force_update_message": {
+      "defaultValue": {
+        "value": "This version is no longer supported. Please update to continue playing."
+      },
+      "description": "Message shown when force update is required"
+    },
+    "maintenance_mode": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "description": "Set to true to show maintenance screen to all users"
+    },
+    "maintenance_message": {
+      "defaultValue": {
+        "value": "We're performing scheduled maintenance to improve your experience. Please check back shortly."
+      },
+      "description": "Message shown during maintenance mode"
+    },
+    "feature_debug_menu": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "Min app version for debug menu access. Empty = disabled. Example: '1.0.0' enables for all versions."
+    },
+    "feature_challenges": {
+      "defaultValue": {
+        "value": "1.0.0"
+      },
+      "description": "Min app version for challenges feature. Empty = disabled."
+    },
+    "feature_friends": {
+      "defaultValue": {
+        "value": "1.0.0"
+      },
+      "description": "Min app version for friends/social feature. Empty = disabled."
+    }
+  },
+  "version": {
+    "versionNumber": "1"
+  }
+}

@@ -16,7 +16,9 @@ import 'services/purchase_service.dart';
 import 'services/friends_service.dart';
 import 'services/challenge_service.dart';
 import 'services/consent_service.dart';
-import 'services/config_service.dart';
+import 'services/firebase_service.dart';
+import 'services/remote_config_service.dart';
+import 'services/notification_service.dart';
 import 'providers/theme_provider.dart';
 import 'providers/game_provider.dart';
 import 'screens/home_screen.dart';
@@ -31,15 +33,28 @@ void main() async {
     Environment.printConfig();
   }
 
+  // Initialize Firebase Core (must be first)
+  await FirebaseService().initialize();
+
   // Initialize Auth Service
   final authService = AuthService();
   await authService.initialize();
 
-  // Initialize Consent Service (needed before AdMob for GDPR compliance)
+  // Initialize Consent Service (needed before AdMob/Crashlytics for GDPR compliance)
   await ConsentService().initialize();
+
+  // Initialize Crashlytics (respects consent settings)
+  await FirebaseService().initializeCrashlytics();
 
   // Initialize AdMob (will respect consent settings)
   await AdMobService().initialize();
+
+  // Initialize Remote Config Service (replaces backend config)
+  await RemoteConfigService().initialize();
+
+  // Initialize FCM and Notification Service
+  await FirebaseService().initializeFCM();
+  await NotificationService().initialize();
 
   // Initialize Hint Service
   await HintService().initialize();
@@ -52,9 +67,6 @@ void main() async {
 
   // Initialize Audio Service
   await AudioService().initialize();
-
-  // Initialize Config Service (feature flags and versioning)
-  await ConfigService().initialize();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -82,7 +94,7 @@ class TheDailiesApp extends StatefulWidget {
 
 class _TheDailiesAppState extends State<TheDailiesApp> {
   bool _themeSelectionComplete = false;
-  final ConfigService _configService = ConfigService();
+  final RemoteConfigService _configService = RemoteConfigService();
 
   void _onThemeSelectionComplete() {
     setState(() {
@@ -233,13 +245,13 @@ class _TheDailiesAppState extends State<TheDailiesApp> {
           color: colorScheme.onBackground,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: colorScheme.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: colorScheme.onBackground.withOpacity(0.1),
+            color: colorScheme.onSurface.withOpacity(0.1),
             width: 1,
           ),
         ),
@@ -265,7 +277,7 @@ class _TheDailiesAppState extends State<TheDailiesApp> {
 
 /// Wrapper widget that checks app version on startup and shows appropriate dialogs
 class _VersionCheckWrapper extends StatefulWidget {
-  final ConfigService configService;
+  final RemoteConfigService configService;
   final Widget child;
 
   const _VersionCheckWrapper({
