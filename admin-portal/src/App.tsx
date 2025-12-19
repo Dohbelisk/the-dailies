@@ -8,20 +8,28 @@ import PuzzleCreate from './pages/PuzzleCreate'
 import PuzzleEdit from './pages/PuzzleEdit'
 import PuzzleGenerate from './pages/PuzzleGenerate'
 import FeedbackList from './pages/FeedbackList'
+import PrivacyPolicy from './pages/legal/PrivacyPolicy'
+import TermsOfService from './pages/legal/TermsOfService'
+import Support from './pages/legal/Support'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore()
-  
+
   if (!token) {
     return <Navigate to="/login" replace />
   }
-  
+
   return <>{children}</>
 }
 
 export default function App() {
   return (
     <Routes>
+      {/* Public Legal Pages */}
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/support" element={<Support />} />
+
       <Route path="/login" element={<Login />} />
       <Route
         path="/"

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../services/config_service.dart';
+import '../services/remote_config_service.dart';
 
 /// Dismissable dialog shown when an update is available
 class UpdateAvailableDialog extends StatelessWidget {
-  final AppConfig config;
+  final RemoteAppConfig config;
   final String currentVersion;
   final VoidCallback? onDismiss;
 
@@ -106,7 +106,7 @@ class UpdateAvailableDialog extends StatelessWidget {
 
 /// Non-dismissable dialog shown when force update is required
 class ForceUpdateDialog extends StatelessWidget {
-  final AppConfig config;
+  final RemoteAppConfig config;
   final String currentVersion;
 
   const ForceUpdateDialog({
@@ -199,7 +199,7 @@ class ForceUpdateDialog extends StatelessWidget {
 
 /// Maintenance mode dialog
 class MaintenanceDialog extends StatelessWidget {
-  final AppConfig config;
+  final RemoteAppConfig config;
 
   const MaintenanceDialog({
     super.key,
@@ -239,7 +239,7 @@ class MaintenanceDialog extends StatelessWidget {
           TextButton(
             onPressed: () {
               // Refresh to check if maintenance is over
-              ConfigService().refreshConfig();
+              RemoteConfigService().refreshConfig();
             },
             child: const Text('Retry'),
           ),
@@ -251,7 +251,7 @@ class MaintenanceDialog extends StatelessWidget {
 
 /// Helper function to show version check dialogs
 Future<void> showVersionCheckDialog(BuildContext context) async {
-  final configService = ConfigService();
+  final configService = RemoteConfigService();
   final status = configService.checkVersionStatus();
   final config = configService.appConfig;
 
