@@ -2,24 +2,24 @@
 ///
 /// Values are set at compile time using --dart-define flags.
 ///
-/// Development (default - uses localhost):
+/// Production (default - uses deployed Render API):
 ///   flutter run
+///   flutter build apk
+///
+/// Development (local backend):
+///   flutter run --dart-define=ENV=development --dart-define=API_URL=http://localhost:3000/api
 ///
 /// Development (with real backend on local network):
 ///   flutter run --dart-define=API_URL=http://YOUR_LOCAL_IP:3000/api
-///
-/// Production (Render):
-///   flutter run --dart-define=ENV=production --dart-define=API_URL=https://the-dailies-api.onrender.com/api
-///   flutter build apk --dart-define=ENV=production --dart-define=API_URL=https://the-dailies-api.onrender.com/api
 class Environment {
   static const String environment = String.fromEnvironment(
     'ENV',
-    defaultValue: 'development',
+    defaultValue: 'production',
   );
 
   static const String apiUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'http://localhost:3000/api',
+    defaultValue: 'https://the-dailies-api.onrender.com/api',
   );
 
   // AdMob configuration - Production IDs (The Dailies)

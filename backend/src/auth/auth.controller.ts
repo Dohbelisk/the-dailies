@@ -4,7 +4,8 @@ import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
-class LoginDto {
+// LoginDto used for Swagger documentation
+class _LoginDto {
   email: string;
   password: string;
 }

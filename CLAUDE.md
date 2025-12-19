@@ -6,9 +6,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The Dailies is a multi-platform daily puzzle game featuring Sudoku, Killer Sudoku, Crossword, and Word Search puzzles. The project consists of three main components:
 
-- **Flutter Mobile App** (`flutter_app/`) - Cross-platform mobile application
+- **Flutter Mobile App** (`flutter_app/`) - Cross-platform mobile application (iOS, Android, Web)
 - **NestJS Backend API** (`backend/`) - RESTful API with MongoDB and JWT authentication
 - **React Admin Portal** (`admin-portal/`) - Web-based puzzle management dashboard
+
+**Current Status:** ~97% complete - All core features implemented
+
+---
+
+## Git Workflow
+
+- **Default branch for development:** `develop`
+- **Production branch:** `main`
+- All commits should be made to `develop` unless otherwise specified
+- PRs should target `develop` by default
+- Merges from `develop` to `main` trigger production deployments
+
+---
 
 ## Quick Start - All Services
 
@@ -40,100 +54,12 @@ start-all.bat
 ```
 
 ### What Gets Started
-- ✅ Backend API on `http://localhost:3000`
-- ✅ Swagger docs on `http://localhost:3000/api/docs`
-- ✅ Admin portal on `http://localhost:5173`
-- ✅ Auto-installs dependencies if missing
-- ✅ Creates `.env` if needed
-- ✅ Shows live logs from all services
-
----
-
-## Monetization System
-
-The app uses a **freemium model** with AdMob advertising, token-based archive access, and in-app purchase subscriptions.
-
-### Ad Implementation (✅ Complete)
-
-**AdMob Service** (`flutter_app/lib/services/admob_service.dart`):
-- Banner ads on home screen (bottom placement)
-- Interstitial ads after puzzle completion (every 2-3 games)
-- Rewarded video ads for hints (watch video → get 3 hints)
-- Rewarded video ads for tokens (watch video → get 5 tokens)
-- Premium user detection (automatically skips all ads)
-
-**Hint Service** (`flutter_app/lib/services/hint_service.dart`):
-- 3 free hints per day for free users
-- Watch rewarded video ads for 3 more hints
-- Daily reset at midnight
-- Unlimited hints for premium users
-
-**Configuration Files:**
-- Android: `flutter_app/android/app/src/main/AndroidManifest.xml`
-- iOS: `flutter_app/ios/Runner/Info.plist`
-
-**Test Ad Units** (currently active):
-- ⚠️ Must be replaced with production IDs before release
-- See `MONETIZATION.md` and `ADS_IMPLEMENTATION.md` for details
-
-### Archive & Token System (✅ Complete)
-
-**Token Service** (`flutter_app/lib/services/token_service.dart`):
-- Token-based economy for archive puzzle access
-- 1 free token per day (resets at midnight)
-- Watch rewarded video ads to earn 5 tokens
-- Token costs: Easy (1), Medium (2), Hard/Expert (3)
-- Premium users bypass token requirements entirely
-
-**Archive Screen** (`flutter_app/lib/screens/archive_screen.dart`):
-- Browse and play puzzles from previous days
-- Date navigation (swipe through past dates)
-- Locked puzzle UI for insufficient tokens
-- "Get Tokens" dialog with multiple options
-- Token balance display
-
-**Token Balance Widget** (`flutter_app/lib/widgets/token_balance_widget.dart`):
-- Displays current token count for free users
-- Shows "Premium" badge for premium users
-- Tappable to navigate to archive
-
-**User Flow:**
-1. Free users can only play today's puzzles for free
-2. Archive puzzles cost tokens (1-3 based on difficulty)
-3. Watch ads to earn tokens or go premium for unlimited access
-
-### Revenue Model
-
-**Free Tier (Ad-Supported):**
-- Banner ads (~$0.50 CPM)
-- Interstitial ads (~$3-5 CPM)
-- Rewarded ads for hints (~$10-15 CPM)
-- Rewarded ads for tokens (~$10-15 CPM)
-- Expected: $0.50 - $3.00 per user per month
-
-**Premium Tier ($4.99/month or $39.99/year):**
-- Ad-free experience
-- Unlimited hints
-- Unlimited archive access (no tokens needed)
-- Advanced statistics (planned)
-- Custom themes (planned)
-
-### Documentation
-
-- `MONETIZATION.md` - Comprehensive monetization strategy
-- `ADS_IMPLEMENTATION.md` - Technical implementation guide for AdMob
-- `ARCHIVE_SYSTEM.md` - Archive and token system guide
-- Production checklist included in all documents
-
-### Next Steps for Monetization
-
-1. [ ] Test archive and token system on device
-2. [ ] Implement SubscriptionService for in-app purchases
-3. [ ] Add backend subscription endpoints
-4. [ ] Build revenue analytics dashboard (include token metrics)
-5. [ ] Replace test ad IDs with production IDs
-6. [ ] Optional: Add token purchase IAPs
-7. [ ] Add privacy policy and GDPR compliance
+- Backend API on `http://localhost:3000`
+- Swagger docs on `http://localhost:3000/api/docs`
+- Admin portal on `http://localhost:5173`
+- Auto-installs dependencies if missing
+- Creates `.env` if needed
+- Shows live logs from all services
 
 ---
 
@@ -156,10 +82,8 @@ npm run seed
 # Development
 npm run start:dev
 
-# Build
+# Build & Production
 npm run build
-
-# Production
 npm run start:prod
 
 # Testing
@@ -175,57 +99,35 @@ npm run lint
 - Email: `admin@thedailies.app`
 - Password: `admin123`
 
-**API will be at:** `http://localhost:3000`
-**Swagger docs at:** `http://localhost:3000/api/docs`
-
 ### Admin Portal (React + Vite)
 ```bash
 cd admin-portal
 
-# Install dependencies
 npm install
-
-# Development
-npm run dev
-
-# Build
-npm run build
-
-# Preview production build
-npm run preview
-
-# Linting
-npm run lint
+npm run dev      # Development
+npm run build    # Production build
+npm run preview  # Preview production
+npm run lint     # Linting
 ```
 
-**Portal will be at:** `http://localhost:5173`
+**Portal at:** `http://localhost:5173`
 
 ### Flutter App
 ```bash
 cd flutter_app
 
-# Get dependencies
-flutter pub get
-
-# Run on connected device/emulator
-flutter run
-
-# Build for specific platform
-flutter build apk        # Android
-flutter build ios        # iOS
-flutter build web        # Web
-
-# Run tests
-flutter test
-
-# Analyze code
-flutter analyze
+flutter pub get           # Get dependencies
+flutter run               # Run on device/emulator
+flutter build apk         # Android
+flutter build ios         # iOS
+flutter build web         # Web
+flutter test              # Run tests
+flutter analyze           # Analyze code
 ```
 
-**Important:** Update `lib/services/api_service.dart` line 7 with your backend URL before running:
-```dart
-static const String baseUrl = 'http://YOUR_SERVER_IP:3000/api';
-```
+**Note:** Update API URL in `lib/config/environment.dart` or `lib/services/api_service.dart` before running.
+
+---
 
 ## Architecture
 
@@ -233,11 +135,16 @@ static const String baseUrl = 'http://YOUR_SERVER_IP:3000/api';
 
 **Module Structure:**
 - `auth/` - JWT authentication with Passport (local & JWT strategies), admin role guard
-- `users/` - User management with bcrypt password hashing
-- `puzzles/` - CRUD operations for puzzles with MongoDB indexes on `gameType`, `date`, `isActive`
-- `scores/` - Score tracking and user statistics
-- `seeds/` - Database seeding script
-- `utils/` - Puzzle generation utilities (SudokuGenerator, KillerSudokuGenerator, CrosswordGenerator, WordSearchGenerator)
+- `users/` - User management with bcrypt password hashing, friend codes
+- `puzzles/` - CRUD operations for puzzles with MongoDB indexes
+- `scores/` - Score tracking, user statistics, streaks
+- `friends/` - Friend system with requests and friend codes
+- `challenges/` - Head-to-head multiplayer puzzle challenges
+- `feedback/` - User feedback and bug reports
+- `config/` - App configuration, feature flags, and version management
+- `email/` - Email notifications (via Nodemailer)
+- `seeds/` - Database seeding scripts
+- `utils/` - Puzzle generators (Sudoku, Killer Sudoku, Crossword, Word Search)
 
 **Key Patterns:**
 - All modules follow NestJS module/controller/service pattern
@@ -245,35 +152,150 @@ static const String baseUrl = 'http://YOUR_SERVER_IP:3000/api';
 - Swagger decorators on controllers for auto-generated API docs
 - Guards: `JwtAuthGuard` for authentication, `AdminGuard` for admin-only routes
 - Strategies: `LocalStrategy` for login, `JwtStrategy` for token validation
+- JWT expiry: 7 days
 
-**Puzzle Schema:**
-The `Puzzle` model stores all game types with a flexible `puzzleData` field:
-- `gameType`: enum - sudoku, killerSudoku, crossword, wordSearch
-- `difficulty`: enum - easy, medium, hard, expert
-- `date`: Date - puzzle scheduled date
-- `puzzleData`: Object - game-specific data (grid, clues, cages, etc.)
-- `solution`: Object - solution data
-- `targetTime`: number - expected completion time in seconds
-- `isActive`: boolean - whether puzzle is published
+**Database Schemas:**
+
+```typescript
+// User Schema
+User {
+  email: string (unique)
+  password: string (hashed)
+  username: string
+  friendCode: string (unique, 8-char alphanumeric)
+  role: 'user' | 'admin'
+  isActive: boolean
+}
+
+// Puzzle Schema
+Puzzle {
+  gameType: 'sudoku' | 'killerSudoku' | 'crossword' | 'wordSearch'
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert'
+  date: Date
+  puzzleData: Object
+  solution: Object
+  targetTime: number (seconds)
+  title?: string
+  description?: string
+  isActive: boolean
+}
+
+// Score Schema
+Score {
+  puzzleId: ObjectId
+  userId?: ObjectId
+  deviceId?: string
+  time: number
+  score: number
+  mistakes: number
+  hintsUsed: number
+  completed: boolean
+}
+
+// Friend & FriendRequest Schemas
+Friend { userId, friendId, friendsSince }
+FriendRequest { senderId, receiverId, status: 'pending' | 'accepted' | 'declined' }
+
+// Challenge Schema
+Challenge {
+  challengerId, opponentId, puzzleId
+  gameType, difficulty
+  status: 'pending' | 'accepted' | 'declined' | 'completed' | 'expired' | 'cancelled'
+  challengerScore/Time/Mistakes, challengerCompleted
+  opponentScore/Time/Mistakes, opponentCompleted
+  winnerId, expiresAt (24h), message?
+}
+
+// Feedback Schema
+Feedback {
+  type: 'bug_report' | 'new_game_suggestion' | 'puzzle_suggestion' | 'puzzle_mistake' | 'general'
+  message, email?, status, adminNotes?
+  puzzleId?, gameType?, difficulty?, puzzleDate?, deviceInfo?
+}
+
+// AppConfig Schema (singleton, configId='main')
+AppConfig {
+  configId: 'main'
+  latestVersion: string     // Latest available app version
+  minVersion: string        // Minimum required (force update below this)
+  updateUrl: string         // App store URL
+  updateMessage: string     // Optional update dialog message
+  forceUpdateMessage: string // Force update dialog message
+  maintenanceMode: boolean  // Block app access
+  maintenanceMessage: string
+}
+
+// FeatureFlag Schema
+FeatureFlag {
+  key: string (unique)      // e.g., 'challenges_enabled', 'debug_menu_enabled'
+  name: string              // Human-readable name
+  description: string
+  enabled: boolean          // Global state
+  minAppVersion?: string    // Enable only for >= this version
+  maxAppVersion?: string    // Enable only for <= this version
+  enabledForUserIds: string[] // Beta user IDs
+  rolloutPercentage: number // 0-100 for gradual rollouts
+  expiresAt?: Date          // Auto-disable after this date
+  metadata: object          // Additional config data
+}
+```
 
 ### Flutter App (Provider Pattern)
 
 **State Management:**
-- Uses Provider for state management
-- `GameProvider` (`lib/providers/game_provider.dart`) - Central game state for all puzzle types
-- `ThemeProvider` (`lib/providers/theme_provider.dart`) - Dark mode and theme management
+- Provider for reactive state management
+- `GameProvider` - Central game state for all puzzle types
+- `ThemeProvider` - Dark mode and theme management (light/dark/system)
+- `AuthService` - JWT token management with SharedPreferences
 
 **Services:**
-- `ApiService` - HTTP client for backend communication, includes offline mock data fallback
-- `GameService` - Game logic and validation
-- `AudioService` - Sound effects management
+
+| Service | Purpose |
+|---------|---------|
+| `ApiService` | HTTP client, offline mock data fallback |
+| `AuthService` | JWT auth, token persistence, user state |
+| `GameService` | Puzzle fetching and parsing |
+| `ConfigService` | Feature flags, version checking, app config |
+| `AdMobService` | Rewarded video ads (singleton) |
+| `HintService` | 3 free hints/day + ad rewards |
+| `TokenService` | Archive access tokens |
+| `PurchaseService` | In-app purchases (premium subscription) |
+| `AudioService` | Sound effects, music, haptics |
+| `FriendsService` | Friend list, requests, search |
+| `ChallengeService` | Multiplayer challenges |
+| `ConsentService` | GDPR consent management |
+
+**Screens:**
+
+| Screen | Purpose |
+|--------|---------|
+| `HomeScreen` | Today's puzzles, navigation |
+| `GameScreen` | Puzzle gameplay (all 4 types) |
+| `ArchiveScreen` | Past puzzles with token access |
+| `StatsScreen` | User statistics |
+| `SettingsScreen` | Audio, theme, privacy, IAP |
+| `DebugMenuScreen` | Hidden debug menu for feature flag overrides |
+| `FriendsScreen` | Friend list, requests, search |
+| `FriendProfileScreen` | Friend details, head-to-head stats |
+| `ChallengesScreen` | Pending, active, completed challenges |
+| `LoginScreen` / `RegisterScreen` | Authentication |
+| `ThemeSelectionScreen` | First-launch theme picker |
+| `TermsOfServiceScreen` / `PrivacyPolicyScreen` | Legal |
+
+**Widgets:**
+- `SudokuGrid`, `KillerSudokuGrid`, `CrosswordGrid`, `WordSearchGrid`
+- `NumberPad`, `KeyboardInput`
+- `GameTimer`, `PuzzleCard`, `TokenBalanceWidget`
+- `CompletionDialog`, `FeedbackDialog`, `ConsentDialog`
+- `ForceUpdateDialog`, `UpdateAvailableDialog`, `MaintenanceDialog`
+- `AnimatedBackground`
 
 **Game-Specific State in GameProvider:**
-- Sudoku/Killer Sudoku: cell selection, notes mode, grid validation
-- Crossword: clue selection, letter entry with auto-advance
+- Sudoku/Killer Sudoku: cell selection, notes mode (`Set<int>` per cell), grid validation
+- Crossword: word-based selection (across/down), cursor auto-advances to next empty cell, auto-moves to next incomplete word on completion, clue list auto-scrolls to selected clue
 - Word Search: drag selection with direction validation (straight lines/diagonals only)
 
-**Scoring Algorithm** (in `GameProvider.calculateScore()`):
+**Scoring Algorithm:**
 - Base score: 1000 points
 - Time multiplier: bonus if under target, penalty if over
 - Mistake penalty: -50 per error
@@ -284,40 +306,133 @@ The `Puzzle` model stores all game types with a flexible `puzzleData` field:
 ### Admin Portal (React)
 
 **Tech Stack:**
-- React 18 with TypeScript
-- Vite for build tooling
+- React 18 + TypeScript + Vite
 - TailwindCSS for styling
 - React Router for navigation
 - TanStack Query for server state
-- Zustand for client state (`authStore`)
-- React Hook Form + Zod for form validation
+- Zustand for client state (auth persistence)
+- React Hook Form + Zod for validation
 - Axios for API calls
+- Lucide React for icons
 
 **Pages:**
-- `Login.tsx` - Authentication
-- `Dashboard.tsx` - Overview statistics
-- `PuzzleList.tsx` - Browse all puzzles
-- `PuzzleCreate.tsx` - Manual puzzle creation
+- `Login.tsx` - Admin authentication
+- `Dashboard.tsx` - Statistics overview, today's puzzles
+- `PuzzleList.tsx` - Browse, filter, toggle, delete puzzles
+- `PuzzleCreate.tsx` - Manual puzzle creation with JSON editor
 - `PuzzleEdit.tsx` - Edit existing puzzles
-- `PuzzleGenerate.tsx` - Auto-generate puzzles using backend utilities
+- `PuzzleGenerate.tsx` - Auto-generate single puzzles or full week
+- `FeedbackList.tsx` - View, filter, manage user feedback
+
+---
+
+## API Endpoints
+
+### Public Routes
+```
+GET  /api/puzzles/today                    # All puzzles for today
+GET  /api/puzzles/type/:gameType           # Latest 30 puzzles of type
+GET  /api/puzzles/type/:gameType/date/:date # Puzzle by type and date (YYYY-MM-DD)
+GET  /api/puzzles/:id                      # Puzzle by ID
+POST /api/scores                           # Submit score
+GET  /api/scores/stats                     # User statistics
+GET  /api/scores/puzzle/:puzzleId          # Top 100 scores for puzzle
+GET  /api/scores/leaderboard/:puzzleId     # Leaderboard
+POST /api/feedback                         # Submit feedback (no auth required)
+```
+
+### Auth Routes
+```
+POST /api/auth/login                       # Login (returns JWT)
+POST /api/auth/register                    # Register new user
+GET  /api/auth/me                          # Get current user (requires JWT)
+```
+
+### Friends Routes (require JWT)
+```
+GET  /api/friends                          # Get friend list
+POST /api/friends/request                  # Send request by user ID
+POST /api/friends/request/code             # Send request by friend code
+POST /api/friends/request/username         # Send request by username
+GET  /api/friends/requests/pending         # Pending requests received
+GET  /api/friends/requests/sent            # Sent requests
+POST /api/friends/requests/:id/accept      # Accept request
+POST /api/friends/requests/:id/decline     # Decline request
+DELETE /api/friends/:friendId              # Remove friend
+GET  /api/friends/search?username=X        # Search users
+```
+
+### Challenges Routes (require JWT)
+```
+POST /api/challenges                       # Create challenge (must be friends)
+GET  /api/challenges                       # Get challenges (filter by status)
+GET  /api/challenges/pending               # Pending challenges received
+GET  /api/challenges/active                # Active challenges
+GET  /api/challenges/stats                 # Overall challenge stats
+GET  /api/challenges/stats/:friendId       # Head-to-head stats with friend
+GET  /api/challenges/:id                   # Challenge details
+POST /api/challenges/:id/accept            # Accept challenge
+POST /api/challenges/:id/decline           # Decline challenge
+POST /api/challenges/:id/cancel            # Cancel (challenger only)
+POST /api/challenges/submit                # Submit result
+```
+
+### Admin Routes (require JWT + admin role)
+```
+GET    /api/puzzles                        # List all with filters
+POST   /api/puzzles                        # Create puzzle
+PATCH  /api/puzzles/:id                    # Update puzzle
+DELETE /api/puzzles/:id                    # Delete puzzle
+POST   /api/puzzles/bulk                   # Bulk create
+PATCH  /api/puzzles/:id/toggle-active      # Toggle active status
+GET    /api/puzzles/admin/stats            # Puzzle statistics
+
+POST   /api/generate/sudoku                # Generate Sudoku
+POST   /api/generate/killer-sudoku         # Generate Killer Sudoku
+POST   /api/generate/crossword             # Generate Crossword
+POST   /api/generate/word-search           # Generate Word Search
+POST   /api/generate/week                  # Generate full week
+
+GET    /api/feedback                       # List feedback with filters
+GET    /api/feedback/stats                 # Feedback statistics
+GET    /api/feedback/:id                   # Feedback by ID
+PATCH  /api/feedback/:id                   # Update status/notes
+DELETE /api/feedback/:id                   # Delete feedback
+```
+
+### Config Routes
+```
+# Public
+GET  /api/config                          # Get app config (versions, maintenance)
+GET  /api/config/feature-flags?appVersion=X # Get feature flags for app version
+
+# Admin (require JWT + admin role)
+PUT   /api/config                          # Update app config
+GET   /api/config/admin/flags              # List all feature flags
+POST  /api/config/admin/flags              # Create feature flag
+PATCH /api/config/admin/flags/:id          # Update feature flag
+DELETE /api/config/admin/flags/:id         # Delete feature flag
+```
+
+---
 
 ## Puzzle Data Formats
 
 ### Sudoku
 ```json
 {
-  "grid": [[5,3,0,...], ...],  // 9x9 array, 0 = empty
-  "solution": [[5,3,4,...], ...]  // 9x9 array, complete solution
+  "grid": [[5,3,0,...], ...],     // 9x9, 0 = empty
+  "solution": [[5,3,4,...], ...]  // 9x9, complete
 }
 ```
 
 ### Killer Sudoku
 ```json
 {
-  "grid": [[0,0,0,...], ...],  // All zeros initially
+  "grid": [[0,0,0,...], ...],
   "solution": [[5,3,4,...], ...],
   "cages": [
-    {"sum": 8, "cells": [[0,0], [0,1]]},  // [row, col] pairs
+    {"sum": 8, "cells": [[0,0], [0,1]]},
     {"sum": 15, "cells": [[0,2], [1,2], [2,2]]}
   ]
 }
@@ -326,131 +441,317 @@ The `Puzzle` model stores all game types with a flexible `puzzleData` field:
 ### Crossword
 ```json
 {
-  "rows": 10,
-  "cols": 10,
-  "grid": [["F","L","U",...], ...],  // Letters and "#" for black cells
-  "clues": [
-    {
-      "number": 1,
-      "direction": "across",  // or "down"
-      "clue": "Google UI toolkit",
-      "answer": "FLUTTER",
-      "startRow": 0,
-      "startCol": 0
-    }
-  ]
+  "rows": 10, "cols": 10,
+  "grid": [["F","L","U",...], ...],  // Letters and "#" for black
+  "clues": [{
+    "number": 1,
+    "direction": "across",
+    "clue": "Google UI toolkit",
+    "answer": "FLUTTER",
+    "startRow": 0, "startCol": 0
+  }]
 }
 ```
 
 ### Word Search
 ```json
 {
-  "rows": 10,
-  "cols": 10,
+  "rows": 10, "cols": 10,
   "theme": "Programming",
-  "grid": [["F","L","U",...], ...],  // All uppercase letters
-  "words": [
-    {
-      "word": "FLUTTER",
-      "startRow": 0,
-      "startCol": 0,
-      "endRow": 0,
-      "endCol": 6
-    }
-  ]
+  "grid": [["F","L","U",...], ...],  // Uppercase letters
+  "words": [{
+    "word": "FLUTTER",
+    "startRow": 0, "startCol": 0,
+    "endRow": 0, "endCol": 6
+  }]
 }
 ```
 
-## API Endpoints
+---
 
-### Public Routes
-- `GET /api/puzzles/today` - Get all puzzles for today
-- `GET /api/puzzles/type/:gameType` - Get puzzles by type (sudoku, killerSudoku, crossword, wordSearch)
-- `GET /api/puzzles/type/:gameType/date/:date` - Get specific puzzle by type and date (YYYY-MM-DD)
-- `POST /api/scores` - Submit a score
-- `GET /api/scores/stats` - Get user statistics
+## Monetization System
 
-### Admin Routes (require JWT + admin role)
-- `GET /api/puzzles` - List all puzzles with pagination
-- `POST /api/puzzles` - Create new puzzle
-- `PATCH /api/puzzles/:id` - Update puzzle
-- `DELETE /api/puzzles/:id` - Delete puzzle
-- `POST /api/puzzles/bulk` - Bulk create puzzles
+The app uses a **freemium model** with AdMob advertising, token-based archive access, and in-app purchase subscriptions.
 
-### Auth Routes
-- `POST /api/auth/login` - Login (returns JWT)
-- `POST /api/auth/register` - Register new user
-- `GET /api/auth/me` - Get current user (requires JWT)
+### AdMob Integration
+- Rewarded video ads for hints (watch video -> 3 hints)
+- Rewarded video ads for tokens (watch video -> 5 tokens)
+- Interstitial ads after puzzle completion (every 2-3 games)
+- Premium users skip all ads automatically
+- GDPR consent tracked via ConsentService
 
-### Puzzle Generation Routes (admin only)
-- `POST /api/generate/sudoku` - Generate Sudoku puzzle
-- `POST /api/generate/killer-sudoku` - Generate Killer Sudoku puzzle with cages
-- `POST /api/generate/crossword` - Generate Crossword puzzle from word/clue pairs
-- `POST /api/generate/word-search` - Generate Word Search puzzle
-- `POST /api/generate/week` - Generate a full week of puzzles (all types supported)
+### Token System
+- 1 free token per day (resets at midnight)
+- Token costs: Easy (1), Medium (2), Hard/Expert (3)
+- Watch rewarded ads for 5 tokens
+- Premium users have unlimited archive access
 
-## Important Implementation Notes
+### Hint System
+- 3 free hints per day
+- Watch rewarded ads for 3 more hints
+- Premium users have unlimited hints
+
+### In-App Purchases (PurchaseService)
+- Premium subscription: non-consumable product
+- Handles purchase lifecycle (pending, purchased, restored, error)
+- Local backup storage for premium status
+- Restore purchases functionality
+
+### Revenue Model
+**Free Tier:** Banner ads (~$0.50 CPM), Interstitial (~$3-5 CPM), Rewarded (~$10-15 CPM)
+**Premium Tier ($4.99/month or $39.99/year):** Ad-free, unlimited hints, unlimited archive
+
+### Configuration
+- Android: `flutter_app/android/app/src/main/AndroidManifest.xml`
+- iOS: `flutter_app/ios/Runner/Info.plist`
+- Environment: `flutter_app/lib/config/environment.dart`
+
+**Test Ad Units:** Must be replaced with production IDs before release. See `MONETIZATION.md` and `ADS_IMPLEMENTATION.md`.
+
+---
+
+## Social Features
+
+### Friends System
+- Unique 8-character friend codes per user (ambiguity-free: A-Z, 2-9)
+- Add friends by code, username search, or user ID
+- Friend requests with accept/decline flow
+- Bidirectional friendship on accept
+- View friend statistics
+
+### Challenges
+- Head-to-head puzzle competitions between friends
+- Challenge creation with puzzle auto-selection
+- 24-hour expiry on pending challenges
+- Winner determination: score first, then time as tiebreaker
+- Challenge statistics (wins, losses, ties, win rate)
+- Prevents simultaneous active challenges between same users
+
+### Feedback System
+- In-app feedback form with types: bug report, game suggestion, puzzle suggestion, puzzle mistake, general
+- Device info auto-collection
+- Puzzle context linking (puzzleId, gameType, difficulty, date)
+- Email notifications to admin on submission
+- Admin portal for feedback management
+
+---
+
+## Feature Flags & Versioning
+
+### Feature Flag System
+
+**Server-Side (Backend):**
+- Feature flags stored in MongoDB with `FeatureFlag` schema
+- Version-based targeting: enable features only for specific app versions
+- User-based targeting: enable for specific user IDs (beta testing)
+- Rollout percentages: gradual rollout to X% of users
+- Expiration dates: auto-disable features after a date
+
+**Client-Side (Flutter):**
+- `ConfigService` fetches flags on app startup
+- Caches flags for offline support
+- Local overrides via debug menu for testing
+- Usage: `ConfigService().isFeatureEnabled('feature_key')`
+
+**Example Feature Flags:**
+- `debug_menu_enabled` - Controls access to hidden debug menu
+- `challenges_enabled` - Enable/disable multiplayer challenges
+- `new_puzzle_type` - Feature gate for new puzzle types
+
+### Version Checking
+
+**On App Startup:**
+1. `ConfigService` fetches `AppConfig` from server
+2. Compares current app version against `minVersion` and `latestVersion`
+3. Shows appropriate dialog:
+   - **Force Update**: If current < minVersion (non-dismissable, blocks app)
+   - **Update Available**: If current < latestVersion (dismissable)
+   - **Maintenance Mode**: If enabled (non-dismissable, blocks app)
+
+**Version Status:**
+```dart
+enum VersionStatus {
+  upToDate,        // current >= latest
+  updateAvailable, // min <= current < latest
+  forceUpdate,     // current < min
+}
+```
+
+### Debug Menu
+
+**Access:** Settings Screen → Tap version number 7 times (requires `debug_menu_enabled` flag)
+
+**Features:**
+- View current/latest/minimum versions
+- View environment info (API URL, is production)
+- View all feature flags with server values
+- Override flags locally (force enable/disable/use server)
+- Clear all overrides
+- Trigger test dialogs (force update, update available)
+- Copy debug info to clipboard
+- Refresh config from server
+
+**Location:** `flutter_app/lib/screens/debug_menu_screen.dart`
+
+---
+
+## Puzzle Generators
+
+**SudokuGenerator:**
+- Backtracking algorithm for valid 9x9 grids
+- Cells removed based on difficulty: easy=30, medium=40, hard=50, expert=55
+
+**KillerSudokuGenerator:**
+- Extends Sudoku solver with cage generation
+- Flood-fill algorithm for cages
+- Cage sizes: easy 2-3, medium 2-4, hard 2-5, expert 2-6
+
+**CrosswordGenerator:**
+- Places words via letter intersections
+- Auto-numbers clues left-to-right, top-to-bottom
+
+**WordSearchGenerator:**
+- Places words in 8 directions (including diagonals)
+- Fills remaining cells with random A-Z
+
+**Target Times (seconds):**
+| Difficulty | Sudoku | Killer | Crossword | Word Search |
+|------------|--------|--------|-----------|-------------|
+| Easy       | 300    | 450    | 360       | 180         |
+| Medium     | 600    | 900    | 600       | 300         |
+| Hard       | 900    | 1200   | 900       | 420         |
+| Expert     | 1200   | 1800   | 1200      | 600         |
+
+---
+
+## Implementation Notes
 
 ### Backend
-- MongoDB connection uses async configuration with ConfigService
-- JWT secrets must be set in `.env` - never commit real secrets
-- Password hashing uses bcrypt with salt rounds of 10
-- Puzzle indexes optimize queries by `gameType`, `date`, and `isActive` combination
-- The seed script uses `findOneAndUpdate` with `upsert: true` to be idempotent
-
-**Puzzle Generators:**
-- **SudokuGenerator** - Backtracking algorithm to generate valid 9x9 grids, removes cells based on difficulty
-- **KillerSudokuGenerator** - Reuses Sudoku solver, then creates cages using flood-fill algorithm (cage size varies by difficulty)
-- **CrosswordGenerator** - Places words by finding intersections at matching letters, assigns clue numbers left-to-right, top-to-bottom
-- **WordSearchGenerator** - Places words in 8 directions (including diagonals), fills remaining cells with random letters
-- All generators are tested in `utils/test-generators.ts` - run with `npx ts-node src/utils/test-generators.ts`
+- MongoDB async config via ConfigService
+- JWT secret from `JWT_SECRET` env var
+- bcrypt salt rounds: 10
+- Indexes on `{ gameType, date }`, `{ date }`, `{ gameType, isActive }`
+- Seed script is idempotent (upsert pattern)
+- Email failures non-blocking (won't fail API response)
+- CORS origins from `CORS_ORIGINS` env var
 
 ### Flutter
-- `GameProvider` manages state for ALL game types - check current `gameType` before accessing game-specific state
-- Grid coordinates are `[row][col]` - row is vertical (0 = top), col is horizontal (0 = left)
-- Sudoku notes are stored as `Set<int>` per cell in a 9x9 array
-- Word Search selection validates that drag path is straight line or diagonal only
-- ApiService falls back to mock data if backend is unreachable - useful for offline development
-- All puzzle grids use 0-based indexing
+- Grid coordinates: `[row][col]` (0 = top-left)
+- ApiService falls back to mock data if backend unreachable
+- SharedPreferences for local persistence
+- Singleton pattern for AdMob, Hint, Token, Audio services
+- ChangeNotifier pattern for reactive updates
 
 ### Admin Portal
-- Authentication state persisted in Zustand store with localStorage
-- Puzzle JSON must be valid - use React Hook Form with Zod validation before submission
-- Date picker should set time to 00:00:00 to match backend date comparison logic
-- TanStack Query handles caching and refetching - invalidate queries after mutations
+- Auth state persisted to localStorage via Zustand
+- TanStack Query invalidation on mutations
+- Date picker sets time to 00:00:00 for backend matching
+- Native `confirm()` for delete confirmations
+
+---
 
 ## Common Workflows
 
 ### Adding a New Puzzle Type
-1. Add enum value to `GameType` in `backend/src/puzzles/schemas/puzzle.schema.ts`
-2. Create Flutter model class in `flutter_app/lib/models/game_models.dart`
-3. Add game-specific state to `GameProvider`
-4. Create grid widget in `flutter_app/lib/widgets/`
-5. Update `PuzzleCard` to handle new type
-6. Add mock data to `ApiService._getMockPuzzles()`
-7. Update admin portal puzzle creation form
+1. Add enum to `backend/src/puzzles/schemas/puzzle.schema.ts`
+2. Create generator in `backend/src/utils/puzzle-generators.ts`
+3. Add endpoint in `backend/src/puzzles/generate.controller.ts`
+4. Create Flutter model in `flutter_app/lib/models/game_models.dart`
+5. Add state to `GameProvider`
+6. Create grid widget in `flutter_app/lib/widgets/`
+7. Update `PuzzleCard` and `GameScreen`
+8. Add mock data to `ApiService`
+9. Update admin portal forms
 
 ### Running Tests
 ```bash
-# Backend unit tests
-cd backend && npm run test
-
-# Flutter tests
-cd flutter_app && flutter test
+cd backend && npm run test     # Backend unit tests
+cd flutter_app && flutter test # Flutter tests
 ```
 
 ### Database Management
 ```bash
-# Connect to MongoDB
 mongosh mongodb://localhost:27017/the-dailies
 
-# View all puzzles
-db.puzzles.find()
-
-# View users
-db.users.find()
-
-# Reset database
-db.dropDatabase()
-cd backend && npm run seed
+db.puzzles.find()              # View puzzles
+db.users.find()                # View users
+db.challenges.find()           # View challenges
+db.feedback.find()             # View feedback
+db.dropDatabase()              # Reset (then re-seed)
 ```
+
+---
+
+## Deployment
+
+### GitHub Actions
+
+Automated CI/CD pipelines in `.github/workflows/`:
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `ci.yml` | PRs to develop/main, push to develop | Runs tests for backend, admin portal, and Flutter |
+| `deploy-api.yml` | Push to main (backend changes) | Deploys API to Render |
+| `deploy-admin.yml` | Push to main (admin-portal changes) | Deploys Admin Portal to Render |
+
+**Required GitHub Secrets:**
+- `RENDER_DEPLOY_HOOK_URL` - Render deploy hook URL for the API service
+- `RENDER_ADMIN_DEPLOY_HOOK_URL` - Render deploy hook URL for the Admin Portal
+
+**Required GitHub Variables:**
+- `API_URL` - Production API URL (for environment display)
+- `ADMIN_URL` - Production Admin Portal URL (for environment display)
+- `VITE_API_URL` - API URL for admin portal build
+
+**Setting up Render Deploy Hooks:**
+1. Go to your Render service dashboard
+2. Navigate to Settings → Deploy Hook
+3. Copy the hook URL
+4. Add it as a secret in GitHub: Settings → Secrets and variables → Actions
+
+### Docker
+```bash
+docker-compose up -d
+```
+Containers: MongoDB 7, NestJS API, React Admin
+
+### Render.com
+Configuration in `render.yaml`:
+- Backend: Node runtime, health check at `/api/puzzles/today`
+- Admin: Static site with SPA rewrite
+
+### Environment Variables
+**Backend:**
+- `MONGODB_URI` - MongoDB connection string
+- `JWT_SECRET` - JWT signing secret
+- `CORS_ORIGINS` - Allowed origins (comma-separated)
+- `FEEDBACK_EMAIL` - Email for feedback notifications
+- `PORT` - Server port (default: 3000)
+
+**Admin Portal:**
+- `VITE_API_URL` - Backend API URL
+
+---
+
+## Documentation Files
+- `README.md` - Project overview
+- `STARTUP.md` - Detailed startup guide
+- `PROJECT_STATUS.md` - Feature completion status
+- `MONETIZATION.md` - Revenue strategy
+- `ADS_IMPLEMENTATION.md` - AdMob technical guide
+- `ARCHIVE_SYSTEM.md` - Token system guide
+
+---
+
+## Remaining Tasks
+
+1. [ ] Test IAP on physical devices
+2. [ ] Replace test ad IDs with production IDs
+3. [ ] Add leaderboard UI to admin portal
+4. [ ] Add user management to admin portal
+5. [ ] Implement push notifications for challenges
+6. [ ] Add analytics dashboard
+7. [ ] Performance testing with large datasets
+8. [ ] Add feature flag management UI to admin portal
+9. [ ] Add app config management UI to admin portal
+10. [ ] Seed initial feature flags (debug_menu_enabled, etc.)
