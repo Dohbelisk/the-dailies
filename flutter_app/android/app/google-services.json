@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "855720931970",
-    "project_id": "the-dailies-3b4f3",
-    "storage_bucket": "the-dailies-3b4f3.firebasestorage.app"
+    "project_number": "476194139682",
+    "project_id": "the-dailies-703fb",
+    "storage_bucket": "the-dailies-703fb.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:855720931970:android:8b7468d05fc915b23e7a9b",
+        "mobilesdk_app_id": "1:476194139682:android:e0b084a1040290ed87a47b",
         "android_client_info": {
-          "package_name": "co.za.dbkgames.thedailies"
+          "package_name": "com.dohbelisk.thedailies"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDVTbAViI73AdTq4_RsSb0jZ_rpRXGwGo4"
+          "current_key": "AIzaSyBStbGSnYahOrBE8XhgPnlfEZGzVE4x51A"
         }
       ],
       "services": {

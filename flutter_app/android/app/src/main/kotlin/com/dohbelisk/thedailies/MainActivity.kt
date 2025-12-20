@@ -1,4 +1,4 @@
-package co.za.dbkgames.thedailies
+package com.dohbelisk.thedailies
 
 import io.flutter.embedding.android.FlutterActivity
 

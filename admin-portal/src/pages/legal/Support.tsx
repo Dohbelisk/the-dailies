@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Puzzle, ArrowLeft, Mail, MessageSquare, CreditCard, Bug, HelpCircle, Smartphone } from 'lucide-react'
 
 export default function Support() {
-  const contactEmail = 'support@dbkgames.co.za'
+  const contactEmail = 'support@dohblisk.com'
 
   const faqs = [
     {
@@ -35,7 +35,7 @@ export default function Support() {
     },
     {
       question: 'How do I delete my account?',
-      answer: 'Contact us at support@dbkgames.co.za with your account email and we\'ll process your deletion request within 30 days.'
+      answer: 'Contact us at support@dohblisk.com with your account email and we\'ll process your deletion request within 30 days.'
     }
   ]
 

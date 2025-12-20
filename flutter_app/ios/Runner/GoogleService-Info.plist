@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyAJJrnPDwspBP0HY6EPSxfvX5ykcEMZrZA</string>
+	<string>AIzaSyBpmpaLMl3sE3Yv-WQb7sIteiI8_J5Kjlo</string>
 	<key>GCM_SENDER_ID</key>
-	<string>855720931970</string>
+	<string>476194139682</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>co.za.dbkgames.thedailies</string>
+	<string>com.dohbelisk.thedailies</string>
 	<key>PROJECT_ID</key>
-	<string>the-dailies-3b4f3</string>
+	<string>the-dailies-703fb</string>
 	<key>STORAGE_BUCKET</key>
-	<string>the-dailies-3b4f3.firebasestorage.app</string>
+	<string>the-dailies-703fb.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:855720931970:ios:a16635b77e91260e3e7a9b</string>
+	<string>1:476194139682:ios:c4827493093cc40987a47b</string>
 </dict>
 </plist>
