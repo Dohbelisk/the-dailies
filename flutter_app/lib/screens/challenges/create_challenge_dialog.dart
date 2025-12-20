@@ -201,6 +201,12 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.abc_rounded;
       case GameType.wordSearch:
         return Icons.search_rounded;
+      case GameType.wordForge:
+        return Icons.text_fields_rounded;
+      case GameType.nonogram:
+        return Icons.grid_view_rounded;
+      case GameType.numberTarget:
+        return Icons.calculate_rounded;
     }
   }
 
@@ -214,6 +220,12 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Crossword';
       case GameType.wordSearch:
         return 'Word Search';
+      case GameType.wordForge:
+        return 'Word Forge';
+      case GameType.nonogram:
+        return 'Nonogram';
+      case GameType.numberTarget:
+        return 'Number Target';
     }
   }
 
