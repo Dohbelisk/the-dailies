@@ -87,7 +87,7 @@ echo Backend API:      http://localhost:3000
 echo Swagger Docs:     http://localhost:3000/api/docs
 echo Admin Portal:     http://localhost:5173
 echo.
-echo Default Login:    admin@thedailies.app / admin123
+echo Default Login:    admin@thedailies.app / 5nifrenypro
 echo.
 echo To start Flutter app:
 echo   cd flutter_app

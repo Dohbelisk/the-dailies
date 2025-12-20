@@ -9,6 +9,9 @@ export enum GameType {
   KILLER_SUDOKU = 'killerSudoku',
   CROSSWORD = 'crossword',
   WORD_SEARCH = 'wordSearch',
+  WORD_FORGE = 'wordForge',
+  NONOGRAM = 'nonogram',
+  NUMBER_TARGET = 'numberTarget',
 }
 
 export enum Difficulty {

@@ -10,6 +10,7 @@ import { ChallengesModule } from './challenges/challenges.module';
 import { EmailModule } from './email/email.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { AppConfigModule } from './config/config.module';
+import { DictionaryModule } from './dictionary/dictionary.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AppConfigModule } from './config/config.module';
     EmailModule,
     FeedbackModule,
     AppConfigModule,
+    DictionaryModule,
   ],
 })
 export class AppModule {}

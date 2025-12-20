@@ -16,6 +16,9 @@ import '../widgets/sudoku_grid.dart';
 import '../widgets/killer_sudoku_grid.dart';
 import '../widgets/crossword_grid.dart';
 import '../widgets/word_search_grid.dart';
+import '../widgets/word_forge_grid.dart';
+import '../widgets/nonogram_grid.dart';
+import '../widgets/number_target_grid.dart';
 import '../widgets/number_pad.dart';
 import '../widgets/keyboard_input.dart';
 import '../widgets/game_timer.dart';
@@ -142,6 +145,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         break;
       case GameType.wordSearch:
         isComplete = gameProvider.checkWordSearchComplete();
+        break;
+      case GameType.wordForge:
+        isComplete = gameProvider.checkWordForgeComplete();
+        break;
+      case GameType.nonogram:
+        isComplete = gameProvider.checkNonogramComplete();
+        break;
+      case GameType.numberTarget:
+        isComplete = gameProvider.checkNumberTargetComplete();
         break;
     }
 
@@ -440,6 +452,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return _buildCrosswordContent(context);
       case GameType.wordSearch:
         return _buildWordSearchContent(context);
+      case GameType.wordForge:
+        return _buildWordForgeContent(context);
+      case GameType.nonogram:
+        return _buildNonogramContent(context);
+      case GameType.numberTarget:
+        return _buildNumberTargetContent(context);
     }
   }
 
@@ -1003,7 +1021,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildWordList(BuildContext context, WordSearchPuzzle puzzle) {
     final theme = Theme.of(context);
-    
+
     return Wrap(
       spacing: 12,
       runSpacing: 8,
@@ -1034,6 +1052,208 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ),
         );
       }).toList(),
+    );
+  }
+
+  // Word Forge state for result messages
+  String? _wordForgeMessage;
+  bool? _wordForgeSuccess;
+
+  Widget _buildWordForgeContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.wordForgePuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final puzzle = gameProvider.wordForgePuzzle!;
+
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                WordForgeGrid(
+                  puzzle: puzzle,
+                  currentWord: gameProvider.currentWord,
+                  onLetterTap: (letter) {
+                    gameProvider.addWordForgeLetter(letter);
+                    _audioService.playTap();
+                  },
+                  onDelete: () {
+                    gameProvider.removeWordForgeLetter();
+                    _audioService.playTap();
+                  },
+                  onShuffle: () {
+                    gameProvider.shuffleWordForgeLetters();
+                    _audioService.playTap();
+                  },
+                  onSubmit: () {
+                    final result = gameProvider.submitWordForgeWord();
+                    setState(() {
+                      _wordForgeMessage = result.message;
+                      _wordForgeSuccess = result.success;
+                    });
+                    if (result.success) {
+                      _audioService.playWordFound();
+                      if (result.isPangram) {
+                        _confettiController.play();
+                      }
+                    } else {
+                      _audioService.playError();
+                    }
+                    // Clear message after delay
+                    Future.delayed(const Duration(seconds: 2), () {
+                      if (mounted) {
+                        setState(() {
+                          _wordForgeMessage = null;
+                          _wordForgeSuccess = null;
+                        });
+                      }
+                    });
+                  },
+                ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+                if (_wordForgeMessage != null) ...[
+                  const SizedBox(height: 16),
+                  _buildMessageBanner(context, _wordForgeMessage!, _wordForgeSuccess!),
+                ],
+                const SizedBox(height: 24),
+                // Found words list
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Found Words (${puzzle.foundWords.length}/${puzzle.validWords.length})',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      WordForgeWordList(puzzle: puzzle),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMessageBanner(BuildContext context, String message, bool success) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        color: success ? Colors.green.shade100 : theme.colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            success ? Icons.check_circle : Icons.error,
+            color: success ? Colors.green.shade700 : theme.colorScheme.error,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            message,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: success ? Colors.green.shade700 : theme.colorScheme.onErrorContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 200.ms).scale(begin: const Offset(0.9, 0.9));
+  }
+
+  Widget _buildNonogramContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.nonogramPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: NonogramGrid(
+            puzzle: gameProvider.nonogramPuzzle!,
+            markMode: gameProvider.nonogramMarkMode,
+            onCellTap: (row, col) {
+              gameProvider.toggleNonogramCell(row, col);
+              _audioService.playTap();
+            },
+            onToggleMarkMode: () {
+              gameProvider.toggleNonogramMarkMode();
+              _audioService.playTap();
+            },
+          ),
+        ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
+      },
+    );
+  }
+
+  // Number Target state for result messages
+  String? _numberTargetMessage;
+  bool? _numberTargetSuccess;
+
+  Widget _buildNumberTargetContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.numberTargetPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: NumberTargetGrid(
+              puzzle: gameProvider.numberTargetPuzzle!,
+              currentExpression: gameProvider.currentExpression,
+              resultMessage: _numberTargetMessage,
+              lastResultSuccess: _numberTargetSuccess,
+              onTokenTap: (token) {
+                gameProvider.addToNumberTargetExpression(token);
+                _audioService.playTap();
+              },
+              onClear: () {
+                gameProvider.clearNumberTargetExpression();
+                setState(() {
+                  _numberTargetMessage = null;
+                  _numberTargetSuccess = null;
+                });
+                _audioService.playTap();
+              },
+              onBackspace: () {
+                gameProvider.backspaceNumberTargetExpression();
+                _audioService.playTap();
+              },
+              onSubmit: () {
+                final result = gameProvider.evaluateNumberTargetExpression();
+                setState(() {
+                  _numberTargetMessage = result.message;
+                  _numberTargetSuccess = result.success;
+                });
+                if (result.success) {
+                  _audioService.playComplete();
+                  _confettiController.play();
+                } else {
+                  _audioService.playError();
+                }
+              },
+            ),
+          ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+        );
+      },
     );
   }
 }

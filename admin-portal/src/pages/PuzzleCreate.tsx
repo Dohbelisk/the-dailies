@@ -9,7 +9,7 @@ import { ArrowLeft, Loader2, Upload } from 'lucide-react'
 import { puzzlesApi } from '../lib/api'
 
 const puzzleSchema = z.object({
-  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch']),
+  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch', 'wordForge', 'nonogram', 'numberTarget']),
   difficulty: z.enum(['easy', 'medium', 'hard', 'expert']),
   date: z.string().min(1, 'Date is required'),
   title: z.string().optional(),
@@ -156,6 +156,30 @@ export default function PuzzleCreate() {
           { word: 'DART', startRow: 2, startCol: 0, endRow: 2, endCol: 3 },
         ],
       },
+      wordForge: {
+        letters: ['A', 'C', 'E', 'L', 'N', 'R', 'T'],
+        centerLetter: 'A',
+        validWords: ['CRANE', 'LANCE', 'ANTLER', 'CENTRAL', 'RECANT', 'NECTAR', 'TRANCE'],
+        pangrams: ['CENTRAL'],
+      },
+      nonogram: {
+        rows: 5,
+        cols: 5,
+        rowClues: [[1, 1], [5], [1, 1, 1], [5], [1, 1]],
+        colClues: [[1, 1], [5], [1, 1, 1], [5], [1, 1]],
+        solution: [
+          [1, 0, 1, 0, 1],
+          [1, 1, 1, 1, 1],
+          [1, 0, 1, 0, 1],
+          [1, 1, 1, 1, 1],
+          [1, 0, 1, 0, 1],
+        ],
+      },
+      numberTarget: {
+        numbers: [2, 5, 7, 3],
+        target: 24,
+        solutions: ['(7-5)*(3+2)*2', '(5+7)*(3-2+1)'],
+      },
     }
     setPuzzleDataJson(JSON.stringify(examples[gameType], null, 2))
     setJsonError('')
@@ -191,6 +215,9 @@ export default function PuzzleCreate() {
                 <option value="killerSudoku">Killer Sudoku</option>
                 <option value="crossword">Crossword</option>
                 <option value="wordSearch">Word Search</option>
+                <option value="wordForge">Word Forge</option>
+                <option value="nonogram">Nonogram</option>
+                <option value="numberTarget">Number Target</option>
               </select>
             </div>
 
@@ -301,6 +328,29 @@ export default function PuzzleCreate() {
                   <li>grid: 2D array of letters</li>
                   <li>words: array with positions</li>
                   <li>theme: optional theme name</li>
+                </ul>
+              )}
+              {gameType === 'wordForge' && (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>letters: array of 7 uppercase letters</li>
+                  <li>centerLetter: required letter in all words</li>
+                  <li>validWords: array of valid words</li>
+                  <li>pangrams: words using all 7 letters</li>
+                </ul>
+              )}
+              {gameType === 'nonogram' && (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>rows, cols: grid dimensions</li>
+                  <li>rowClues: array of number arrays per row</li>
+                  <li>colClues: array of number arrays per column</li>
+                  <li>solution: 2D array (1=filled, 0=empty)</li>
+                </ul>
+              )}
+              {gameType === 'numberTarget' && (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>numbers: array of 4 numbers</li>
+                  <li>target: the number to reach</li>
+                  <li>solutions: array of valid expressions</li>
                 </ul>
               )}
             </div>

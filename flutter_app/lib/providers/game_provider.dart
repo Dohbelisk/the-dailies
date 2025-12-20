@@ -22,7 +22,19 @@ class GameProvider extends ChangeNotifier {
   // Word Search specific state
   WordSearchPuzzle? _wordSearchPuzzle;
   List<List<int>>? _currentSelection;
-  
+
+  // Word Forge specific state
+  WordForgePuzzle? _wordForgePuzzle;
+  String _currentWord = '';
+
+  // Nonogram specific state
+  NonogramPuzzle? _nonogramPuzzle;
+  bool _nonogramMarkMode = false; // false = fill, true = mark X
+
+  // Number Target specific state
+  NumberTargetPuzzle? _numberTargetPuzzle;
+  String _currentExpression = '';
+
   // Getters
   DailyPuzzle? get currentPuzzle => _currentPuzzle;
   int get elapsedSeconds => _elapsedSeconds;
@@ -42,6 +54,15 @@ class GameProvider extends ChangeNotifier {
   WordSearchPuzzle? get wordSearchPuzzle => _wordSearchPuzzle;
   List<List<int>>? get currentSelection => _currentSelection;
 
+  WordForgePuzzle? get wordForgePuzzle => _wordForgePuzzle;
+  String get currentWord => _currentWord;
+
+  NonogramPuzzle? get nonogramPuzzle => _nonogramPuzzle;
+  bool get nonogramMarkMode => _nonogramMarkMode;
+
+  NumberTargetPuzzle? get numberTargetPuzzle => _numberTargetPuzzle;
+  String get currentExpression => _currentExpression;
+
   void loadPuzzle(DailyPuzzle puzzle) {
     _currentPuzzle = puzzle;
     _elapsedSeconds = 0;
@@ -52,7 +73,19 @@ class GameProvider extends ChangeNotifier {
     _selectedCol = null;
     _notesMode = false;
     _currentSelection = null;
-    
+    _currentWord = '';
+    _currentExpression = '';
+    _nonogramMarkMode = false;
+
+    // Clear all puzzle-specific state
+    _sudokuPuzzle = null;
+    _killerSudokuPuzzle = null;
+    _crosswordPuzzle = null;
+    _wordSearchPuzzle = null;
+    _wordForgePuzzle = null;
+    _nonogramPuzzle = null;
+    _numberTargetPuzzle = null;
+
     // Merge puzzleData with solution for models that need it
     final puzzleDataWithSolution = {
       ...(puzzle.puzzleData as Map<String, dynamic>),
@@ -72,8 +105,17 @@ class GameProvider extends ChangeNotifier {
       case GameType.wordSearch:
         _wordSearchPuzzle = WordSearchPuzzle.fromJson(puzzle.puzzleData as Map<String, dynamic>);
         break;
+      case GameType.wordForge:
+        _wordForgePuzzle = WordForgePuzzle.fromJson(puzzleDataWithSolution);
+        break;
+      case GameType.nonogram:
+        _nonogramPuzzle = NonogramPuzzle.fromJson(puzzleDataWithSolution);
+        break;
+      case GameType.numberTarget:
+        _numberTargetPuzzle = NumberTargetPuzzle.fromJson(puzzleDataWithSolution);
+        break;
     }
-    
+
     notifyListeners();
   }
 
@@ -477,8 +519,259 @@ class GameProvider extends ChangeNotifier {
 
   bool checkWordSearchComplete() {
     if (_wordSearchPuzzle == null) return false;
-    
+
     if (_wordSearchPuzzle!.isComplete) {
+      _isPlaying = false;
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  // Word Forge methods
+  void addWordForgeLetter(String letter) {
+    _currentWord += letter.toUpperCase();
+    notifyListeners();
+  }
+
+  void removeWordForgeLetter() {
+    if (_currentWord.isNotEmpty) {
+      _currentWord = _currentWord.substring(0, _currentWord.length - 1);
+      notifyListeners();
+    }
+  }
+
+  void clearWordForgeWord() {
+    _currentWord = '';
+    notifyListeners();
+  }
+
+  /// Submit the current word. Returns a result object with success status and message.
+  WordForgeSubmitResult submitWordForgeWord() {
+    if (_wordForgePuzzle == null || _currentWord.isEmpty) {
+      return WordForgeSubmitResult(success: false, message: 'Enter a word');
+    }
+
+    final word = _currentWord.toUpperCase();
+
+    // Check minimum length
+    if (word.length < 4) {
+      _currentWord = '';
+      notifyListeners();
+      return WordForgeSubmitResult(success: false, message: 'Too short');
+    }
+
+    // Check if center letter is used
+    if (!word.contains(_wordForgePuzzle!.centerLetter)) {
+      _currentWord = '';
+      notifyListeners();
+      return WordForgeSubmitResult(
+          success: false, message: 'Missing center letter');
+    }
+
+    // Check if only valid letters are used
+    for (final char in word.split('')) {
+      if (!_wordForgePuzzle!.letters.contains(char)) {
+        _currentWord = '';
+        notifyListeners();
+        return WordForgeSubmitResult(success: false, message: 'Invalid letter');
+      }
+    }
+
+    // Check if already found
+    if (_wordForgePuzzle!.foundWords.contains(word)) {
+      _currentWord = '';
+      notifyListeners();
+      return WordForgeSubmitResult(success: false, message: 'Already found');
+    }
+
+    // Check if valid word
+    if (!_wordForgePuzzle!.isValidWord(word)) {
+      _mistakes++;
+      _currentWord = '';
+      notifyListeners();
+      return WordForgeSubmitResult(success: false, message: 'Not in word list');
+    }
+
+    // Valid word!
+    _wordForgePuzzle!.foundWords.add(word);
+    final isPangram = _wordForgePuzzle!.isPangram(word);
+    final points = _wordForgePuzzle!.scoreWord(word);
+    _currentWord = '';
+    notifyListeners();
+
+    if (isPangram) {
+      return WordForgeSubmitResult(
+          success: true, message: 'Pangram! +$points', isPangram: true);
+    }
+    return WordForgeSubmitResult(success: true, message: '+$points');
+  }
+
+  void shuffleWordForgeLetters() {
+    if (_wordForgePuzzle == null) return;
+    _wordForgePuzzle!.shuffleOuterLetters();
+    notifyListeners();
+  }
+
+  bool checkWordForgeComplete() {
+    if (_wordForgePuzzle == null) return false;
+
+    if (_wordForgePuzzle!.isComplete) {
+      _isPlaying = false;
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  int getWordForgeScore() {
+    return _wordForgePuzzle?.currentScore ?? 0;
+  }
+
+  int getWordForgeMaxScore() {
+    return _wordForgePuzzle?.maxScore ?? 0;
+  }
+
+  // Nonogram methods
+  void toggleNonogramMarkMode() {
+    _nonogramMarkMode = !_nonogramMarkMode;
+    notifyListeners();
+  }
+
+  /// Toggle a cell in the nonogram grid.
+  /// In fill mode: empty -> filled -> empty
+  /// In mark mode: empty -> marked (X) -> empty
+  void toggleNonogramCell(int row, int col) {
+    if (_nonogramPuzzle == null) return;
+
+    final currentState = _nonogramPuzzle!.userGrid[row][col];
+
+    if (_nonogramMarkMode) {
+      // Mark mode: toggle between empty (0) and marked (-1)
+      if (currentState == -1) {
+        _nonogramPuzzle!.userGrid[row][col] = 0;
+      } else {
+        _nonogramPuzzle!.userGrid[row][col] = -1;
+      }
+    } else {
+      // Fill mode: toggle between empty (0) and filled (1)
+      if (currentState == 1) {
+        _nonogramPuzzle!.userGrid[row][col] = 0;
+      } else if (currentState == 0) {
+        _nonogramPuzzle!.userGrid[row][col] = 1;
+      } else {
+        // Was marked, now fill
+        _nonogramPuzzle!.userGrid[row][col] = 1;
+      }
+    }
+
+    notifyListeners();
+  }
+
+  /// Clear a nonogram cell (set to empty)
+  void clearNonogramCell(int row, int col) {
+    if (_nonogramPuzzle == null) return;
+    _nonogramPuzzle!.userGrid[row][col] = 0;
+    notifyListeners();
+  }
+
+  bool checkNonogramComplete() {
+    if (_nonogramPuzzle == null) return false;
+
+    if (_nonogramPuzzle!.isComplete) {
+      _isPlaying = false;
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  /// Use hint for nonogram - reveal a random incorrect/empty cell
+  void useNonogramHint() {
+    if (_nonogramPuzzle == null) return;
+
+    // Find all cells that are wrong or empty but should be filled
+    final wrongCells = <List<int>>[];
+    for (int r = 0; r < _nonogramPuzzle!.rows; r++) {
+      for (int c = 0; c < _nonogramPuzzle!.cols; c++) {
+        final userVal = _nonogramPuzzle!.userGrid[r][c];
+        final solutionVal = _nonogramPuzzle!.solution[r][c];
+        // If solution is 1 (filled) but user doesn't have it filled
+        if (solutionVal == 1 && userVal != 1) {
+          wrongCells.add([r, c]);
+        }
+      }
+    }
+
+    if (wrongCells.isEmpty) return;
+
+    // Pick a random cell and reveal it
+    wrongCells.shuffle();
+    final cell = wrongCells.first;
+    _nonogramPuzzle!.userGrid[cell[0]][cell[1]] = 1;
+    _hintsUsed++;
+    notifyListeners();
+  }
+
+  // Number Target methods
+  void addToNumberTargetExpression(String token) {
+    _currentExpression += token;
+    notifyListeners();
+  }
+
+  void clearNumberTargetExpression() {
+    _currentExpression = '';
+    notifyListeners();
+  }
+
+  void backspaceNumberTargetExpression() {
+    if (_currentExpression.isNotEmpty) {
+      // Remove last character or last number (if multi-digit)
+      // Simple approach: just remove last character
+      _currentExpression =
+          _currentExpression.substring(0, _currentExpression.length - 1);
+      notifyListeners();
+    }
+  }
+
+  /// Evaluate the current expression and check if it equals the target.
+  /// Returns a result object with success status and evaluated value.
+  NumberTargetResult evaluateNumberTargetExpression() {
+    if (_numberTargetPuzzle == null || _currentExpression.isEmpty) {
+      return NumberTargetResult(success: false, message: 'Enter an expression');
+    }
+
+    try {
+      final result = _numberTargetPuzzle!.evaluateExpression(_currentExpression);
+      if (result.isNaN) {
+        return NumberTargetResult(success: false, message: 'Invalid expression');
+      }
+
+      final target = _numberTargetPuzzle!.target;
+      final intResult = result.round();
+      if ((result - target).abs() < 0.0001) {
+        _numberTargetPuzzle!.userExpression = _currentExpression;
+        _isPlaying = false;
+        notifyListeners();
+        return NumberTargetResult(
+            success: true, message: 'Correct!', value: intResult);
+      } else {
+        _mistakes++;
+        notifyListeners();
+        return NumberTargetResult(
+            success: false,
+            message: '= $intResult (target: $target)',
+            value: intResult);
+      }
+    } catch (e) {
+      return NumberTargetResult(success: false, message: 'Invalid expression');
+    }
+  }
+
+  bool checkNumberTargetComplete() {
+    if (_numberTargetPuzzle == null) return false;
+
+    if (_numberTargetPuzzle!.isComplete) {
       _isPlaying = false;
       notifyListeners();
       return true;
@@ -542,6 +835,38 @@ class GameProvider extends ChangeNotifier {
     _selectedClue = null;
     _wordSearchPuzzle = null;
     _currentSelection = null;
+    _wordForgePuzzle = null;
+    _currentWord = '';
+    _nonogramPuzzle = null;
+    _nonogramMarkMode = false;
+    _numberTargetPuzzle = null;
+    _currentExpression = '';
     notifyListeners();
   }
+}
+
+/// Result object for Word Forge word submission
+class WordForgeSubmitResult {
+  final bool success;
+  final String message;
+  final bool isPangram;
+
+  WordForgeSubmitResult({
+    required this.success,
+    required this.message,
+    this.isPangram = false,
+  });
+}
+
+/// Result object for Number Target expression evaluation
+class NumberTargetResult {
+  final bool success;
+  final String message;
+  final int? value;
+
+  NumberTargetResult({
+    required this.success,
+    required this.message,
+    this.value,
+  });
 }

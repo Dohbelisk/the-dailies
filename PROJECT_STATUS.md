@@ -438,7 +438,7 @@ cd backend && npm run seed
 
 # Default admin login
 Email: admin@thedailies.app
-Password: admin123
+Password: 5nifrenypro
 ```
 
 ---

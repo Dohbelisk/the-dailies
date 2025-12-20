@@ -1,45 +1,153 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { IsString, IsOptional, IsArray, IsNumber, ValidateNested, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
-import { generateSudoku, generateKillerSudoku, generateCrossword, generateWordSearch } from '../utils/puzzle-generators';
+import {
+  generateSudoku,
+  generateKillerSudoku,
+  generateCrossword,
+  generateWordSearch,
+  generateWordForge,
+  generateNonogram,
+  generateNumberTarget,
+} from '../utils/puzzle-generators';
 import { PuzzlesService } from './puzzles.service';
 import { GameType, Difficulty } from './schemas/puzzle.schema';
 
 class GenerateSudokuDto {
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
   date: string;
+
+  @IsOptional()
+  @IsString()
   title?: string;
 }
 
 class GenerateKillerSudokuDto {
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
   date: string;
+
+  @IsOptional()
+  @IsString()
   title?: string;
 }
 
+class WordClueDto {
+  @IsString()
+  word: string;
+
+  @IsString()
+  clue: string;
+}
+
 class GenerateCrosswordDto {
-  wordsWithClues: Array<{ word: string; clue: string }>;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => WordClueDto)
+  wordsWithClues: WordClueDto[];
+
+  @IsOptional()
+  @IsNumber()
   rows?: number;
+
+  @IsOptional()
+  @IsNumber()
   cols?: number;
+
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
   date: string;
+
+  @IsOptional()
+  @IsString()
   title?: string;
 }
 
 class GenerateWordSearchDto {
+  @IsArray()
+  @IsString({ each: true })
   words: string[];
+
+  @IsOptional()
+  @IsString()
   theme?: string;
+
+  @IsOptional()
+  @IsNumber()
   rows?: number;
+
+  @IsOptional()
+  @IsNumber()
   cols?: number;
+
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
   date: string;
+
+  @IsOptional()
+  @IsString()
   title?: string;
 }
 
 class GenerateWeekDto {
+  @IsString()
   startDate: string;
+
+  @IsArray()
+  @IsString({ each: true })
   gameTypes: string[];
+}
+
+class GenerateWordForgeDto {
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
+  date: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+}
+
+class GenerateNonogramDto {
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
+  date: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+}
+
+class GenerateNumberTargetDto {
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
+  date: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @IsOptional()
+  @IsNumber()
+  target?: number;
 }
 
 @ApiTags('generate')
@@ -146,6 +254,78 @@ export class GenerateController {
       puzzleData,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Word Search - ${dto.theme || 'Mixed'}`,
+      isActive: true,
+    });
+  }
+
+  @Post('word-forge')
+  @ApiOperation({ summary: 'Generate a new Word Forge puzzle' })
+  async generateWordForge(@Body() dto: GenerateWordForgeDto) {
+    const result = generateWordForge(dto.difficulty);
+
+    const targetTimes = {
+      easy: 300,
+      medium: 480,
+      hard: 600,
+      expert: 900,
+    };
+
+    return this.puzzlesService.create({
+      gameType: GameType.WORD_FORGE,
+      difficulty: dto.difficulty as Difficulty,
+      date: dto.date,
+      puzzleData: result.puzzleData,
+      solution: result.solution,
+      targetTime: targetTimes[dto.difficulty],
+      title: dto.title || `Word Forge - ${dto.difficulty}`,
+      isActive: true,
+    });
+  }
+
+  @Post('nonogram')
+  @ApiOperation({ summary: 'Generate a new Nonogram puzzle' })
+  async generateNonogram(@Body() dto: GenerateNonogramDto) {
+    const result = generateNonogram(dto.difficulty);
+
+    const targetTimes = {
+      easy: 180,
+      medium: 360,
+      hard: 600,
+      expert: 900,
+    };
+
+    return this.puzzlesService.create({
+      gameType: GameType.NONOGRAM,
+      difficulty: dto.difficulty as Difficulty,
+      date: dto.date,
+      puzzleData: result.puzzleData,
+      solution: result.solution,
+      targetTime: targetTimes[dto.difficulty],
+      title: dto.title || `Nonogram - ${dto.difficulty}`,
+      isActive: true,
+    });
+  }
+
+  @Post('number-target')
+  @ApiOperation({ summary: 'Generate a new Number Target puzzle' })
+  async generateNumberTarget(@Body() dto: GenerateNumberTargetDto) {
+    const result = generateNumberTarget(dto.difficulty);
+
+    const targetTimes = {
+      easy: 60,
+      medium: 120,
+      hard: 180,
+      expert: 300,
+    };
+
+    return this.puzzlesService.create({
+      gameType: GameType.NUMBER_TARGET,
+      difficulty: dto.difficulty as Difficulty,
+      date: dto.date,
+      puzzleData: result.puzzleData,
+      solution: result.solution,
+      targetTime: targetTimes[dto.difficulty],
+      title: dto.title || `Number Target - ${dto.difficulty}`,
       isActive: true,
     });
   }
@@ -288,6 +468,54 @@ export class GenerateController {
           isActive: true,
         });
         createdPuzzles.push(wordSearch);
+      }
+
+      // Generate Word Forge if requested
+      if (dto.gameTypes.includes('wordForge')) {
+        const wfResult = generateWordForge(difficulty);
+        const wordForge = await this.puzzlesService.create({
+          gameType: GameType.WORD_FORGE,
+          difficulty: difficulty as Difficulty,
+          date: dateStr,
+          puzzleData: wfResult.puzzleData,
+          solution: wfResult.solution,
+          targetTime: { easy: 300, medium: 480, hard: 600, expert: 900 }[difficulty],
+          title: `Word Forge`,
+          isActive: true,
+        });
+        createdPuzzles.push(wordForge);
+      }
+
+      // Generate Nonogram if requested
+      if (dto.gameTypes.includes('nonogram')) {
+        const ngResult = generateNonogram(difficulty);
+        const nonogram = await this.puzzlesService.create({
+          gameType: GameType.NONOGRAM,
+          difficulty: difficulty as Difficulty,
+          date: dateStr,
+          puzzleData: ngResult.puzzleData,
+          solution: ngResult.solution,
+          targetTime: { easy: 180, medium: 360, hard: 600, expert: 900 }[difficulty],
+          title: `Nonogram`,
+          isActive: true,
+        });
+        createdPuzzles.push(nonogram);
+      }
+
+      // Generate Number Target if requested
+      if (dto.gameTypes.includes('numberTarget')) {
+        const ntResult = generateNumberTarget(difficulty);
+        const numberTarget = await this.puzzlesService.create({
+          gameType: GameType.NUMBER_TARGET,
+          difficulty: difficulty as Difficulty,
+          date: dateStr,
+          puzzleData: ntResult.puzzleData,
+          solution: ntResult.solution,
+          targetTime: { easy: 60, medium: 120, hard: 180, expert: 300 }[difficulty],
+          title: `Number Target`,
+          isActive: true,
+        });
+        createdPuzzles.push(numberTarget);
       }
     }
 

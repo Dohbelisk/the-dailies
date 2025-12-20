@@ -139,7 +139,7 @@ Swagger docs at `http://localhost:3000/api/docs`
 
 **Default Admin Login:**
 - Email: `admin@thedailies.app`
-- Password: `admin123`
+- Password: `5nifrenypro`
 
 ### 2. Admin Portal Setup
 

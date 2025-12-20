@@ -168,3 +168,69 @@ export class WordSearchPuzzleDataDto {
   @ApiPropertyOptional()
   theme?: string;
 }
+
+// Word Forge DTOs
+
+export class WordForgePuzzleDataDto {
+  @ApiProperty({ description: 'Array of 7 uppercase letters' })
+  letters: string[];
+
+  @ApiProperty({ description: 'The center letter (must be in every word)' })
+  centerLetter: string;
+
+  @ApiProperty({ description: 'List of valid words that can be formed' })
+  validWords: string[];
+
+  @ApiProperty({ description: 'Words that use all 7 letters' })
+  pangrams: string[];
+}
+
+export class WordForgeSolutionDto {
+  @ApiProperty({ description: 'All valid words' })
+  allWords: string[];
+
+  @ApiProperty({ description: 'Pangram words' })
+  pangrams: string[];
+
+  @ApiProperty({ description: 'Maximum possible score' })
+  maxScore: number;
+}
+
+// Nonogram DTOs
+
+export class NonogramPuzzleDataDto {
+  @ApiProperty()
+  rows: number;
+
+  @ApiProperty()
+  cols: number;
+
+  @ApiProperty({ description: 'Row clues - array of number arrays' })
+  rowClues: number[][];
+
+  @ApiProperty({ description: 'Column clues - array of number arrays' })
+  colClues: number[][];
+}
+
+export class NonogramSolutionDto {
+  @ApiProperty({ description: 'Solution grid (1 = filled, 0 = empty)' })
+  grid: number[][];
+}
+
+// Number Target DTOs
+
+export class NumberTargetPuzzleDataDto {
+  @ApiProperty({ description: 'Array of 4 numbers to use' })
+  numbers: number[];
+
+  @ApiProperty({ description: 'Target number to reach' })
+  target: number;
+}
+
+export class NumberTargetSolutionDto {
+  @ApiProperty({ description: 'One valid expression that reaches target' })
+  expression: string;
+
+  @ApiPropertyOptional({ description: 'Alternative valid expressions' })
+  alternates?: string[];
+}

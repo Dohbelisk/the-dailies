@@ -9,7 +9,7 @@ import { ArrowLeft, Loader2, Save, Trash2 } from 'lucide-react'
 import { puzzlesApi } from '../lib/api'
 
 const puzzleSchema = z.object({
-  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch']),
+  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch', 'wordForge', 'nonogram', 'numberTarget']),
   difficulty: z.enum(['easy', 'medium', 'hard', 'expert']),
   date: z.string().min(1, 'Date is required'),
   title: z.string().optional(),
@@ -167,6 +167,9 @@ export default function PuzzleEdit() {
                 <option value="killerSudoku">Killer Sudoku</option>
                 <option value="crossword">Crossword</option>
                 <option value="wordSearch">Word Search</option>
+                <option value="wordForge">Word Forge</option>
+                <option value="nonogram">Nonogram</option>
+                <option value="numberTarget">Number Target</option>
               </select>
             </div>
 

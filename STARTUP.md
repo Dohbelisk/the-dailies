@@ -129,7 +129,7 @@ Once started, access your services at:
 
 **Admin Login:**
 - Email: `admin@thedailies.app`
-- Password: `admin123`
+- Password: `5nifrenypro`
 
 > ⚠️ Change these in production!
 
@@ -233,7 +233,7 @@ npm run lint             # Lint all code
 - [ ] Run `npm run seed` to create admin user
 - [ ] Run `npm run dev` to start services
 - [ ] Open http://localhost:5173
-- [ ] Login with admin@thedailies.app / admin123
+- [ ] Login with admin@thedailies.app / 5nifrenypro
 - [ ] Generate some puzzles!
 
 ---

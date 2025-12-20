@@ -15,6 +15,9 @@ import {
   Grid3X3,
   Hash,
   FileText,
+  Hexagon,
+  LayoutGrid,
+  Target,
 } from 'lucide-react'
 import { puzzlesApi } from '../lib/api'
 
@@ -23,6 +26,9 @@ const gameTypeIcons: Record<string, typeof Grid3X3> = {
   killerSudoku: Hash,
   crossword: FileText,
   wordSearch: Search,
+  wordForge: Hexagon,
+  nonogram: LayoutGrid,
+  numberTarget: Target,
 }
 
 export default function PuzzleList() {
@@ -117,6 +123,9 @@ export default function PuzzleList() {
               <option value="killerSudoku">Killer Sudoku</option>
               <option value="crossword">Crossword</option>
               <option value="wordSearch">Word Search</option>
+              <option value="wordForge">Word Forge</option>
+              <option value="nonogram">Nonogram</option>
+              <option value="numberTarget">Number Target</option>
             </select>
           </div>
         </div>
@@ -164,13 +173,16 @@ export default function PuzzleList() {
               ) : (
                 filteredPuzzles?.map((puzzle: any) => {
                   const Icon = gameTypeIcons[puzzle.gameType] || Grid3X3
-                  const displayType =
-                    puzzle.gameType === 'killerSudoku'
-                      ? 'Killer Sudoku'
-                      : puzzle.gameType === 'wordSearch'
-                      ? 'Word Search'
-                      : puzzle.gameType.charAt(0).toUpperCase() +
-                        puzzle.gameType.slice(1)
+                  const displayTypeMap: Record<string, string> = {
+                    sudoku: 'Sudoku',
+                    killerSudoku: 'Killer Sudoku',
+                    crossword: 'Crossword',
+                    wordSearch: 'Word Search',
+                    wordForge: 'Word Forge',
+                    nonogram: 'Nonogram',
+                    numberTarget: 'Number Target',
+                  }
+                  const displayType = displayTypeMap[puzzle.gameType] || puzzle.gameType
 
                   return (
                     <tr

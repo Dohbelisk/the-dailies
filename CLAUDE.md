@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-The Dailies is a multi-platform daily puzzle game featuring Sudoku, Killer Sudoku, Crossword, and Word Search puzzles. The project consists of three main components:
+The Dailies is a multi-platform daily puzzle game featuring Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, and Number Target puzzles. The project consists of three main components:
 
 - **Flutter Mobile App** (`flutter_app/`) - Cross-platform mobile application (iOS, Android, Web)
 - **NestJS Backend API** (`backend/`) - RESTful API with MongoDB and JWT authentication
@@ -79,6 +79,9 @@ cp .env.example .env
 # Seed database (creates admin user + sample puzzles)
 npm run seed
 
+# Seed dictionary (~370k words for Word Forge)
+npm run seed:dictionary
+
 # Development
 npm run start:dev
 
@@ -97,7 +100,7 @@ npm run lint
 
 **Default admin credentials:**
 - Email: `admin@thedailies.app`
-- Password: `admin123`
+- Password: `5nifrenypro`
 
 ### Admin Portal (React + Vite)
 ```bash
@@ -144,7 +147,8 @@ flutter analyze           # Analyze code
 - `config/` - App configuration, feature flags, and version management
 - `email/` - Email notifications (via Nodemailer)
 - `seeds/` - Database seeding scripts
-- `utils/` - Puzzle generators (Sudoku, Killer Sudoku, Crossword, Word Search)
+- `dictionary/` - Word dictionary for Word Forge validation (~370k words)
+- `utils/` - Puzzle generators (Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target)
 
 **Key Patterns:**
 - All modules follow NestJS module/controller/service pattern
@@ -169,7 +173,7 @@ User {
 
 // Puzzle Schema
 Puzzle {
-  gameType: 'sudoku' | 'killerSudoku' | 'crossword' | 'wordSearch'
+  gameType: 'sudoku' | 'killerSudoku' | 'crossword' | 'wordSearch' | 'wordForge' | 'nonogram' | 'numberTarget'
   difficulty: 'easy' | 'medium' | 'hard' | 'expert'
   date: Date
   puzzleData: Object
@@ -178,6 +182,13 @@ Puzzle {
   title?: string
   description?: string
   isActive: boolean
+}
+
+// Dictionary Schema (for Word Forge)
+Dictionary {
+  word: string (unique, indexed)
+  length: number (indexed)
+  letters: string[] (sorted unique letters, indexed)
 }
 
 // Score Schema
@@ -283,7 +294,7 @@ FeatureFlag {
 | `TermsOfServiceScreen` / `PrivacyPolicyScreen` | Legal |
 
 **Widgets:**
-- `SudokuGrid`, `KillerSudokuGrid`, `CrosswordGrid`, `WordSearchGrid`
+- `SudokuGrid`, `KillerSudokuGrid`, `CrosswordGrid`, `WordSearchGrid`, `WordForgeGrid`, `NonogramGrid`, `NumberTargetGrid`
 - `NumberPad`, `KeyboardInput`
 - `GameTimer`, `PuzzleCard`, `TokenBalanceWidget`
 - `CompletionDialog`, `FeedbackDialog`, `ConsentDialog`
@@ -294,6 +305,9 @@ FeatureFlag {
 - Sudoku/Killer Sudoku: cell selection, notes mode (`Set<int>` per cell), grid validation
 - Crossword: word-based selection (across/down), cursor auto-advances to next empty cell, auto-moves to next incomplete word on completion, clue list auto-scrolls to selected clue
 - Word Search: drag selection with direction validation (straight lines/diagonals only)
+- Word Forge: 7-letter honeycomb, center letter required in all words, 4+ letter words only, pangram bonuses
+- Nonogram: fill/mark mode toggle, row/column clue validation
+- Number Target: expression builder with +, -, ×, ÷ operations
 
 **Scoring Algorithm:**
 - Base score: 1000 points
@@ -391,6 +405,9 @@ POST   /api/generate/sudoku                # Generate Sudoku
 POST   /api/generate/killer-sudoku         # Generate Killer Sudoku
 POST   /api/generate/crossword             # Generate Crossword
 POST   /api/generate/word-search           # Generate Word Search
+POST   /api/generate/word-forge            # Generate Word Forge
+POST   /api/generate/nonogram              # Generate Nonogram
+POST   /api/generate/number-target         # Generate Number Target
 POST   /api/generate/week                  # Generate full week
 
 GET    /api/feedback                       # List feedback with filters
@@ -412,6 +429,15 @@ GET   /api/config/admin/flags              # List all feature flags
 POST  /api/config/admin/flags              # Create feature flag
 PATCH /api/config/admin/flags/:id          # Update feature flag
 DELETE /api/config/admin/flags/:id         # Delete feature flag
+```
+
+### Dictionary Routes (for Word Forge)
+```
+GET  /api/dictionary/validate?word=X       # Check if word is valid
+POST /api/dictionary/validate-many         # Check multiple words
+POST /api/dictionary/validate-for-puzzle   # Check word is valid for puzzle letters
+GET  /api/dictionary/count                 # Get total word count
+GET  /api/dictionary/status                # Get dictionary status
 ```
 
 ---
@@ -464,6 +490,36 @@ DELETE /api/config/admin/flags/:id         # Delete feature flag
     "startRow": 0, "startCol": 0,
     "endRow": 0, "endCol": 6
   }]
+}
+```
+
+### Word Forge
+```json
+{
+  "letters": ["A", "C", "E", "L", "N", "R", "T"],  // 7 unique letters
+  "centerLetter": "A",                              // Must be in every word
+  "validWords": ["CRANE", "LANCE", "ANTLER", ...],  // Validated against dictionary
+  "pangrams": ["CENTRAL"]                           // Words using all 7 letters
+}
+```
+*Note: Word validation uses the Dictionary module (~370k words). Run `npm run seed:dictionary` to populate.*
+
+### Nonogram
+```json
+{
+  "rows": 5, "cols": 5,
+  "rowClues": [[1, 1], [5], [1, 1, 1], [5], [1, 1]],
+  "colClues": [[1, 1], [5], [1, 1, 1], [5], [1, 1]],
+  "solution": [[1,0,1,0,1], [1,1,1,1,1], ...]  // 1=filled, 0=empty
+}
+```
+
+### Number Target
+```json
+{
+  "numbers": [2, 5, 7, 3],           // 4 numbers to use
+  "target": 24,                       // Target to reach
+  "solutions": ["(7-5)*(3+2)*2", ...] // Valid expressions
 }
 ```
 
@@ -614,13 +670,29 @@ enum VersionStatus {
 - Places words in 8 directions (including diagonals)
 - Fills remaining cells with random A-Z
 
+**WordForgeGenerator:**
+- Selects 7 unique letters with good word coverage
+- Designates center letter (must be in all valid words)
+- Validates words against Dictionary module (~370k words)
+- Identifies pangrams (words using all 7 letters)
+
+**NonogramGenerator:**
+- Generates random pixel art patterns
+- Calculates row/column clues automatically
+- Grid sizes: easy 5x5, medium 10x10, hard 12x12, expert 15x15
+
+**NumberTargetGenerator:**
+- Generates 4 random numbers and a target
+- Verifies at least one valid solution exists
+- Target ranges: easy 10, medium 24, hard 100, expert 50-500
+
 **Target Times (seconds):**
-| Difficulty | Sudoku | Killer | Crossword | Word Search |
-|------------|--------|--------|-----------|-------------|
-| Easy       | 300    | 450    | 360       | 180         |
-| Medium     | 600    | 900    | 600       | 300         |
-| Hard       | 900    | 1200   | 900       | 420         |
-| Expert     | 1200   | 1800   | 1200      | 600         |
+| Difficulty | Sudoku | Killer | Crossword | Word Search | Word Forge | Nonogram | Number Target |
+|------------|--------|--------|-----------|-------------|------------|----------|---------------|
+| Easy       | 300    | 450    | 360       | 180         | 300        | 180      | 120           |
+| Medium     | 600    | 900    | 600       | 300         | 600        | 360      | 180           |
+| Hard       | 900    | 1200   | 900       | 420         | 900        | 600      | 300           |
+| Expert     | 1200   | 1800   | 1200      | 600         | 1200       | 900      | 420           |
 
 ---
 

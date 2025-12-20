@@ -64,6 +64,12 @@ export default function PuzzleGenerate() {
           rows: 12,
           cols: 12,
         })
+      } else if (gameType === 'wordForge') {
+        return api.post('/generate/word-forge', { difficulty, date, title })
+      } else if (gameType === 'nonogram') {
+        return api.post('/generate/nonogram', { difficulty, date, title })
+      } else if (gameType === 'numberTarget') {
+        return api.post('/generate/number-target', { difficulty, date, title })
       }
     },
     onSuccess: () => {
@@ -160,12 +166,18 @@ export default function PuzzleGenerate() {
                   <option value="killerSudoku">Killer Sudoku</option>
                   <option value="crossword">Crossword</option>
                   <option value="wordSearch">Word Search</option>
+                  <option value="wordForge">Word Forge</option>
+                  <option value="nonogram">Nonogram</option>
+                  <option value="numberTarget">Number Target</option>
                 </select>
                 <p className="mt-1 text-sm text-gray-500">
                   {gameType === 'sudoku' && 'Generates a valid Sudoku puzzle with unique solution'}
                   {gameType === 'killerSudoku' && 'Generates Killer Sudoku with cages and sum constraints'}
                   {gameType === 'crossword' && 'Generates crossword puzzle with intersecting words'}
                   {gameType === 'wordSearch' && 'Generates a word search grid with hidden words'}
+                  {gameType === 'wordForge' && 'Generates Word Forge with 7 letters and valid words'}
+                  {gameType === 'nonogram' && 'Generates Nonogram picture logic puzzle'}
+                  {gameType === 'numberTarget' && 'Generates Number Target math puzzle'}
                 </p>
               </div>
 
@@ -295,6 +307,69 @@ export default function PuzzleGenerate() {
                 </div>
               </div>
             )}
+
+            {gameType === 'wordForge' && (
+              <div className="flex items-center justify-center bg-gray-50 dark:bg-gray-700/50 rounded-xl p-8">
+                <div className="text-center">
+                  <span className="text-6xl mb-4 block">⚒️</span>
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Word Forge Generator
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Word game with 7 letters. Center letter must appear in every word.
+                    Minimum 4-letter words. Pangram bonus for using all letters.
+                  </p>
+                  <ul className="mt-4 text-sm text-left text-gray-600 dark:text-gray-400 space-y-1">
+                    <li>• 7 unique letters in honeycomb</li>
+                    <li>• Center letter required in all words</li>
+                    <li>• 4+ letter words only</li>
+                    <li>• +7 bonus for pangrams</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {gameType === 'nonogram' && (
+              <div className="flex items-center justify-center bg-gray-50 dark:bg-gray-700/50 rounded-xl p-8">
+                <div className="text-center">
+                  <span className="text-6xl mb-4 block">🖼️</span>
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Nonogram Generator
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Picture logic puzzle. Use number clues to fill cells and reveal a hidden image.
+                    Also known as Picross or Griddlers.
+                  </p>
+                  <ul className="mt-4 text-sm text-left text-gray-600 dark:text-gray-400 space-y-1">
+                    <li>• Easy: 5x5 grid</li>
+                    <li>• Medium: 10x10 grid</li>
+                    <li>• Hard: 12x12 grid</li>
+                    <li>• Expert: 15x15 grid</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {gameType === 'numberTarget' && (
+              <div className="flex items-center justify-center bg-gray-50 dark:bg-gray-700/50 rounded-xl p-8">
+                <div className="text-center">
+                  <span className="text-6xl mb-4 block">🎯</span>
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Number Target Generator
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Combine 4 numbers using +, -, ×, ÷ to reach the target.
+                    Similar to Countdown or 24 Game.
+                  </p>
+                  <ul className="mt-4 text-sm text-left text-gray-600 dark:text-gray-400 space-y-1">
+                    <li>• Easy: Target = 10</li>
+                    <li>• Medium: Target = 24</li>
+                    <li>• Hard: Target = 100</li>
+                    <li>• Expert: Random target 50-500</li>
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -348,6 +423,9 @@ export default function PuzzleGenerate() {
                     { id: 'killerSudoku', label: 'Killer Sudoku', desc: 'Sudoku with sum cages' },
                     { id: 'crossword', label: 'Crossword', desc: 'Intersecting word puzzle' },
                     { id: 'wordSearch', label: 'Word Search', desc: 'Find hidden words' },
+                    { id: 'wordForge', label: 'Word Forge', desc: 'Forge words from letters' },
+                    { id: 'nonogram', label: 'Nonogram', desc: 'Picture logic puzzle' },
+                    { id: 'numberTarget', label: 'Number Target', desc: 'Math puzzle' },
                   ].map((type) => (
                     <label
                       key={type.id}

@@ -121,7 +121,7 @@ export default function Login() {
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            Default: admin@thedailies.app / admin123
+            Default: admin@thedailies.app / 5nifrenypro
           </p>
         </div>
       </div>

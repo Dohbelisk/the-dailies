@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-enum GameType { sudoku, killerSudoku, crossword, wordSearch }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -13,6 +13,12 @@ extension GameTypeExtension on GameType {
         return 'Crossword';
       case GameType.wordSearch:
         return 'Word Search';
+      case GameType.wordForge:
+        return 'Word Forge';
+      case GameType.nonogram:
+        return 'Nonogram';
+      case GameType.numberTarget:
+        return 'Number Target';
     }
   }
 
@@ -26,6 +32,12 @@ extension GameTypeExtension on GameType {
         return '📝';
       case GameType.wordSearch:
         return '🔍';
+      case GameType.wordForge:
+        return '⚒️';
+      case GameType.nonogram:
+        return '🖼️';
+      case GameType.numberTarget:
+        return '🎯';
     }
   }
 
@@ -511,5 +523,311 @@ class UserStats {
       gameTypeCounts: Map<String, int>.from(json['gameTypeCounts'] ?? {}),
       averageTime: json['averageTime'] ?? 0,
     );
+  }
+}
+
+// Word Forge specific models
+class WordForgePuzzle {
+  final List<String> letters; // 7 letters
+  final String centerLetter; // Must be in every word
+  final Set<String> validWords; // All valid words
+  final Set<String> pangrams; // Words using all 7 letters
+  final Set<String> foundWords; // Words the user has found
+  final int maxScore;
+
+  WordForgePuzzle({
+    required this.letters,
+    required this.centerLetter,
+    required this.validWords,
+    required this.pangrams,
+    Set<String>? foundWords,
+    required this.maxScore,
+  }) : foundWords = foundWords ?? {};
+
+  factory WordForgePuzzle.fromJson(Map<String, dynamic> json) {
+    final puzzleData = json;
+    final solution = json['solution'] ?? json;
+
+    return WordForgePuzzle(
+      letters: List<String>.from(puzzleData['letters'] ?? []),
+      centerLetter: puzzleData['centerLetter'] ?? '',
+      validWords: Set<String>.from(puzzleData['validWords'] ?? solution['allWords'] ?? []),
+      pangrams: Set<String>.from(puzzleData['pangrams'] ?? solution['pangrams'] ?? []),
+      maxScore: solution['maxScore'] ?? 0,
+    );
+  }
+
+  bool get isComplete => foundWords.length == validWords.length;
+
+  int get currentScore {
+    int score = 0;
+    for (final word in foundWords) {
+      if (word.length == 4) {
+        score += 1;
+      } else {
+        score += word.length;
+      }
+      if (pangrams.contains(word)) {
+        score += 7; // Pangram bonus
+      }
+    }
+    return score;
+  }
+
+  bool isValidWord(String word) {
+    final upperWord = word.toUpperCase();
+    if (upperWord.length < 4) return false;
+    if (!upperWord.contains(centerLetter)) return false;
+    return validWords.contains(upperWord);
+  }
+
+  bool canFormWord(String word) {
+    final upperWord = word.toUpperCase();
+    final letterSet = Set<String>.from(letters);
+    for (final char in upperWord.split('')) {
+      if (!letterSet.contains(char)) return false;
+    }
+    return upperWord.contains(centerLetter);
+  }
+
+  bool isPangram(String word) {
+    final upperWord = word.toUpperCase();
+    return pangrams.contains(upperWord);
+  }
+
+  int scoreWord(String word) {
+    final upperWord = word.toUpperCase();
+    int score = 0;
+    if (upperWord.length == 4) {
+      score = 1;
+    } else {
+      score = upperWord.length;
+    }
+    if (pangrams.contains(upperWord)) {
+      score += 7; // Pangram bonus
+    }
+    return score;
+  }
+
+  void shuffleOuterLetters() {
+    // Get outer letters (all except center)
+    final outerLetters = letters.where((l) => l != centerLetter).toList();
+    outerLetters.shuffle();
+
+    // Rebuild letters list with center letter staying in place
+    int outerIndex = 0;
+    for (int i = 0; i < letters.length; i++) {
+      if (letters[i] != centerLetter) {
+        letters[i] = outerLetters[outerIndex++];
+      }
+    }
+  }
+}
+
+// Nonogram specific models
+class NonogramPuzzle {
+  final int rows;
+  final int cols;
+  final List<List<int>> rowClues; // Clues for each row
+  final List<List<int>> colClues; // Clues for each column
+  final List<List<int>> solution; // 1 = filled, 0 = empty
+  final List<List<int?>> userGrid; // null = unmarked, 1 = filled, 0 = marked empty
+
+  NonogramPuzzle({
+    required this.rows,
+    required this.cols,
+    required this.rowClues,
+    required this.colClues,
+    required this.solution,
+    List<List<int?>>? userGrid,
+  }) : userGrid = userGrid ?? List.generate(rows, (_) => List<int?>.filled(cols, null));
+
+  factory NonogramPuzzle.fromJson(Map<String, dynamic> json) {
+    final puzzleData = json;
+    final solutionData = json['solution'] ?? json;
+
+    final rows = puzzleData['rows'] as int;
+    final cols = puzzleData['cols'] as int;
+
+    final rowClues = (puzzleData['rowClues'] as List).map<List<int>>((row) {
+      return (row as List).map<int>((c) => c as int).toList();
+    }).toList();
+
+    final colClues = (puzzleData['colClues'] as List).map<List<int>>((col) {
+      return (col as List).map<int>((c) => c as int).toList();
+    }).toList();
+
+    final solution = (solutionData['grid'] as List).map<List<int>>((row) {
+      return (row as List).map<int>((c) => c as int).toList();
+    }).toList();
+
+    return NonogramPuzzle(
+      rows: rows,
+      cols: cols,
+      rowClues: rowClues,
+      colClues: colClues,
+      solution: solution,
+    );
+  }
+
+  bool get isComplete {
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        // Only check filled cells - user must have marked them as filled
+        if (solution[r][c] == 1 && userGrid[r][c] != 1) return false;
+        // Also check that marked empty cells are correct
+        if (solution[r][c] == 0 && userGrid[r][c] == 1) return false;
+      }
+    }
+    return true;
+  }
+
+  int get filledCount {
+    int count = 0;
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (userGrid[r][c] == 1) count++;
+      }
+    }
+    return count;
+  }
+
+  int get totalToFill {
+    int count = 0;
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (solution[r][c] == 1) count++;
+      }
+    }
+    return count;
+  }
+}
+
+// Number Target specific models
+class NumberTargetPuzzle {
+  final List<int> numbers; // 4 numbers to use
+  final int target; // Target number to reach
+  final String solution; // One valid expression
+  final List<String> alternates; // Alternative solutions
+  String userExpression; // User's current expression
+  final List<bool> usedNumbers; // Track which numbers are used
+
+  NumberTargetPuzzle({
+    required this.numbers,
+    required this.target,
+    required this.solution,
+    this.alternates = const [],
+    this.userExpression = '',
+    List<bool>? usedNumbers,
+  }) : usedNumbers = usedNumbers ?? List.filled(4, false);
+
+  factory NumberTargetPuzzle.fromJson(Map<String, dynamic> json) {
+    final puzzleData = json;
+    final solutionData = json['solution'] ?? json;
+
+    return NumberTargetPuzzle(
+      numbers: List<int>.from(puzzleData['numbers'] ?? []),
+      target: puzzleData['target'] as int,
+      solution: solutionData['expression'] ?? '',
+      alternates: List<String>.from(solutionData['alternates'] ?? []),
+    );
+  }
+
+  bool get isComplete {
+    if (userExpression.isEmpty) return false;
+    try {
+      final result = evaluateExpression(userExpression);
+      return (result - target).abs() < 0.0001;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  double evaluateExpression(String expr) {
+    // Simple expression evaluator
+    // This is a basic implementation - in production, use a proper parser
+    try {
+      // Replace × with * and ÷ with /
+      expr = expr.replaceAll('×', '*').replaceAll('÷', '/');
+
+      // Use Dart's built-in evaluation (simplified)
+      // For safety, we manually parse the expression
+      return _evaluate(expr);
+    } catch (e) {
+      return double.nan;
+    }
+  }
+
+  double _evaluate(String expr) {
+    expr = expr.trim();
+
+    // Handle parentheses first
+    while (expr.contains('(')) {
+      final start = expr.lastIndexOf('(');
+      final end = expr.indexOf(')', start);
+      if (end == -1) throw FormatException('Mismatched parentheses');
+
+      final inner = expr.substring(start + 1, end);
+      final result = _evaluate(inner);
+      expr = expr.substring(0, start) + result.toString() + expr.substring(end + 1);
+    }
+
+    // Handle + and - (left to right)
+    var parts = _splitKeepDelimiters(expr, ['+', '-']);
+    if (parts.length > 1) {
+      double result = _evaluate(parts[0]);
+      for (int i = 1; i < parts.length; i += 2) {
+        final op = parts[i];
+        final val = _evaluate(parts[i + 1]);
+        if (op == '+') {
+          result += val;
+        } else {
+          result -= val;
+        }
+      }
+      return result;
+    }
+
+    // Handle * and /
+    parts = _splitKeepDelimiters(expr, ['*', '/']);
+    if (parts.length > 1) {
+      double result = _evaluate(parts[0]);
+      for (int i = 1; i < parts.length; i += 2) {
+        final op = parts[i];
+        final val = _evaluate(parts[i + 1]);
+        if (op == '*') {
+          result *= val;
+        } else {
+          if (val == 0) throw FormatException('Division by zero');
+          result /= val;
+        }
+      }
+      return result;
+    }
+
+    // It's a number
+    return double.parse(expr);
+  }
+
+  List<String> _splitKeepDelimiters(String str, List<String> delimiters) {
+    final result = <String>[];
+    var current = '';
+
+    for (int i = 0; i < str.length; i++) {
+      final char = str[i];
+      if (delimiters.contains(char) && current.isNotEmpty) {
+        result.add(current);
+        result.add(char);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    if (current.isNotEmpty) {
+      result.add(current);
+    }
+
+    return result;
   }
 }
