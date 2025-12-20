@@ -3,7 +3,7 @@ import { Puzzle, ArrowLeft } from 'lucide-react'
 
 export default function TermsOfService() {
   const lastUpdated = 'December 20, 2024'
-  const contactEmail = 'support@dbkgames.co.za'
+  const contactEmail = 'support@dohblisk.com'
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
