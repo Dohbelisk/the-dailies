@@ -1,38 +1,42 @@
 # The Dailies - Project Status
 
-**Last Updated:** 2025-12-16
-**Overall Completion:** ~97%
+**Last Updated:** 2025-12-21
+**Overall Completion:** ~98%
 
 ---
 
 ## Executive Summary
 
-The Dailies is a freemium daily puzzle game with 4 game types (Sudoku, Killer Sudoku, Crossword, Word Search). The project consists of three components:
+The Dailies is a freemium daily puzzle game with **12 game types** (Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections). The project consists of three components:
 
 | Component | Status | Completion |
 |-----------|--------|------------|
-| Flutter App | Functional | 95% |
+| Flutter App | Functional | 97% |
 | NestJS Backend | Functional | 98% |
-| React Admin Portal | Functional | 90% |
+| React Admin Portal | Functional | 95% |
 
 **What Works Now:**
-- All 4 puzzle game types fully playable
+- All 12 puzzle game types fully playable
 - User authentication (login/register)
 - Friends system (add, accept, remove)
 - **Friend challenges (async)** - Challenge friends to same puzzle
+- **Favorites system** - Pin favorite games to top of home screen
+- **Game state persistence** - In-progress indicator on home screen
 - Token-based archive access
 - Hint system with daily limits
 - Rewarded video ads for hints/tokens
 - One-time premium purchase (IAP integration)
-- Admin portal for puzzle management
-- Puzzle auto-generation for all types
+- Admin portal for puzzle management with **visual Sudoku editor**
+- Puzzle auto-generation for all 12 types
+- Puzzle validation endpoints (validate/solve)
+- Advanced filtering (type, difficulty, status, date range)
 - Statistics tracking
 - GDPR consent and privacy policy
 
 **What's Missing:**
 - Production ad unit IDs
 - Configure IAP product in App Store Connect / Google Play Console
-- Real-time challenges (WebSocket-based)
+- Visual editors for remaining puzzle types (Killer Sudoku, Crossword, etc.)
 
 ---
 
@@ -56,12 +60,14 @@ The Dailies is a freemium daily puzzle game with 4 game types (Sudoku, Killer Su
 | Privacy Policy | `screens/legal/privacy_policy_screen.dart` | Complete | GDPR-compliant privacy policy |
 | Terms of Service | `screens/legal/terms_of_service_screen.dart` | Complete | App terms of service |
 
-#### Services (11 total)
+#### Services (13 total)
 | Service | File | Status | Notes |
 |---------|------|--------|-------|
 | ApiService | `services/api_service.dart` | Complete | REST client + mock fallback, uses env config |
 | AuthService | `services/auth_service.dart` | Complete | JWT token management |
 | GameService | `services/game_service.dart` | Complete | Puzzle fetching wrapper |
+| GameStateService | `services/game_state_service.dart` | Complete | Persistent game state, in-progress detection |
+| FavoritesService | `services/favorites_service.dart` | Complete | Favorite games pinned to top |
 | AdMobService | `services/admob_service.dart` | Complete | Rewarded ads, respects consent settings |
 | HintService | `services/hint_service.dart` | Complete | 3 free/day + ads |
 | TokenService | `services/token_service.dart` | Complete | Archive access economy |
@@ -83,8 +89,9 @@ The Dailies is a freemium daily puzzle game with 4 game types (Sudoku, Killer Su
 - `friend_models.dart` - Friend, FriendRequest, FriendStats
 - `challenge_models.dart` - Challenge, ChallengeStatus, ChallengeStats, CreateChallengeRequest
 
-#### Widgets (14 total)
-- SudokuGrid, KillerSudokuGrid, CrosswordGrid, WordSearchGrid
+#### Widgets (19 total)
+- SudokuGrid, KillerSudokuGrid, CrosswordGrid, WordSearchGrid, WordForgeGrid, NonogramGrid, NumberTargetGrid
+- BallSortGrid, PipesGrid, LightsOutGrid, WordLadderGrid, ConnectionsGrid
 - PuzzleCard, TokenBalanceWidget, CompletionDialog
 - GameTimer, NumberPad, KeyboardInput, AnimatedBackground
 - ConsentDialog (GDPR consent modal)
@@ -198,10 +205,20 @@ POST   /api/generate/week            - Generate full week
 |------|------|--------|-------------|
 | Login | `pages/Login.tsx` | Complete | Admin authentication |
 | Dashboard | `pages/Dashboard.tsx` | Complete | Statistics overview |
-| PuzzleList | `pages/PuzzleList.tsx` | Complete | Browse/filter puzzles |
-| PuzzleCreate | `pages/PuzzleCreate.tsx` | Complete | Manual creation |
-| PuzzleEdit | `pages/PuzzleEdit.tsx` | Complete | Edit existing |
+| PuzzleList | `pages/PuzzleList.tsx` | Complete | Browse/filter (type, difficulty, status, date range) |
+| PuzzleCreate | `pages/PuzzleCreate.tsx` | Complete | Visual/JSON editor toggle |
+| PuzzleEdit | `pages/PuzzleEdit.tsx` | Complete | Visual/JSON editor toggle |
 | PuzzleGenerate | `pages/PuzzleGenerate.tsx` | Complete | Auto-generation |
+
+#### Visual Editors (`components/editors/`)
+| Component | Status | Description |
+|-----------|--------|-------------|
+| SudokuEditor | Complete | Interactive 9x9 grid with validate/solve |
+| KillerSudokuEditor | Complete | Cage drawing with color assignment |
+| PuzzleEditorWrapper | Complete | Switches editor by game type |
+| shared/GridEditor | Complete | Reusable 9x9 grid component |
+| shared/NumberPad | Complete | Number input buttons 1-9 |
+| shared/ValidationStatus | Complete | Shows validation results |
 
 #### Tech Stack
 - React 18 + TypeScript
@@ -437,8 +454,8 @@ flutter run --dart-define=ENV=production \
 cd backend && npm run seed
 
 # Default admin login
-Email: admin@thedailies.app
-Password: admin123
+Email: admin@dohbelisk.com
+Password: 5nifrenypro
 ```
 
 ---

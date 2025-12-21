@@ -1,38 +1,38 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsOptional, IsMongoId } from 'class-validator';
-import { GameType, Difficulty } from '../schemas/challenge.schema';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsString, IsEnum, IsOptional, IsMongoId } from "class-validator";
+import { GameType, Difficulty } from "../schemas/challenge.schema";
 
 export class CreateChallengeDto {
-  @ApiProperty({ description: 'ID of the user to challenge' })
+  @ApiProperty({ description: "ID of the user to challenge" })
   @IsMongoId()
   opponentId: string;
 
-  @ApiProperty({ enum: GameType, description: 'Type of puzzle game' })
+  @ApiProperty({ enum: GameType, description: "Type of puzzle game" })
   @IsEnum(GameType)
   gameType: GameType;
 
-  @ApiProperty({ enum: Difficulty, description: 'Puzzle difficulty' })
+  @ApiProperty({ enum: Difficulty, description: "Puzzle difficulty" })
   @IsEnum(Difficulty)
   difficulty: Difficulty;
 
-  @ApiPropertyOptional({ description: 'Optional message to opponent' })
+  @ApiPropertyOptional({ description: "Optional message to opponent" })
   @IsString()
   @IsOptional()
   message?: string;
 }
 
 export class SubmitChallengeResultDto {
-  @ApiProperty({ description: 'Challenge ID' })
+  @ApiProperty({ description: "Challenge ID" })
   @IsMongoId()
   challengeId: string;
 
-  @ApiProperty({ description: 'Final score' })
+  @ApiProperty({ description: "Final score" })
   score: number;
 
-  @ApiProperty({ description: 'Completion time in seconds' })
+  @ApiProperty({ description: "Completion time in seconds" })
   time: number;
 
-  @ApiProperty({ description: 'Number of mistakes made' })
+  @ApiProperty({ description: "Number of mistakes made" })
   mistakes: number;
 }
 

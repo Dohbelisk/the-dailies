@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/game_models.dart';
+import '../services/game_state_service.dart';
 
 class GameProvider extends ChangeNotifier {
+  DateTime? _currentPuzzleDate;
   DailyPuzzle? _currentPuzzle;
   int _elapsedSeconds = 0;
   bool _isPlaying = false;
@@ -22,7 +24,37 @@ class GameProvider extends ChangeNotifier {
   // Word Search specific state
   WordSearchPuzzle? _wordSearchPuzzle;
   List<List<int>>? _currentSelection;
-  
+
+  // Word Forge specific state
+  WordForgePuzzle? _wordForgePuzzle;
+  String _currentWord = '';
+
+  // Nonogram specific state
+  NonogramPuzzle? _nonogramPuzzle;
+  bool _nonogramMarkMode = false; // false = fill, true = mark X
+
+  // Number Target specific state
+  NumberTargetPuzzle? _numberTargetPuzzle;
+  String _currentExpression = '';
+
+  // Ball Sort specific state
+  BallSortPuzzle? _ballSortPuzzle;
+  int? _selectedTube;
+  int _undosRemaining = 5;
+
+  // Pipes specific state
+  PipesPuzzle? _pipesPuzzle;
+
+  // Lights Out specific state
+  LightsOutPuzzle? _lightsOutPuzzle;
+
+  // Word Ladder specific state
+  WordLadderPuzzle? _wordLadderPuzzle;
+  String _wordLadderInput = '';
+
+  // Connections specific state
+  ConnectionsPuzzle? _connectionsPuzzle;
+
   // Getters
   DailyPuzzle? get currentPuzzle => _currentPuzzle;
   int get elapsedSeconds => _elapsedSeconds;
@@ -42,8 +74,284 @@ class GameProvider extends ChangeNotifier {
   WordSearchPuzzle? get wordSearchPuzzle => _wordSearchPuzzle;
   List<List<int>>? get currentSelection => _currentSelection;
 
-  void loadPuzzle(DailyPuzzle puzzle) {
+  WordForgePuzzle? get wordForgePuzzle => _wordForgePuzzle;
+  String get currentWord => _currentWord;
+
+  NonogramPuzzle? get nonogramPuzzle => _nonogramPuzzle;
+  bool get nonogramMarkMode => _nonogramMarkMode;
+
+  NumberTargetPuzzle? get numberTargetPuzzle => _numberTargetPuzzle;
+  String get currentExpression => _currentExpression;
+
+  BallSortPuzzle? get ballSortPuzzle => _ballSortPuzzle;
+  int? get selectedTube => _selectedTube;
+  int get undosRemaining => _undosRemaining;
+
+  PipesPuzzle? get pipesPuzzle => _pipesPuzzle;
+
+  LightsOutPuzzle? get lightsOutPuzzle => _lightsOutPuzzle;
+
+  WordLadderPuzzle? get wordLadderPuzzle => _wordLadderPuzzle;
+  String get wordLadderInput => _wordLadderInput;
+
+  ConnectionsPuzzle? get connectionsPuzzle => _connectionsPuzzle;
+
+  /// Serialize current game state to a map for persistence
+  Map<String, dynamic> _serializeState() {
+    final state = <String, dynamic>{
+      'elapsedSeconds': _elapsedSeconds,
+      'mistakes': _mistakes,
+      'hintsUsed': _hintsUsed,
+      'selectedRow': _selectedRow,
+      'selectedCol': _selectedCol,
+      'notesMode': _notesMode,
+    };
+
+    // Serialize puzzle-specific state
+    if (_sudokuPuzzle != null) {
+      state['sudokuGrid'] = _sudokuPuzzle!.grid.map((row) => row.toList()).toList();
+      state['sudokuNotes'] = _sudokuPuzzle!.notes.map((row) =>
+        row.map((set) => set.toList()).toList()
+      ).toList();
+    }
+
+    if (_killerSudokuPuzzle != null) {
+      state['killerSudokuGrid'] = _killerSudokuPuzzle!.grid.map((row) => row.toList()).toList();
+      state['killerSudokuNotes'] = _killerSudokuPuzzle!.notes.map((row) =>
+        row.map((set) => set.toList()).toList()
+      ).toList();
+    }
+
+    if (_crosswordPuzzle != null) {
+      state['crosswordUserGrid'] = _crosswordPuzzle!.userGrid.map((row) => row.toList()).toList();
+      if (_selectedClue != null) {
+        state['selectedClueNumber'] = _selectedClue!.number;
+        state['selectedClueDirection'] = _selectedClue!.direction;
+      }
+    }
+
+    if (_wordSearchPuzzle != null) {
+      state['foundWordIndices'] = _wordSearchPuzzle!.words
+          .asMap()
+          .entries
+          .where((e) => e.value.found)
+          .map((e) => e.key)
+          .toList();
+    }
+
+    if (_wordForgePuzzle != null) {
+      state['wordForgeFoundWords'] = _wordForgePuzzle!.foundWords.toList();
+      state['currentWord'] = _currentWord;
+    }
+
+    if (_nonogramPuzzle != null) {
+      state['nonogramUserGrid'] = _nonogramPuzzle!.userGrid.map((row) => row.toList()).toList();
+      state['nonogramMarkMode'] = _nonogramMarkMode;
+    }
+
+    if (_numberTargetPuzzle != null) {
+      state['numberTargetExpression'] = _currentExpression;
+      state['numberTargetUserExpression'] = _numberTargetPuzzle!.userExpression;
+    }
+
+    if (_ballSortPuzzle != null) {
+      state['ballSortCurrentState'] = _ballSortPuzzle!.currentState.map((t) => t.toList()).toList();
+      state['ballSortMoveCount'] = _ballSortPuzzle!.moveCount;
+      state['ballSortMoveHistory'] = _ballSortPuzzle!.moveHistory.map((m) => m.toJson()).toList();
+      state['ballSortUndosRemaining'] = _undosRemaining;
+    }
+
+    if (_pipesPuzzle != null) {
+      state['pipesCurrentPaths'] = _pipesPuzzle!.currentPaths.map(
+        (color, path) => MapEntry(color, path.map((cell) => cell.toList()).toList())
+      );
+      state['pipesSelectedColor'] = _pipesPuzzle!.selectedColor;
+    }
+
+    if (_lightsOutPuzzle != null) {
+      state['lightsOutCurrentState'] = _lightsOutPuzzle!.currentState.map((row) => row.toList()).toList();
+      state['lightsOutMoveCount'] = _lightsOutPuzzle!.moveCount;
+    }
+
+    if (_wordLadderPuzzle != null) {
+      state['wordLadderCurrentPath'] = _wordLadderPuzzle!.currentPath.toList();
+      state['wordLadderInput'] = _wordLadderInput;
+    }
+
+    if (_connectionsPuzzle != null) {
+      state['connectionsSelectedWords'] = _connectionsPuzzle!.selectedWords.toList();
+      state['connectionsFoundCategories'] = _connectionsPuzzle!.foundCategories.map(
+        (c) => {'name': c.name, 'words': c.words, 'difficulty': c.difficulty}
+      ).toList();
+      state['connectionsMistakesRemaining'] = _connectionsPuzzle!.mistakesRemaining;
+    }
+
+    return state;
+  }
+
+  /// Restore game state from a saved map
+  void _restoreState(Map<String, dynamic> state) {
+    _elapsedSeconds = state['elapsedSeconds'] ?? 0;
+    _mistakes = state['mistakes'] ?? 0;
+    _hintsUsed = state['hintsUsed'] ?? 0;
+    _selectedRow = state['selectedRow'];
+    _selectedCol = state['selectedCol'];
+    _notesMode = state['notesMode'] ?? false;
+
+    // Restore puzzle-specific state
+    if (_sudokuPuzzle != null && state['sudokuGrid'] != null) {
+      final grid = state['sudokuGrid'] as List;
+      for (int r = 0; r < 9; r++) {
+        for (int c = 0; c < 9; c++) {
+          _sudokuPuzzle!.grid[r][c] = grid[r][c];
+        }
+      }
+      if (state['sudokuNotes'] != null) {
+        final notes = state['sudokuNotes'] as List;
+        for (int r = 0; r < 9; r++) {
+          for (int c = 0; c < 9; c++) {
+            _sudokuPuzzle!.notes[r][c] = Set<int>.from((notes[r][c] as List).cast<int>());
+          }
+        }
+      }
+    }
+
+    if (_killerSudokuPuzzle != null && state['killerSudokuGrid'] != null) {
+      final grid = state['killerSudokuGrid'] as List;
+      for (int r = 0; r < 9; r++) {
+        for (int c = 0; c < 9; c++) {
+          _killerSudokuPuzzle!.grid[r][c] = grid[r][c];
+        }
+      }
+      if (state['killerSudokuNotes'] != null) {
+        final notes = state['killerSudokuNotes'] as List;
+        for (int r = 0; r < 9; r++) {
+          for (int c = 0; c < 9; c++) {
+            _killerSudokuPuzzle!.notes[r][c] = Set<int>.from((notes[r][c] as List).cast<int>());
+          }
+        }
+      }
+    }
+
+    if (_crosswordPuzzle != null && state['crosswordUserGrid'] != null) {
+      final grid = state['crosswordUserGrid'] as List;
+      for (int r = 0; r < _crosswordPuzzle!.rows; r++) {
+        for (int c = 0; c < _crosswordPuzzle!.cols; c++) {
+          _crosswordPuzzle!.userGrid[r][c] = grid[r][c];
+        }
+      }
+      // Restore selected clue
+      if (state['selectedClueNumber'] != null && state['selectedClueDirection'] != null) {
+        _selectedClue = _crosswordPuzzle!.clues.firstWhere(
+          (c) => c.number == state['selectedClueNumber'] && c.direction == state['selectedClueDirection'],
+          orElse: () => _crosswordPuzzle!.clues.first,
+        );
+      }
+    }
+
+    if (_wordSearchPuzzle != null && state['foundWordIndices'] != null) {
+      final foundIndices = (state['foundWordIndices'] as List).cast<int>();
+      for (final idx in foundIndices) {
+        if (idx < _wordSearchPuzzle!.words.length) {
+          _wordSearchPuzzle!.words[idx].found = true;
+        }
+      }
+    }
+
+    if (_wordForgePuzzle != null && state['wordForgeFoundWords'] != null) {
+      final foundWords = (state['wordForgeFoundWords'] as List).cast<String>();
+      _wordForgePuzzle!.foundWords.addAll(foundWords);
+      _currentWord = state['currentWord'] ?? '';
+    }
+
+    if (_nonogramPuzzle != null && state['nonogramUserGrid'] != null) {
+      final grid = state['nonogramUserGrid'] as List;
+      for (int r = 0; r < _nonogramPuzzle!.rows; r++) {
+        for (int c = 0; c < _nonogramPuzzle!.cols; c++) {
+          _nonogramPuzzle!.userGrid[r][c] = grid[r][c];
+        }
+      }
+      _nonogramMarkMode = state['nonogramMarkMode'] ?? false;
+    }
+
+    if (_numberTargetPuzzle != null) {
+      _currentExpression = state['numberTargetExpression'] ?? '';
+      _numberTargetPuzzle!.userExpression = state['numberTargetUserExpression'];
+    }
+
+    if (_ballSortPuzzle != null && state['ballSortCurrentState'] != null) {
+      final savedState = state['ballSortCurrentState'] as List;
+      _ballSortPuzzle!.currentState = savedState.map<List<String>>((tube) {
+        return (tube as List).map<String>((ball) => ball as String).toList();
+      }).toList();
+      _ballSortPuzzle!.moveCount = state['ballSortMoveCount'] ?? 0;
+      if (state['ballSortMoveHistory'] != null) {
+        final history = state['ballSortMoveHistory'] as List;
+        _ballSortPuzzle!.moveHistory.clear();
+        _ballSortPuzzle!.moveHistory.addAll(
+          history.map((m) => BallSortMove.fromJson(m as Map<String, dynamic>))
+        );
+      }
+      _undosRemaining = state['ballSortUndosRemaining'] ?? 5;
+    }
+
+    if (_pipesPuzzle != null && state['pipesCurrentPaths'] != null) {
+      final savedPaths = state['pipesCurrentPaths'] as Map<String, dynamic>;
+      _pipesPuzzle!.currentPaths = savedPaths.map(
+        (color, path) => MapEntry(
+          color,
+          (path as List).map<List<int>>((cell) =>
+            (cell as List).map<int>((c) => c as int).toList()
+          ).toList()
+        )
+      );
+      _pipesPuzzle!.selectedColor = state['pipesSelectedColor'];
+    }
+
+    if (_lightsOutPuzzle != null && state['lightsOutCurrentState'] != null) {
+      final savedState = state['lightsOutCurrentState'] as List;
+      _lightsOutPuzzle!.currentState = savedState.map<List<bool>>((row) {
+        return (row as List).map<bool>((cell) => cell as bool).toList();
+      }).toList();
+      _lightsOutPuzzle!.moveCount = state['lightsOutMoveCount'] ?? 0;
+    }
+
+    if (_wordLadderPuzzle != null && state['wordLadderCurrentPath'] != null) {
+      _wordLadderPuzzle!.currentPath = List<String>.from(state['wordLadderCurrentPath'] as List);
+      _wordLadderInput = state['wordLadderInput'] ?? '';
+    }
+
+    if (_connectionsPuzzle != null && state['connectionsSelectedWords'] != null) {
+      _connectionsPuzzle!.selectedWords = Set<String>.from(state['connectionsSelectedWords'] as List);
+      _connectionsPuzzle!.mistakesRemaining = state['connectionsMistakesRemaining'] ?? 4;
+      if (state['connectionsFoundCategories'] != null) {
+        final foundCats = state['connectionsFoundCategories'] as List;
+        _connectionsPuzzle!.foundCategories = foundCats.map((c) =>
+          ConnectionsCategory(
+            name: c['name'] as String,
+            words: List<String>.from(c['words'] as List),
+            difficulty: c['difficulty'] as int,
+          )
+        ).toList();
+      }
+    }
+  }
+
+  /// Save current game state to persistent storage
+  Future<void> saveState() async {
+    if (_currentPuzzle == null || _currentPuzzleDate == null) return;
+
+    await GameStateService.saveGameState(
+      gameType: _currentPuzzle!.gameType,
+      puzzleDate: _currentPuzzleDate!,
+      state: _serializeState(),
+    );
+  }
+
+  /// Load a puzzle and optionally restore saved state
+  Future<void> loadPuzzle(DailyPuzzle puzzle, {bool restoreSavedState = true}) async {
     _currentPuzzle = puzzle;
+    _currentPuzzleDate = puzzle.date;
     _elapsedSeconds = 0;
     _mistakes = 0;
     _hintsUsed = 0;
@@ -52,7 +360,28 @@ class GameProvider extends ChangeNotifier {
     _selectedCol = null;
     _notesMode = false;
     _currentSelection = null;
-    
+    _currentWord = '';
+    _currentExpression = '';
+    _nonogramMarkMode = false;
+    _selectedClue = null;
+    _wordLadderInput = '';
+
+    // Clear all puzzle-specific state
+    _sudokuPuzzle = null;
+    _killerSudokuPuzzle = null;
+    _crosswordPuzzle = null;
+    _wordSearchPuzzle = null;
+    _wordForgePuzzle = null;
+    _nonogramPuzzle = null;
+    _numberTargetPuzzle = null;
+    _ballSortPuzzle = null;
+    _selectedTube = null;
+    _undosRemaining = 5;
+    _pipesPuzzle = null;
+    _lightsOutPuzzle = null;
+    _wordLadderPuzzle = null;
+    _connectionsPuzzle = null;
+
     // Merge puzzleData with solution for models that need it
     final puzzleDataWithSolution = {
       ...(puzzle.puzzleData as Map<String, dynamic>),
@@ -72,8 +401,43 @@ class GameProvider extends ChangeNotifier {
       case GameType.wordSearch:
         _wordSearchPuzzle = WordSearchPuzzle.fromJson(puzzle.puzzleData as Map<String, dynamic>);
         break;
+      case GameType.wordForge:
+        _wordForgePuzzle = WordForgePuzzle.fromJson(puzzleDataWithSolution);
+        break;
+      case GameType.nonogram:
+        _nonogramPuzzle = NonogramPuzzle.fromJson(puzzleDataWithSolution);
+        break;
+      case GameType.numberTarget:
+        _numberTargetPuzzle = NumberTargetPuzzle.fromJson(puzzleDataWithSolution);
+        break;
+      case GameType.ballSort:
+        _ballSortPuzzle = BallSortPuzzle.fromJson(puzzleDataWithSolution);
+        break;
+      case GameType.pipes:
+        _pipesPuzzle = PipesPuzzle.fromJson(puzzleDataWithSolution);
+        break;
+      case GameType.lightsOut:
+        _lightsOutPuzzle = LightsOutPuzzle.fromJson(puzzleDataWithSolution);
+        break;
+      case GameType.wordLadder:
+        _wordLadderPuzzle = WordLadderPuzzle.fromJson(puzzleDataWithSolution);
+        break;
+      case GameType.connections:
+        _connectionsPuzzle = ConnectionsPuzzle.fromJson(puzzleDataWithSolution);
+        break;
     }
-    
+
+    // Try to restore saved state if requested
+    if (restoreSavedState && _currentPuzzleDate != null) {
+      final savedState = await GameStateService.loadGameState(
+        gameType: puzzle.gameType,
+        puzzleDate: _currentPuzzleDate!,
+      );
+      if (savedState != null) {
+        _restoreState(savedState);
+      }
+    }
+
     notifyListeners();
   }
 
@@ -140,8 +504,53 @@ class GameProvider extends ChangeNotifier {
       }
       puzzle.grid[_selectedRow!][_selectedCol!] = number;
       puzzle.notes[_selectedRow!][_selectedCol!].clear();
+
+      // Remove this number from notes in related cells (same row, column, box, cage)
+      _removeNoteFromRelatedCells(_selectedRow!, _selectedCol!, number, puzzle);
+
       notifyListeners();
       return isValid;
+    }
+  }
+
+  /// Remove a number from notes in cells that see the given cell
+  void _removeNoteFromRelatedCells(int row, int col, int number, SudokuPuzzle puzzle) {
+    // Remove from same row
+    for (int c = 0; c < 9; c++) {
+      if (c != col) {
+        puzzle.notes[row][c].remove(number);
+      }
+    }
+
+    // Remove from same column
+    for (int r = 0; r < 9; r++) {
+      if (r != row) {
+        puzzle.notes[r][col].remove(number);
+      }
+    }
+
+    // Remove from same 3x3 box
+    final boxRow = (row ~/ 3) * 3;
+    final boxCol = (col ~/ 3) * 3;
+    for (int r = boxRow; r < boxRow + 3; r++) {
+      for (int c = boxCol; c < boxCol + 3; c++) {
+        if (r != row || c != col) {
+          puzzle.notes[r][c].remove(number);
+        }
+      }
+    }
+
+    // For Killer Sudoku, also remove from same cage
+    if (_killerSudokuPuzzle != null) {
+      final cageInfo = _killerSudokuPuzzle!.getCageForCell(row, col);
+      if (cageInfo != null) {
+        final cage = _killerSudokuPuzzle!.cages[cageInfo[0]];
+        for (final cell in cage.cells) {
+          if (cell[0] != row || cell[1] != col) {
+            puzzle.notes[cell[0]][cell[1]].remove(number);
+          }
+        }
+      }
     }
   }
 
@@ -172,12 +581,13 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool checkSudokuComplete() {
+  Future<bool> checkSudokuComplete() async {
     final puzzle = _sudokuPuzzle ?? _killerSudokuPuzzle;
     if (puzzle == null) return false;
-    
+
     if (puzzle.isComplete) {
       _isPlaying = false;
+      await _markAsCompleted();
       notifyListeners();
       return true;
     }
@@ -388,11 +798,12 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool checkCrosswordComplete() {
+  Future<bool> checkCrosswordComplete() async {
     if (_crosswordPuzzle == null) return false;
-    
+
     if (_crosswordPuzzle!.isComplete) {
       _isPlaying = false;
+      await _markAsCompleted();
       notifyListeners();
       return true;
     }
@@ -475,15 +886,569 @@ class GameProvider extends ChangeNotifier {
     return true;
   }
 
-  bool checkWordSearchComplete() {
+  Future<bool> checkWordSearchComplete() async {
     if (_wordSearchPuzzle == null) return false;
-    
+
     if (_wordSearchPuzzle!.isComplete) {
       _isPlaying = false;
+      await _markAsCompleted();
       notifyListeners();
       return true;
     }
     return false;
+  }
+
+  // Word Forge methods
+  void addWordForgeLetter(String letter) {
+    _currentWord += letter.toUpperCase();
+    notifyListeners();
+  }
+
+  void removeWordForgeLetter() {
+    if (_currentWord.isNotEmpty) {
+      _currentWord = _currentWord.substring(0, _currentWord.length - 1);
+      notifyListeners();
+    }
+  }
+
+  void clearWordForgeWord() {
+    _currentWord = '';
+    notifyListeners();
+  }
+
+  /// Submit the current word. Returns a result object with success status and message.
+  WordForgeSubmitResult submitWordForgeWord() {
+    if (_wordForgePuzzle == null || _currentWord.isEmpty) {
+      return WordForgeSubmitResult(success: false, message: 'Enter a word');
+    }
+
+    final word = _currentWord.toUpperCase();
+
+    // Check minimum length
+    if (word.length < 4) {
+      _currentWord = '';
+      notifyListeners();
+      return WordForgeSubmitResult(success: false, message: 'Too short');
+    }
+
+    // Check if center letter is used
+    if (!word.contains(_wordForgePuzzle!.centerLetter)) {
+      _currentWord = '';
+      notifyListeners();
+      return WordForgeSubmitResult(
+          success: false, message: 'Missing center letter');
+    }
+
+    // Check if only valid letters are used
+    for (final char in word.split('')) {
+      if (!_wordForgePuzzle!.letters.contains(char)) {
+        _currentWord = '';
+        notifyListeners();
+        return WordForgeSubmitResult(success: false, message: 'Invalid letter');
+      }
+    }
+
+    // Check if already found
+    if (_wordForgePuzzle!.foundWords.contains(word)) {
+      _currentWord = '';
+      notifyListeners();
+      return WordForgeSubmitResult(success: false, message: 'Already found');
+    }
+
+    // Check if valid word
+    if (!_wordForgePuzzle!.isValidWord(word)) {
+      _mistakes++;
+      _currentWord = '';
+      notifyListeners();
+      return WordForgeSubmitResult(success: false, message: 'Not in word list');
+    }
+
+    // Valid word!
+    _wordForgePuzzle!.foundWords.add(word);
+    final isPangram = _wordForgePuzzle!.isPangram(word);
+    final points = _wordForgePuzzle!.scoreWord(word);
+    _currentWord = '';
+    notifyListeners();
+
+    if (isPangram) {
+      return WordForgeSubmitResult(
+          success: true, message: 'Pangram! +$points', isPangram: true);
+    }
+    return WordForgeSubmitResult(success: true, message: '+$points');
+  }
+
+  void shuffleWordForgeLetters() {
+    if (_wordForgePuzzle == null) return;
+    _wordForgePuzzle!.shuffleOuterLetters();
+    notifyListeners();
+  }
+
+  Future<bool> checkWordForgeComplete() async {
+    if (_wordForgePuzzle == null) return false;
+
+    if (_wordForgePuzzle!.isComplete) {
+      _isPlaying = false;
+      await _markAsCompleted();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  int getWordForgeScore() {
+    return _wordForgePuzzle?.currentScore ?? 0;
+  }
+
+  int getWordForgeMaxScore() {
+    return _wordForgePuzzle?.maxScore ?? 0;
+  }
+
+  // Nonogram methods
+  void toggleNonogramMarkMode() {
+    _nonogramMarkMode = !_nonogramMarkMode;
+    notifyListeners();
+  }
+
+  /// Toggle a cell in the nonogram grid.
+  /// In fill mode: empty -> filled -> empty
+  /// In mark mode: empty -> marked (X) -> empty
+  void toggleNonogramCell(int row, int col) {
+    if (_nonogramPuzzle == null) return;
+
+    final currentState = _nonogramPuzzle!.userGrid[row][col];
+
+    if (_nonogramMarkMode) {
+      // Mark mode: toggle between empty (0) and marked (-1)
+      if (currentState == -1) {
+        _nonogramPuzzle!.userGrid[row][col] = 0;
+      } else {
+        _nonogramPuzzle!.userGrid[row][col] = -1;
+      }
+    } else {
+      // Fill mode: toggle between empty (0) and filled (1)
+      if (currentState == 1) {
+        _nonogramPuzzle!.userGrid[row][col] = 0;
+      } else if (currentState == 0) {
+        _nonogramPuzzle!.userGrid[row][col] = 1;
+      } else {
+        // Was marked, now fill
+        _nonogramPuzzle!.userGrid[row][col] = 1;
+      }
+    }
+
+    notifyListeners();
+  }
+
+  /// Clear a nonogram cell (set to empty)
+  void clearNonogramCell(int row, int col) {
+    if (_nonogramPuzzle == null) return;
+    _nonogramPuzzle!.userGrid[row][col] = 0;
+    notifyListeners();
+  }
+
+  Future<bool> checkNonogramComplete() async {
+    if (_nonogramPuzzle == null) return false;
+
+    if (_nonogramPuzzle!.isComplete) {
+      _isPlaying = false;
+      await _markAsCompleted();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  /// Use hint for nonogram - reveal a random incorrect/empty cell
+  void useNonogramHint() {
+    if (_nonogramPuzzle == null) return;
+
+    // Find all cells that are wrong or empty but should be filled
+    final wrongCells = <List<int>>[];
+    for (int r = 0; r < _nonogramPuzzle!.rows; r++) {
+      for (int c = 0; c < _nonogramPuzzle!.cols; c++) {
+        final userVal = _nonogramPuzzle!.userGrid[r][c];
+        final solutionVal = _nonogramPuzzle!.solution[r][c];
+        // If solution is 1 (filled) but user doesn't have it filled
+        if (solutionVal == 1 && userVal != 1) {
+          wrongCells.add([r, c]);
+        }
+      }
+    }
+
+    if (wrongCells.isEmpty) return;
+
+    // Pick a random cell and reveal it
+    wrongCells.shuffle();
+    final cell = wrongCells.first;
+    _nonogramPuzzle!.userGrid[cell[0]][cell[1]] = 1;
+    _hintsUsed++;
+    notifyListeners();
+  }
+
+  // Number Target methods
+  void addToNumberTargetExpression(String token) {
+    _currentExpression += token;
+    notifyListeners();
+  }
+
+  void clearNumberTargetExpression() {
+    _currentExpression = '';
+    notifyListeners();
+  }
+
+  void backspaceNumberTargetExpression() {
+    if (_currentExpression.isNotEmpty) {
+      // Remove last character or last number (if multi-digit)
+      // Simple approach: just remove last character
+      _currentExpression =
+          _currentExpression.substring(0, _currentExpression.length - 1);
+      notifyListeners();
+    }
+  }
+
+  /// Evaluate the current expression and check if it equals the target.
+  /// Returns a result object with success status and evaluated value.
+  NumberTargetResult evaluateNumberTargetExpression() {
+    if (_numberTargetPuzzle == null || _currentExpression.isEmpty) {
+      return NumberTargetResult(success: false, message: 'Enter an expression');
+    }
+
+    try {
+      final result = _numberTargetPuzzle!.evaluateExpression(_currentExpression);
+      if (result.isNaN) {
+        return NumberTargetResult(success: false, message: 'Invalid expression');
+      }
+
+      final target = _numberTargetPuzzle!.target;
+      final intResult = result.round();
+      if ((result - target).abs() < 0.0001) {
+        _numberTargetPuzzle!.userExpression = _currentExpression;
+        _isPlaying = false;
+        notifyListeners();
+        return NumberTargetResult(
+            success: true, message: 'Correct!', value: intResult);
+      } else {
+        _mistakes++;
+        notifyListeners();
+        return NumberTargetResult(
+            success: false,
+            message: '= $intResult (target: $target)',
+            value: intResult);
+      }
+    } catch (e) {
+      return NumberTargetResult(success: false, message: 'Invalid expression');
+    }
+  }
+
+  Future<bool> checkNumberTargetComplete() async {
+    if (_numberTargetPuzzle == null) return false;
+
+    if (_numberTargetPuzzle!.isComplete) {
+      _isPlaying = false;
+      await _markAsCompleted();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  // Ball Sort methods
+  void selectBallSortTube(int tubeIndex) {
+    if (_ballSortPuzzle == null) return;
+
+    if (_selectedTube == null) {
+      // First selection - only allow if tube has balls
+      if (_ballSortPuzzle!.currentState[tubeIndex].isNotEmpty) {
+        _selectedTube = tubeIndex;
+      }
+    } else if (_selectedTube == tubeIndex) {
+      // Deselect
+      _selectedTube = null;
+    } else {
+      // Second selection - try to move
+      if (_ballSortPuzzle!.canMoveTo(_selectedTube!, tubeIndex)) {
+        _ballSortPuzzle!.moveBall(_selectedTube!, tubeIndex);
+      }
+      _selectedTube = null;
+    }
+    notifyListeners();
+  }
+
+  void clearBallSortSelection() {
+    _selectedTube = null;
+    notifyListeners();
+  }
+
+  bool undoBallSortMove() {
+    if (_ballSortPuzzle == null) return false;
+    if (_ballSortPuzzle!.moveHistory.isEmpty) return false;
+    if (_undosRemaining <= 0) return false; // TODO: Check unlimited undo setting
+
+    if (_ballSortPuzzle!.undoMove()) {
+      _undosRemaining--;
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  void resetBallSortPuzzle() {
+    if (_ballSortPuzzle == null) return;
+    _ballSortPuzzle!.reset();
+    _selectedTube = null;
+    _undosRemaining = 5;
+    notifyListeners();
+  }
+
+  Future<bool> checkBallSortComplete() async {
+    if (_ballSortPuzzle == null) return false;
+
+    if (_ballSortPuzzle!.isComplete) {
+      _isPlaying = false;
+      await _markAsCompleted();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  // Pipes methods
+  void startPipesPath(String color, int row, int col) {
+    if (_pipesPuzzle == null) return;
+    _pipesPuzzle!.selectedColor = color;
+    _pipesPuzzle!.clearPath(color);
+    _pipesPuzzle!.addToPath(color, row, col);
+    notifyListeners();
+  }
+
+  void extendPipesPath(int row, int col) {
+    if (_pipesPuzzle == null || _pipesPuzzle!.selectedColor == null) return;
+    final color = _pipesPuzzle!.selectedColor!;
+    final path = _pipesPuzzle!.currentPaths[color] ?? [];
+
+    if (path.isEmpty) return;
+
+    // Check if this is an adjacent cell
+    final lastCell = path.last;
+    final rowDiff = (row - lastCell[0]).abs();
+    final colDiff = (col - lastCell[1]).abs();
+
+    // Only allow adjacent cells (no diagonal)
+    if ((rowDiff == 1 && colDiff == 0) || (rowDiff == 0 && colDiff == 1)) {
+      // Check if this cell is already in the path (backtracking)
+      final existingIdx = path.indexWhere((c) => c[0] == row && c[1] == col);
+      if (existingIdx != -1) {
+        // Remove everything after this point (backtracking)
+        while (path.length > existingIdx + 1) {
+          path.removeLast();
+        }
+      } else {
+        // Add to path
+        _pipesPuzzle!.addToPath(color, row, col);
+      }
+      notifyListeners();
+    }
+  }
+
+  void endPipesPath() {
+    if (_pipesPuzzle == null) return;
+    _pipesPuzzle!.selectedColor = null;
+    notifyListeners();
+  }
+
+  void clearPipesPath(String color) {
+    if (_pipesPuzzle == null) return;
+    _pipesPuzzle!.clearPath(color);
+    notifyListeners();
+  }
+
+  void resetPipesPuzzle() {
+    if (_pipesPuzzle == null) return;
+    _pipesPuzzle!.reset();
+    notifyListeners();
+  }
+
+  Future<bool> checkPipesComplete() async {
+    if (_pipesPuzzle == null) return false;
+
+    if (_pipesPuzzle!.isComplete) {
+      _isPlaying = false;
+      await _markAsCompleted();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  // Lights Out methods
+  void toggleLightsOutCell(int row, int col) {
+    if (_lightsOutPuzzle == null) return;
+    _lightsOutPuzzle!.toggle(row, col);
+    notifyListeners();
+  }
+
+  void resetLightsOutPuzzle() {
+    if (_lightsOutPuzzle == null) return;
+    _lightsOutPuzzle!.reset();
+    notifyListeners();
+  }
+
+  Future<bool> checkLightsOutComplete() async {
+    if (_lightsOutPuzzle == null) return false;
+
+    if (_lightsOutPuzzle!.isComplete) {
+      _isPlaying = false;
+      await _markAsCompleted();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  // Word Ladder methods
+  void setWordLadderInput(String input) {
+    _wordLadderInput = input.toUpperCase();
+    notifyListeners();
+  }
+
+  void clearWordLadderInput() {
+    _wordLadderInput = '';
+    notifyListeners();
+  }
+
+  /// Submit the current word. Returns a result with success status and message.
+  WordLadderSubmitResult submitWordLadderWord() {
+    if (_wordLadderPuzzle == null || _wordLadderInput.isEmpty) {
+      return WordLadderSubmitResult(success: false, message: 'Enter a word');
+    }
+
+    final word = _wordLadderInput.toUpperCase();
+
+    // Check if it differs by exactly one letter
+    if (!_wordLadderPuzzle!.canAddWord(word)) {
+      _wordLadderInput = '';
+      notifyListeners();
+      return WordLadderSubmitResult(
+        success: false,
+        message: 'Must differ by exactly one letter'
+      );
+    }
+
+    // Add the word
+    _wordLadderPuzzle!.addWord(word);
+    _wordLadderInput = '';
+    notifyListeners();
+
+    // Check if reached target
+    if (word == _wordLadderPuzzle!.targetWord) {
+      return WordLadderSubmitResult(success: true, message: 'Complete!', isComplete: true);
+    }
+
+    return WordLadderSubmitResult(success: true, message: 'Added: $word');
+  }
+
+  void undoWordLadderWord() {
+    if (_wordLadderPuzzle == null) return;
+    _wordLadderPuzzle!.undoLastWord();
+    notifyListeners();
+  }
+
+  void resetWordLadderPuzzle() {
+    if (_wordLadderPuzzle == null) return;
+    _wordLadderPuzzle!.reset();
+    _wordLadderInput = '';
+    notifyListeners();
+  }
+
+  Future<bool> checkWordLadderComplete() async {
+    if (_wordLadderPuzzle == null) return false;
+
+    if (_wordLadderPuzzle!.isComplete) {
+      _isPlaying = false;
+      await _markAsCompleted();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  // Connections methods
+  void toggleConnectionsWord(String word) {
+    if (_connectionsPuzzle == null) return;
+    _connectionsPuzzle!.toggleWord(word);
+    notifyListeners();
+  }
+
+  void clearConnectionsSelection() {
+    if (_connectionsPuzzle == null) return;
+    _connectionsPuzzle!.clearSelection();
+    notifyListeners();
+  }
+
+  /// Submit the current selection. Returns a result with the category if correct.
+  ConnectionsSubmitResult submitConnectionsSelection() {
+    if (_connectionsPuzzle == null) {
+      return ConnectionsSubmitResult(success: false, message: 'No puzzle');
+    }
+
+    if (_connectionsPuzzle!.selectedWords.length != 4) {
+      return ConnectionsSubmitResult(success: false, message: 'Select 4 words');
+    }
+
+    final category = _connectionsPuzzle!.submitSelection();
+    notifyListeners();
+
+    if (category != null) {
+      return ConnectionsSubmitResult(
+        success: true,
+        message: category.name,
+        category: category
+      );
+    } else {
+      final remaining = _connectionsPuzzle!.mistakesRemaining;
+      if (remaining <= 0) {
+        return ConnectionsSubmitResult(
+          success: false,
+          message: 'Game Over',
+          isGameOver: true
+        );
+      }
+      return ConnectionsSubmitResult(
+        success: false,
+        message: 'Incorrect - $remaining mistakes left'
+      );
+    }
+  }
+
+  void resetConnectionsPuzzle() {
+    if (_connectionsPuzzle == null) return;
+    _connectionsPuzzle!.reset();
+    notifyListeners();
+  }
+
+  Future<bool> checkConnectionsComplete() async {
+    if (_connectionsPuzzle == null) return false;
+
+    if (_connectionsPuzzle!.isComplete) {
+      _isPlaying = false;
+      await _markAsCompleted();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  /// Mark current puzzle as completed and save completion status
+  Future<void> _markAsCompleted() async {
+    if (_currentPuzzle == null || _currentPuzzleDate == null) return;
+
+    final score = calculateScore();
+    await GameStateService.markCompleted(
+      gameType: _currentPuzzle!.gameType,
+      puzzleDate: _currentPuzzleDate!,
+      elapsedSeconds: _elapsedSeconds,
+      score: score,
+    );
   }
 
   int calculateScore() {
@@ -542,6 +1507,74 @@ class GameProvider extends ChangeNotifier {
     _selectedClue = null;
     _wordSearchPuzzle = null;
     _currentSelection = null;
+    _wordForgePuzzle = null;
+    _currentWord = '';
+    _nonogramPuzzle = null;
+    _nonogramMarkMode = false;
+    _numberTargetPuzzle = null;
+    _currentExpression = '';
+    _ballSortPuzzle = null;
+    _selectedTube = null;
+    _undosRemaining = 5;
+    _pipesPuzzle = null;
+    _lightsOutPuzzle = null;
+    _wordLadderPuzzle = null;
+    _wordLadderInput = '';
+    _connectionsPuzzle = null;
     notifyListeners();
   }
+}
+
+/// Result object for Word Forge word submission
+class WordForgeSubmitResult {
+  final bool success;
+  final String message;
+  final bool isPangram;
+
+  WordForgeSubmitResult({
+    required this.success,
+    required this.message,
+    this.isPangram = false,
+  });
+}
+
+/// Result object for Number Target expression evaluation
+class NumberTargetResult {
+  final bool success;
+  final String message;
+  final int? value;
+
+  NumberTargetResult({
+    required this.success,
+    required this.message,
+    this.value,
+  });
+}
+
+/// Result object for Word Ladder word submission
+class WordLadderSubmitResult {
+  final bool success;
+  final String message;
+  final bool isComplete;
+
+  WordLadderSubmitResult({
+    required this.success,
+    required this.message,
+    this.isComplete = false,
+  });
+}
+
+/// Result object for Connections selection submission
+class ConnectionsSubmitResult {
+  final bool success;
+  final String message;
+  final ConnectionsCategory? category;
+  final bool isGameOver;
+
+  ConnectionsSubmitResult({
+    required this.success,
+    required this.message,
+    this.category,
+    this.isGameOver = false,
+  });
 }

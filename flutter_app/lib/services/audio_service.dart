@@ -168,7 +168,7 @@ class AudioService {
   /// Play error sound (wrong answer)
   Future<void> playError() async {
     await _playEffect('sounds/error.mp3');
-    await vibrate(duration: 100, pattern: [0, 50, 50, 50]);
+    await vibrate(duration: 300, pattern: [0, 100, 50, 100, 50, 100]);
   }
 
   /// Play puzzle completion fanfare

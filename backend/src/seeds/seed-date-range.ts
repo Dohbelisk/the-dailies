@@ -1,100 +1,120 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 // External puzzle generators (npm packages)
-import { generate as generateSudokuPuzzle, solve as solveSudoku } from 'sudoku-core';
-import { generateKillerSudoku } from 'killer-sudoku-generator';
-import { generate as generateWordSearchPuzzle } from '@sbj42/word-search-generator';
+import {
+  generate as generateSudokuPuzzle,
+  solve as solveSudoku,
+} from "sudoku-core";
+import { generateKillerSudoku } from "killer-sudoku-generator";
+import { generate as generateWordSearchPuzzle } from "@sbj42/word-search-generator";
 
 // Crossword generator (npm package)
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const clg = require('crossword-layout-generator');
+const clg = require("crossword-layout-generator");
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/the-dailies';
+const MONGODB_URI =
+  process.env.MONGODB_URI || "mongodb://localhost:27017/the-dailies";
 
 // Puzzle Schema
-const puzzleSchema = new mongoose.Schema({
-  gameType: { type: String, required: true, enum: ['sudoku', 'killerSudoku', 'crossword', 'wordSearch'] },
-  difficulty: { type: String, required: true, enum: ['easy', 'medium', 'hard', 'expert'] },
-  date: { type: Date, required: true },
-  puzzleData: { type: Object, required: true },
-  solution: Object,
-  targetTime: Number,
-  isActive: { type: Boolean, default: true },
-  title: String,
-  description: String,
-}, { timestamps: true });
+const puzzleSchema = new mongoose.Schema(
+  {
+    gameType: {
+      type: String,
+      required: true,
+      enum: ["sudoku", "killerSudoku", "crossword", "wordSearch"],
+    },
+    difficulty: {
+      type: String,
+      required: true,
+      enum: ["easy", "medium", "hard", "expert"],
+    },
+    date: { type: Date, required: true },
+    puzzleData: { type: Object, required: true },
+    solution: Object,
+    targetTime: Number,
+    isActive: { type: Boolean, default: true },
+    title: String,
+    description: String,
+  },
+  { timestamps: true },
+);
 
-const Puzzle = mongoose.model('Puzzle', puzzleSchema);
+const Puzzle = mongoose.model("Puzzle", puzzleSchema);
 
 // Word lists for crosswords and word searches
 const programmingWords = [
-  { word: 'FLUTTER', clue: 'Google\'s cross-platform UI toolkit' },
-  { word: 'DART', clue: 'Programming language for Flutter' },
-  { word: 'WIDGET', clue: 'UI building block in Flutter' },
-  { word: 'REACT', clue: 'Facebook\'s JavaScript library' },
-  { word: 'TYPESCRIPT', clue: 'JavaScript with types' },
-  { word: 'PYTHON', clue: 'Snake-named programming language' },
-  { word: 'JAVA', clue: 'Coffee-themed programming language' },
-  { word: 'KOTLIN', clue: 'Modern Android development language' },
-  { word: 'SWIFT', clue: 'Apple\'s programming language' },
-  { word: 'RUST', clue: 'Memory-safe systems language' },
-  { word: 'CODE', clue: 'What programmers write' },
-  { word: 'DEBUG', clue: 'Find and fix errors' },
+  { word: "FLUTTER", clue: "Google's cross-platform UI toolkit" },
+  { word: "DART", clue: "Programming language for Flutter" },
+  { word: "WIDGET", clue: "UI building block in Flutter" },
+  { word: "REACT", clue: "Facebook's JavaScript library" },
+  { word: "TYPESCRIPT", clue: "JavaScript with types" },
+  { word: "PYTHON", clue: "Snake-named programming language" },
+  { word: "JAVA", clue: "Coffee-themed programming language" },
+  { word: "KOTLIN", clue: "Modern Android development language" },
+  { word: "SWIFT", clue: "Apple's programming language" },
+  { word: "RUST", clue: "Memory-safe systems language" },
+  { word: "CODE", clue: "What programmers write" },
+  { word: "DEBUG", clue: "Find and fix errors" },
 ];
 
 const natureWords = [
-  { word: 'MOUNTAIN', clue: 'Tall natural elevation' },
-  { word: 'RIVER', clue: 'Flowing body of water' },
-  { word: 'FOREST', clue: 'Large area with many trees' },
-  { word: 'OCEAN', clue: 'Vast body of salt water' },
-  { word: 'DESERT', clue: 'Dry, sandy region' },
-  { word: 'VALLEY', clue: 'Low area between hills' },
-  { word: 'ISLAND', clue: 'Land surrounded by water' },
-  { word: 'VOLCANO', clue: 'Mountain that can erupt' },
-  { word: 'CANYON', clue: 'Deep gorge carved by rivers' },
-  { word: 'GLACIER', clue: 'Slow-moving mass of ice' },
-  { word: 'LAKE', clue: 'Body of fresh water' },
-  { word: 'CAVE', clue: 'Natural underground chamber' },
+  { word: "MOUNTAIN", clue: "Tall natural elevation" },
+  { word: "RIVER", clue: "Flowing body of water" },
+  { word: "FOREST", clue: "Large area with many trees" },
+  { word: "OCEAN", clue: "Vast body of salt water" },
+  { word: "DESERT", clue: "Dry, sandy region" },
+  { word: "VALLEY", clue: "Low area between hills" },
+  { word: "ISLAND", clue: "Land surrounded by water" },
+  { word: "VOLCANO", clue: "Mountain that can erupt" },
+  { word: "CANYON", clue: "Deep gorge carved by rivers" },
+  { word: "GLACIER", clue: "Slow-moving mass of ice" },
+  { word: "LAKE", clue: "Body of fresh water" },
+  { word: "CAVE", clue: "Natural underground chamber" },
 ];
 
 const animalWords = [
-  { word: 'ELEPHANT', clue: 'Large mammal with trunk' },
-  { word: 'DOLPHIN', clue: 'Intelligent marine mammal' },
-  { word: 'PENGUIN', clue: 'Flightless bird of Antarctica' },
-  { word: 'GIRAFFE', clue: 'Tallest living animal' },
-  { word: 'TIGER', clue: 'Striped big cat' },
-  { word: 'KANGAROO', clue: 'Australian hopping mammal' },
-  { word: 'OCTOPUS', clue: 'Eight-armed sea creature' },
-  { word: 'BUTTERFLY', clue: 'Colorful winged insect' },
-  { word: 'EAGLE', clue: 'Large bird of prey' },
-  { word: 'PARROT', clue: 'Colorful talking bird' },
-  { word: 'SHARK', clue: 'Ocean predator with fins' },
-  { word: 'ZEBRA', clue: 'Striped African horse' },
+  { word: "ELEPHANT", clue: "Large mammal with trunk" },
+  { word: "DOLPHIN", clue: "Intelligent marine mammal" },
+  { word: "PENGUIN", clue: "Flightless bird of Antarctica" },
+  { word: "GIRAFFE", clue: "Tallest living animal" },
+  { word: "TIGER", clue: "Striped big cat" },
+  { word: "KANGAROO", clue: "Australian hopping mammal" },
+  { word: "OCTOPUS", clue: "Eight-armed sea creature" },
+  { word: "BUTTERFLY", clue: "Colorful winged insect" },
+  { word: "EAGLE", clue: "Large bird of prey" },
+  { word: "PARROT", clue: "Colorful talking bird" },
+  { word: "SHARK", clue: "Ocean predator with fins" },
+  { word: "ZEBRA", clue: "Striped African horse" },
 ];
 
 const foodWords = [
-  { word: 'PIZZA', clue: 'Italian flatbread dish' },
-  { word: 'SUSHI', clue: 'Japanese rice dish' },
-  { word: 'BURGER', clue: 'Sandwich with patty' },
-  { word: 'PASTA', clue: 'Italian noodle dish' },
-  { word: 'SALAD', clue: 'Mixed vegetable dish' },
-  { word: 'TACOS', clue: 'Mexican folded tortilla' },
-  { word: 'CURRY', clue: 'Spiced dish from India' },
-  { word: 'STEAK', clue: 'Cut of beef' },
-  { word: 'RAMEN', clue: 'Japanese noodle soup' },
-  { word: 'WAFFLE', clue: 'Grid-patterned breakfast item' },
-  { word: 'BREAD', clue: 'Baked dough staple' },
-  { word: 'CHEESE', clue: 'Dairy product from milk' },
+  { word: "PIZZA", clue: "Italian flatbread dish" },
+  { word: "SUSHI", clue: "Japanese rice dish" },
+  { word: "BURGER", clue: "Sandwich with patty" },
+  { word: "PASTA", clue: "Italian noodle dish" },
+  { word: "SALAD", clue: "Mixed vegetable dish" },
+  { word: "TACOS", clue: "Mexican folded tortilla" },
+  { word: "CURRY", clue: "Spiced dish from India" },
+  { word: "STEAK", clue: "Cut of beef" },
+  { word: "RAMEN", clue: "Japanese noodle soup" },
+  { word: "WAFFLE", clue: "Grid-patterned breakfast item" },
+  { word: "BREAD", clue: "Baked dough staple" },
+  { word: "CHEESE", clue: "Dairy product from milk" },
 ];
 
 const themes = [
-  { name: 'Programming', words: programmingWords },
-  { name: 'Nature', words: natureWords },
-  { name: 'Animals', words: animalWords },
-  { name: 'Food', words: foodWords },
+  { name: "Programming", words: programmingWords },
+  { name: "Nature", words: natureWords },
+  { name: "Animals", words: animalWords },
+  { name: "Food", words: foodWords },
 ];
 
-const difficulties: ('easy' | 'medium' | 'hard' | 'expert')[] = ['easy', 'medium', 'hard', 'expert'];
+const difficulties: ("easy" | "medium" | "hard" | "expert")[] = [
+  "easy",
+  "medium",
+  "hard",
+  "expert",
+];
 
 const targetTimes = {
   sudoku: { easy: 300, medium: 600, hard: 900, expert: 1200 },
@@ -107,7 +127,7 @@ const targetTimes = {
 function flatTo9x9(flat: (number | null)[]): number[][] {
   const grid: number[][] = [];
   for (let i = 0; i < 9; i++) {
-    grid.push(flat.slice(i * 9, (i + 1) * 9).map(n => n ?? 0));
+    grid.push(flat.slice(i * 9, (i + 1) * 9).map((n) => n ?? 0));
   }
   return grid;
 }
@@ -119,7 +139,7 @@ function stringTo9x9(str: string): number[][] {
     const row: number[] = [];
     for (let j = 0; j < 9; j++) {
       const char = str[i * 9 + j];
-      row.push(char === '-' ? 0 : parseInt(char));
+      row.push(char === "-" ? 0 : parseInt(char));
     }
     grid.push(row);
   }
@@ -127,7 +147,10 @@ function stringTo9x9(str: string): number[][] {
 }
 
 // Generate Sudoku using sudoku-core
-function createSudoku(difficulty: 'easy' | 'medium' | 'hard' | 'expert'): { grid: number[][], solution: number[][] } {
+function createSudoku(difficulty: "easy" | "medium" | "hard" | "expert"): {
+  grid: number[][];
+  solution: number[][];
+} {
   const puzzle = generateSudokuPuzzle(difficulty);
   const solved = solveSudoku(puzzle);
 
@@ -138,14 +161,20 @@ function createSudoku(difficulty: 'easy' | 'medium' | 'hard' | 'expert'): { grid
 }
 
 // Generate Killer Sudoku using killer-sudoku-generator
-function createKillerSudoku(): { grid: number[][], solution: number[][], cages: Array<{ sum: number; cells: number[][] }> } {
+function createKillerSudoku(): {
+  grid: number[][];
+  solution: number[][];
+  cages: Array<{ sum: number; cells: number[][] }>;
+} {
   const result = generateKillerSudoku();
 
   // Convert areas to our cage format
-  const cages = result.areas.map((area: { cells: number[][]; sum: number }) => ({
-    sum: area.sum,
-    cells: area.cells, // Already in [row, col] format
-  }));
+  const cages = result.areas.map(
+    (area: { cells: number[][]; sum: number }) => ({
+      sum: area.sum,
+      cells: area.cells, // Already in [row, col] format
+    }),
+  );
 
   return {
     grid: stringTo9x9(result.puzzle),
@@ -155,11 +184,22 @@ function createKillerSudoku(): { grid: number[][], solution: number[][], cages: 
 }
 
 // Generate Word Search using @sbj42/word-search-generator
-function createWordSearch(words: string[], theme: string, rows = 12, cols = 12): {
+function createWordSearch(
+  words: string[],
+  theme: string,
+  rows = 12,
+  cols = 12,
+): {
   rows: number;
   cols: number;
   grid: string[][];
-  words: Array<{ word: string; startRow: number; startCol: number; endRow: number; endCol: number }>;
+  words: Array<{
+    word: string;
+    startRow: number;
+    startCol: number;
+    endRow: number;
+    endCol: number;
+  }>;
   theme: string;
 } {
   const puzzle = generateWordSearchPuzzle({
@@ -184,7 +224,9 @@ function createWordSearch(words: string[], theme: string, rows = 12, cols = 12):
   const wordPositions = puzzle.words.map((word: string) => {
     // Search for word in grid
     const positions = findWordInGrid(grid, word);
-    return positions || { word, startRow: 0, startCol: 0, endRow: 0, endCol: 0 };
+    return (
+      positions || { word, startRow: 0, startCol: 0, endRow: 0, endCol: 0 }
+    );
   });
 
   return {
@@ -197,13 +239,17 @@ function createWordSearch(words: string[], theme: string, rows = 12, cols = 12):
 }
 
 // Generate Crossword using crossword-layout-generator
-function createCrossword(wordsWithClues: Array<{ word: string; clue: string }>, _targetRows = 13, _targetCols = 13): {
+function createCrossword(
+  wordsWithClues: Array<{ word: string; clue: string }>,
+  _targetRows = 13,
+  _targetCols = 13,
+): {
   rows: number;
   cols: number;
   grid: (string | null)[][];
   clues: Array<{
     number: number;
-    direction: 'across' | 'down';
+    direction: "across" | "down";
     clue: string;
     answer: string;
     startRow: number;
@@ -211,7 +257,7 @@ function createCrossword(wordsWithClues: Array<{ word: string; clue: string }>, 
   }>;
 } {
   // Convert to format expected by crossword-layout-generator
-  const input = wordsWithClues.map(w => ({
+  const input = wordsWithClues.map((w) => ({
     clue: w.clue,
     answer: w.word.toUpperCase(),
   }));
@@ -224,7 +270,7 @@ function createCrossword(wordsWithClues: Array<{ word: string; clue: string }>, 
     const gridRow: (string | null)[] = [];
     for (let col = 0; col < layout.cols; col++) {
       const cell = layout.table[row][col];
-      gridRow.push(cell === '-' ? '#' : cell);
+      gridRow.push(cell === "-" ? "#" : cell);
     }
     grid.push(gridRow);
   }
@@ -232,7 +278,7 @@ function createCrossword(wordsWithClues: Array<{ word: string; clue: string }>, 
   // Convert result to our clue format
   const clues = layout.result.map((word: any) => ({
     number: word.position,
-    direction: word.orientation === 'across' ? 'across' : 'down',
+    direction: word.orientation === "across" ? "across" : "down",
     clue: word.clue,
     answer: word.answer,
     startRow: word.starty - 1, // Convert from 1-indexed to 0-indexed
@@ -242,7 +288,7 @@ function createCrossword(wordsWithClues: Array<{ word: string; clue: string }>, 
   // Sort clues by number then direction
   clues.sort((a: any, b: any) => {
     if (a.number !== b.number) return a.number - b.number;
-    return a.direction === 'across' ? -1 : 1;
+    return a.direction === "across" ? -1 : 1;
   });
 
   return {
@@ -254,10 +300,25 @@ function createCrossword(wordsWithClues: Array<{ word: string; clue: string }>, 
 }
 
 // Helper: Find word position in grid
-function findWordInGrid(grid: string[][], word: string): { word: string; startRow: number; startCol: number; endRow: number; endCol: number } | null {
+function findWordInGrid(
+  grid: string[][],
+  word: string,
+): {
+  word: string;
+  startRow: number;
+  startCol: number;
+  endRow: number;
+  endCol: number;
+} | null {
   const directions = [
-    [0, 1], [1, 0], [1, 1], [-1, 1], // right, down, diagonal down-right, diagonal up-right
-    [0, -1], [-1, 0], [-1, -1], [1, -1], // left, up, diagonal up-left, diagonal down-left
+    [0, 1],
+    [1, 0],
+    [1, 1],
+    [-1, 1], // right, down, diagonal down-right, diagonal up-right
+    [0, -1],
+    [-1, 0],
+    [-1, -1],
+    [1, -1], // left, up, diagonal up-left, diagonal down-left
   ];
 
   for (let r = 0; r < grid.length; r++) {
@@ -268,7 +329,13 @@ function findWordInGrid(grid: string[][], word: string): { word: string; startRo
           for (let i = 0; i < word.length; i++) {
             const nr = r + dr * i;
             const nc = c + dc * i;
-            if (nr < 0 || nr >= grid.length || nc < 0 || nc >= grid[0].length || grid[nr][nc] !== word[i]) {
+            if (
+              nr < 0 ||
+              nr >= grid.length ||
+              nc < 0 ||
+              nc >= grid[0].length ||
+              grid[nr][nc] !== word[i]
+            ) {
               found = false;
               break;
             }
@@ -292,7 +359,7 @@ function findWordInGrid(grid: string[][], word: string): { word: string; startRo
 async function seedDateRange() {
   try {
     await mongoose.connect(MONGODB_URI);
-    console.log('Connected to MongoDB');
+    console.log("Connected to MongoDB");
 
     // Clear all existing puzzles (comment out to preserve existing)
     // console.log('\n🗑️  Clearing all existing puzzles...');
@@ -300,21 +367,30 @@ async function seedDateRange() {
     // console.log(`✅ Deleted ${deleteResult.deletedCount} puzzles`);
 
     // Define date range: December 15, 2025 to December 25, 2025
-    const startDate = new Date('2025-12-15');
-    const endDate = new Date('2025-12-25');
+    const startDate = new Date("2025-12-15");
+    const endDate = new Date("2025-12-25");
 
     // Calculate number of days
-    const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    console.log(`\n📅 Generating puzzles from ${startDate.toDateString()} to ${endDate.toDateString()}`);
+    const daysDiff =
+      Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+      ) + 1;
+    console.log(
+      `\n📅 Generating puzzles from ${startDate.toDateString()} to ${endDate.toDateString()}`,
+    );
     console.log(`   Total days: ${daysDiff}`);
-    console.log(`   Total puzzles to create: ${daysDiff * 4} (4 game types per day)\n`);
-    console.log('Using npm packages: sudoku-core, killer-sudoku-generator, @sbj42/word-search-generator, crossword-layout-generator\n');
+    console.log(
+      `   Total puzzles to create: ${daysDiff * 4} (4 game types per day)\n`,
+    );
+    console.log(
+      "Using npm packages: sudoku-core, killer-sudoku-generator, @sbj42/word-search-generator, crossword-layout-generator\n",
+    );
 
     let puzzlesCreated = 0;
-    let currentDate = new Date(startDate);
+    const currentDate = new Date(startDate);
 
     while (currentDate <= endDate) {
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = currentDate.toISOString().split("T")[0];
       const dayOfMonth = currentDate.getDate();
 
       // Rotate difficulty based on day of month
@@ -332,7 +408,7 @@ async function seedDateRange() {
       try {
         const sudokuData = createSudoku(difficulty);
         await Puzzle.create({
-          gameType: 'sudoku',
+          gameType: "sudoku",
           difficulty,
           date: new Date(currentDate),
           puzzleData: { grid: sudokuData.grid },
@@ -351,7 +427,7 @@ async function seedDateRange() {
       try {
         const killerData = createKillerSudoku();
         await Puzzle.create({
-          gameType: 'killerSudoku',
+          gameType: "killerSudoku",
           difficulty,
           date: new Date(currentDate),
           puzzleData: { grid: killerData.grid, cages: killerData.cages },
@@ -370,7 +446,7 @@ async function seedDateRange() {
       try {
         const crosswordData = createCrossword(theme.words.slice(0, 8), 13, 13);
         await Puzzle.create({
-          gameType: 'crossword',
+          gameType: "crossword",
           difficulty,
           date: new Date(currentDate),
           puzzleData: {
@@ -391,10 +467,15 @@ async function seedDateRange() {
 
       // Generate Word Search using @sbj42/word-search-generator
       try {
-        const wordList = theme.words.map(w => w.word);
-        const wordSearchData = createWordSearch(wordList.slice(0, 10), theme.name, 12, 12);
+        const wordList = theme.words.map((w) => w.word);
+        const wordSearchData = createWordSearch(
+          wordList.slice(0, 10),
+          theme.name,
+          12,
+          12,
+        );
         await Puzzle.create({
-          gameType: 'wordSearch',
+          gameType: "wordSearch",
           difficulty,
           date: new Date(currentDate),
           puzzleData: {
@@ -430,7 +511,7 @@ async function seedDateRange() {
 
     process.exit(0);
   } catch (error) {
-    console.error('Seed failed:', error);
+    console.error("Seed failed:", error);
     process.exit(1);
   }
 }

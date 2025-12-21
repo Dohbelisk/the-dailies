@@ -1,6 +1,15 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsDateString, IsNumber, IsObject, IsBoolean, IsString } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { GameType, Difficulty } from '../schemas/puzzle.schema';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsDateString,
+  IsNumber,
+  IsObject,
+  IsBoolean,
+  IsString,
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
+import { GameType, Difficulty } from "../schemas/puzzle.schema";
 
 export class CreatePuzzleDto {
   @ApiProperty({ enum: GameType })
@@ -13,22 +22,22 @@ export class CreatePuzzleDto {
   @IsNotEmpty()
   difficulty: Difficulty;
 
-  @ApiProperty({ description: 'Date for the puzzle (YYYY-MM-DD)' })
+  @ApiProperty({ description: "Date for the puzzle (YYYY-MM-DD)" })
   @IsDateString()
   @IsNotEmpty()
   date: string;
 
-  @ApiProperty({ description: 'Puzzle data object' })
+  @ApiProperty({ description: "Puzzle data object" })
   @IsObject()
   @IsNotEmpty()
   puzzleData: Record<string, any>;
 
-  @ApiPropertyOptional({ description: 'Solution data object' })
+  @ApiPropertyOptional({ description: "Solution data object" })
   @IsObject()
   @IsOptional()
   solution?: Record<string, any>;
 
-  @ApiPropertyOptional({ description: 'Target time in seconds' })
+  @ApiPropertyOptional({ description: "Target time in seconds" })
   @IsNumber()
   @IsOptional()
   targetTime?: number;
@@ -81,10 +90,10 @@ export class PuzzleQueryDto {
 // Specific puzzle data DTOs for validation
 
 export class SudokuPuzzleDataDto {
-  @ApiProperty({ description: '9x9 grid, 0 for empty cells' })
+  @ApiProperty({ description: "9x9 grid, 0 for empty cells" })
   grid: number[][];
 
-  @ApiProperty({ description: '9x9 solution grid' })
+  @ApiProperty({ description: "9x9 solution grid" })
   solution: number[][];
 }
 
@@ -92,7 +101,7 @@ export class KillerSudokuCageDto {
   @ApiProperty()
   sum: number;
 
-  @ApiProperty({ description: 'Array of [row, col] pairs' })
+  @ApiProperty({ description: "Array of [row, col] pairs" })
   cells: number[][];
 }
 
@@ -105,8 +114,8 @@ export class CrosswordClueDto {
   @ApiProperty()
   number: number;
 
-  @ApiProperty({ enum: ['across', 'down'] })
-  direction: 'across' | 'down';
+  @ApiProperty({ enum: ["across", "down"] })
+  direction: "across" | "down";
 
   @ApiProperty()
   clue: string;
@@ -128,7 +137,7 @@ export class CrosswordPuzzleDataDto {
   @ApiProperty()
   cols: number;
 
-  @ApiProperty({ description: 'Grid with letters and # for black cells' })
+  @ApiProperty({ description: "Grid with letters and # for black cells" })
   grid: string[][];
 
   @ApiProperty({ type: [CrosswordClueDto] })
@@ -167,4 +176,70 @@ export class WordSearchPuzzleDataDto {
 
   @ApiPropertyOptional()
   theme?: string;
+}
+
+// Word Forge DTOs
+
+export class WordForgePuzzleDataDto {
+  @ApiProperty({ description: "Array of 7 uppercase letters" })
+  letters: string[];
+
+  @ApiProperty({ description: "The center letter (must be in every word)" })
+  centerLetter: string;
+
+  @ApiProperty({ description: "List of valid words that can be formed" })
+  validWords: string[];
+
+  @ApiProperty({ description: "Words that use all 7 letters" })
+  pangrams: string[];
+}
+
+export class WordForgeSolutionDto {
+  @ApiProperty({ description: "All valid words" })
+  allWords: string[];
+
+  @ApiProperty({ description: "Pangram words" })
+  pangrams: string[];
+
+  @ApiProperty({ description: "Maximum possible score" })
+  maxScore: number;
+}
+
+// Nonogram DTOs
+
+export class NonogramPuzzleDataDto {
+  @ApiProperty()
+  rows: number;
+
+  @ApiProperty()
+  cols: number;
+
+  @ApiProperty({ description: "Row clues - array of number arrays" })
+  rowClues: number[][];
+
+  @ApiProperty({ description: "Column clues - array of number arrays" })
+  colClues: number[][];
+}
+
+export class NonogramSolutionDto {
+  @ApiProperty({ description: "Solution grid (1 = filled, 0 = empty)" })
+  grid: number[][];
+}
+
+// Number Target DTOs
+
+export class NumberTargetPuzzleDataDto {
+  @ApiProperty({ description: "Array of 4 numbers to use" })
+  numbers: number[];
+
+  @ApiProperty({ description: "Target number to reach" })
+  target: number;
+}
+
+export class NumberTargetSolutionDto {
+  @ApiProperty({ description: "One valid expression that reaches target" })
+  expression: string;
+
+  @ApiPropertyOptional({ description: "Alternative valid expressions" })
+  alternates?: string[];
 }

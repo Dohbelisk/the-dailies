@@ -201,6 +201,22 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.abc_rounded;
       case GameType.wordSearch:
         return Icons.search_rounded;
+      case GameType.wordForge:
+        return Icons.text_fields_rounded;
+      case GameType.nonogram:
+        return Icons.grid_view_rounded;
+      case GameType.numberTarget:
+        return Icons.calculate_rounded;
+      case GameType.ballSort:
+        return Icons.sports_baseball_rounded;
+      case GameType.pipes:
+        return Icons.route_rounded;
+      case GameType.lightsOut:
+        return Icons.lightbulb_rounded;
+      case GameType.wordLadder:
+        return Icons.stairs_rounded;
+      case GameType.connections:
+        return Icons.link_rounded;
     }
   }
 
@@ -214,6 +230,22 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Crossword';
       case GameType.wordSearch:
         return 'Word Search';
+      case GameType.wordForge:
+        return 'Word Forge';
+      case GameType.nonogram:
+        return 'Nonogram';
+      case GameType.numberTarget:
+        return 'Number Target';
+      case GameType.ballSort:
+        return 'Ball Sort';
+      case GameType.pipes:
+        return 'Pipes';
+      case GameType.lightsOut:
+        return 'Lights Out';
+      case GameType.wordLadder:
+        return 'Word Ladder';
+      case GameType.connections:
+        return 'Connections';
     }
   }
 

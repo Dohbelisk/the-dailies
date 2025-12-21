@@ -1,25 +1,33 @@
 # 🧩 The Dailies
 
-A comprehensive daily puzzle game featuring **Sudoku**, **Killer Sudoku**, **Crossword**, and **Word Search** puzzles. Built with Flutter for mobile, NestJS for the backend API, and React for the admin portal.
+A comprehensive daily puzzle game featuring **12 puzzle types**: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, and Connections. Built with Flutter for mobile, NestJS for the backend API, and React for the admin portal.
 
 ![The Dailies](https://via.placeholder.com/800x400/6366F1/FFFFFF?text=The+Dailies)
 
 ## 🎮 Features
 
 ### Mobile App (Flutter)
-- **4 Game Types**: Sudoku, Killer Sudoku, Crossword, Word Search
+- **12 Game Types**: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections
 - **Daily Challenges**: New puzzles every day
+- **Friend Challenges**: Head-to-head multiplayer puzzles
+- **Favorites**: Pin your favorite games to the top
 - **Beautiful UI**: Smooth animations, dark mode support
 - **Offline Support**: Play with cached puzzles
 - **Progress Tracking**: Stats, streaks, and scores
+- **Game State Persistence**: Resume in-progress games
 - **Note Mode**: Pencil marks for Sudoku puzzles
 - **Hints**: Get help when stuck
+- **Token System**: Access archive puzzles
 
 ### Admin Portal (React)
 - **Puzzle Management**: Create, edit, delete puzzles
+- **Visual Editors**: Interactive Sudoku editor with validate/solve
 - **Bulk Upload**: Add multiple puzzles at once
+- **Auto-Generation**: Generate puzzles automatically
 - **Scheduling**: Set puzzles for future dates
+- **Filtering**: Filter by type, difficulty, status, date range
 - **Analytics**: View puzzle statistics
+- **Feedback Management**: View and respond to user feedback
 - **User Management**: Admin authentication
 
 ### Backend API (NestJS)
@@ -138,8 +146,8 @@ The API will be available at `http://localhost:3000`
 Swagger docs at `http://localhost:3000/api/docs`
 
 **Default Admin Login:**
-- Email: `admin@thedailies.app`
-- Password: `admin123`
+- Email: `admin@dohbelisk.com`
+- Password: `5nifrenypro`
 
 ### 2. Admin Portal Setup
 
@@ -285,12 +293,12 @@ static const String baseUrl = 'http://YOUR_SERVER_IP:3000/api';
 ## 🔮 Future Improvements
 
 - [ ] Push notifications for daily puzzles
-- [ ] Multiplayer/competitive mode
-- [ ] Puzzle generator algorithms
+- [x] Multiplayer/competitive mode (Friend Challenges)
+- [x] Puzzle generator algorithms (All 12 types)
 - [ ] Social sharing
-- [ ] Leaderboards
+- [ ] Leaderboards UI
 - [ ] Achievement system
-- [ ] More puzzle types (Kakuro, Nonogram, etc.)
+- [x] More puzzle types (12 total: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections)
 
 ## 📄 License
 

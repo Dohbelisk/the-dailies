@@ -10,6 +10,9 @@ import {
   Hash,
   FileText,
   Search,
+  Hexagon,
+  LayoutGrid,
+  Target,
 } from 'lucide-react'
 import { puzzlesApi } from '../lib/api'
 
@@ -18,6 +21,9 @@ const gameTypeIcons: Record<string, typeof Grid3X3> = {
   killerSudoku: Hash,
   crossword: FileText,
   wordSearch: Search,
+  wordForge: Hexagon,
+  nonogram: LayoutGrid,
+  numberTarget: Target,
 }
 
 const gameTypeColors: Record<string, string> = {
@@ -25,6 +31,9 @@ const gameTypeColors: Record<string, string> = {
   killerSudoku: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
   crossword: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
   wordSearch: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  wordForge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  nonogram: 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400',
+  numberTarget: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 }
 
 export default function Dashboard() {
@@ -120,7 +129,7 @@ export default function Dashboard() {
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Game Types
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">4</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">7</p>
             </div>
           </div>
         </div>
@@ -135,12 +144,19 @@ export default function Dashboard() {
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {['sudoku', 'killerSudoku', 'crossword', 'wordSearch'].map((type) => {
+            {['sudoku', 'killerSudoku', 'crossword', 'wordSearch', 'wordForge', 'nonogram', 'numberTarget'].map((type) => {
               const Icon = gameTypeIcons[type]
               const typeStats = stats?.byGameType?.[type] || { total: 0, active: 0 }
-              const displayName = type === 'killerSudoku' ? 'Killer Sudoku' : 
-                type === 'wordSearch' ? 'Word Search' :
-                type.charAt(0).toUpperCase() + type.slice(1)
+              const displayNameMap: Record<string, string> = {
+                sudoku: 'Sudoku',
+                killerSudoku: 'Killer Sudoku',
+                crossword: 'Crossword',
+                wordSearch: 'Word Search',
+                wordForge: 'Word Forge',
+                nonogram: 'Nonogram',
+                numberTarget: 'Number Target',
+              }
+              const displayName = displayNameMap[type] || type
 
               return (
                 <div

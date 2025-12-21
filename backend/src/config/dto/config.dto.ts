@@ -1,6 +1,15 @@
-import { IsString, IsBoolean, IsOptional, IsNumber, Min, Max, IsArray, IsDate } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import {
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsArray,
+  IsDate,
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 
 export class UpdateAppConfigDto {
   @ApiPropertyOptional()
@@ -40,11 +49,11 @@ export class UpdateAppConfigDto {
 }
 
 export class CreateFeatureFlagDto {
-  @ApiProperty({ example: 'challenges_enabled' })
+  @ApiProperty({ example: "challenges_enabled" })
   @IsString()
   key: string;
 
-  @ApiProperty({ example: 'Challenges Feature' })
+  @ApiProperty({ example: "Challenges Feature" })
   @IsString()
   name: string;
 
@@ -58,12 +67,12 @@ export class CreateFeatureFlagDto {
   @IsBoolean()
   enabled?: boolean;
 
-  @ApiPropertyOptional({ example: '1.2.0' })
+  @ApiPropertyOptional({ example: "1.2.0" })
   @IsOptional()
   @IsString()
   minAppVersion?: string;
 
-  @ApiPropertyOptional({ example: '2.0.0' })
+  @ApiPropertyOptional({ example: "2.0.0" })
   @IsOptional()
   @IsString()
   maxAppVersion?: string;
@@ -190,12 +199,12 @@ export class FeatureFlagResponseDto {
 }
 
 export class FeatureFlagsQueryDto {
-  @ApiPropertyOptional({ description: 'App version for filtering flags' })
+  @ApiPropertyOptional({ description: "App version for filtering flags" })
   @IsOptional()
   @IsString()
   appVersion?: string;
 
-  @ApiPropertyOptional({ description: 'User ID for personalized flags' })
+  @ApiPropertyOptional({ description: "User ID for personalized flags" })
   @IsOptional()
   @IsString()
   userId?: string;

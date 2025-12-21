@@ -1,9 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Feedback, FeedbackDocument, FeedbackStatus } from './schemas/feedback.schema';
-import { CreateFeedbackDto, UpdateFeedbackDto, FeedbackQueryDto, FeedbackStatsDto } from './dto/feedback.dto';
-import { EmailService } from '../email/email.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import {
+  Feedback,
+  FeedbackDocument,
+  FeedbackStatus,
+} from "./schemas/feedback.schema";
+import {
+  CreateFeedbackDto,
+  UpdateFeedbackDto,
+  FeedbackQueryDto,
+  FeedbackStatsDto,
+} from "./dto/feedback.dto";
+import { EmailService } from "../email/email.service";
 
 @Injectable()
 export class FeedbackService {
@@ -31,7 +40,7 @@ export class FeedbackService {
         createdAt: (saved as any).createdAt,
       })
       .catch((error) => {
-        console.error('Failed to send feedback notification:', error);
+        console.error("Failed to send feedback notification:", error);
       });
 
     return saved;
@@ -73,7 +82,10 @@ export class FeedbackService {
     return feedback;
   }
 
-  async update(id: string, updateFeedbackDto: UpdateFeedbackDto): Promise<Feedback> {
+  async update(
+    id: string,
+    updateFeedbackDto: UpdateFeedbackDto,
+  ): Promise<Feedback> {
     const feedback = await this.feedbackModel
       .findByIdAndUpdate(id, updateFeedbackDto, { new: true })
       .exec();
@@ -93,12 +105,12 @@ export class FeedbackService {
   async getStats(): Promise<FeedbackStatsDto> {
     const [total, byTypeResult, byStatusResult, newCount] = await Promise.all([
       this.feedbackModel.countDocuments().exec(),
-      this.feedbackModel.aggregate([
-        { $group: { _id: '$type', count: { $sum: 1 } } },
-      ]).exec(),
-      this.feedbackModel.aggregate([
-        { $group: { _id: '$status', count: { $sum: 1 } } },
-      ]).exec(),
+      this.feedbackModel
+        .aggregate([{ $group: { _id: "$type", count: { $sum: 1 } } }])
+        .exec(),
+      this.feedbackModel
+        .aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }])
+        .exec(),
       this.feedbackModel.countDocuments({ status: FeedbackStatus.NEW }).exec(),
     ]);
 

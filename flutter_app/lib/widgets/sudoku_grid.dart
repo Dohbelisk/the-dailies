@@ -86,11 +86,11 @@ class SudokuGrid extends StatelessWidget {
                   '$value',
                   style: TextStyle(
                     fontSize: 24,
-                    fontWeight: isInitial ? FontWeight.bold : FontWeight.w500,
+                    fontWeight: isInitial ? FontWeight.w800 : FontWeight.w500,
                     color: isError
                         ? theme.colorScheme.error
                         : isInitial
-                            ? theme.colorScheme.onSurface
+                            ? theme.colorScheme.onSurface.withOpacity(0.85)
                             : theme.colorScheme.primary,
                   ),
                 )
@@ -104,23 +104,48 @@ class SudokuGrid extends StatelessWidget {
 
   Widget _buildNotes(BuildContext context, Set<int> notes) {
     final theme = Theme.of(context);
+    final textStyle = TextStyle(
+      fontSize: 8,
+      height: 1.0,
+      fontWeight: FontWeight.w500,
+      color: theme.colorScheme.onSurface.withOpacity(0.6),
+    );
 
-    return GridView.count(
-      crossAxisCount: 3,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(2),
-      children: List.generate(9, (index) {
-        final number = index + 1;
-        return Center(
-          child: Text(
-            notes.contains(number) ? '$number' : '',
-            style: TextStyle(
-              fontSize: 10,
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
-            ),
+    // Build a compact 3x3 grid of notes, centered in the cell
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Row 1: 1, 2, 3
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: 9, height: 9, child: Center(child: Text(notes.contains(1) ? '1' : '', style: textStyle))),
+              SizedBox(width: 9, height: 9, child: Center(child: Text(notes.contains(2) ? '2' : '', style: textStyle))),
+              SizedBox(width: 9, height: 9, child: Center(child: Text(notes.contains(3) ? '3' : '', style: textStyle))),
+            ],
           ),
-        );
-      }),
+          // Row 2: 4, 5, 6
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: 9, height: 9, child: Center(child: Text(notes.contains(4) ? '4' : '', style: textStyle))),
+              SizedBox(width: 9, height: 9, child: Center(child: Text(notes.contains(5) ? '5' : '', style: textStyle))),
+              SizedBox(width: 9, height: 9, child: Center(child: Text(notes.contains(6) ? '6' : '', style: textStyle))),
+            ],
+          ),
+          // Row 3: 7, 8, 9
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: 9, height: 9, child: Center(child: Text(notes.contains(7) ? '7' : '', style: textStyle))),
+              SizedBox(width: 9, height: 9, child: Center(child: Text(notes.contains(8) ? '8' : '', style: textStyle))),
+              SizedBox(width: 9, height: 9, child: Center(child: Text(notes.contains(9) ? '9' : '', style: textStyle))),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

@@ -411,6 +411,171 @@ class ApiService {
           ],
         },
       ),
+      DailyPuzzle(
+        id: 'wordforge-${today.toIso8601String().split('T')[0]}',
+        gameType: GameType.wordForge,
+        difficulty: Difficulty.medium,
+        date: today,
+        targetTime: 300,
+        puzzleData: {
+          'letters': ['A', 'P', 'L', 'E', 'S', 'T', 'R'],
+          'targetWords': ['APPLE', 'PLATE', 'STAPLE', 'TALES', 'STEAL', 'PASTE'],
+          'minWordLength': 4,
+        },
+        solution: {
+          'words': ['APPLE', 'PLATE', 'STAPLE', 'TALES', 'STEAL', 'PASTE'],
+        },
+      ),
+      DailyPuzzle(
+        id: 'nonogram-${today.toIso8601String().split('T')[0]}',
+        gameType: GameType.nonogram,
+        difficulty: Difficulty.medium,
+        date: today,
+        targetTime: 600,
+        puzzleData: {
+          'rows': 5,
+          'cols': 5,
+          'rowClues': [[1, 1], [5], [1, 1], [5], [1, 1]],
+          'colClues': [[1, 1], [5], [1, 1], [5], [1, 1]],
+        },
+        solution: {
+          'grid': [
+            [true, false, false, false, true],
+            [true, true, true, true, true],
+            [true, false, false, false, true],
+            [true, true, true, true, true],
+            [true, false, false, false, true],
+          ],
+        },
+      ),
+      DailyPuzzle(
+        id: 'numbertarget-${today.toIso8601String().split('T')[0]}',
+        gameType: GameType.numberTarget,
+        difficulty: Difficulty.medium,
+        date: today,
+        targetTime: 180,
+        puzzleData: {
+          'numbers': [25, 50, 75, 100, 3, 6],
+          'target': 952,
+        },
+        solution: {
+          'steps': ['100 + 3 = 103', '103 * 9 = 927', '927 + 25 = 952'],
+        },
+      ),
+      DailyPuzzle(
+        id: 'ballsort-${today.toIso8601String().split('T')[0]}',
+        gameType: GameType.ballSort,
+        difficulty: Difficulty.easy,
+        date: today,
+        targetTime: 180,
+        puzzleData: {
+          'tubes': [
+            ['red', 'blue', 'green', 'red'],
+            ['green', 'red', 'blue', 'green'],
+            ['blue', 'green', 'red', 'blue'],
+            [],
+            [],
+          ],
+          'tubeCapacity': 4,
+        },
+        solution: {
+          'tubes': [
+            ['red', 'red', 'red', 'red'],
+            ['green', 'green', 'green', 'green'],
+            ['blue', 'blue', 'blue', 'blue'],
+            [],
+            [],
+          ],
+        },
+      ),
+      DailyPuzzle(
+        id: 'pipes-${today.toIso8601String().split('T')[0]}',
+        gameType: GameType.pipes,
+        difficulty: Difficulty.medium,
+        date: today,
+        targetTime: 240,
+        puzzleData: {
+          'rows': 5,
+          'cols': 5,
+          'endpoints': [
+            {'color': 'red', 'positions': [[0, 0], [4, 4]]},
+            {'color': 'blue', 'positions': [[0, 4], [4, 0]]},
+            {'color': 'green', 'positions': [[2, 0], [2, 4]]},
+          ],
+        },
+        solution: {
+          'paths': {
+            'red': [[0, 0], [1, 0], [1, 1], [2, 1], [3, 1], [3, 2], [3, 3], [4, 3], [4, 4]],
+            'blue': [[0, 4], [0, 3], [1, 3], [1, 4], [2, 4], [3, 4], [4, 4], [4, 0]],
+            'green': [[2, 0], [2, 1], [2, 2], [2, 3], [2, 4]],
+          },
+        },
+      ),
+      DailyPuzzle(
+        id: 'lightsout-${today.toIso8601String().split('T')[0]}',
+        gameType: GameType.lightsOut,
+        difficulty: Difficulty.easy,
+        date: today,
+        targetTime: 120,
+        puzzleData: {
+          'rows': 5,
+          'cols': 5,
+          'grid': [
+            [true, false, true, false, true],
+            [false, true, false, true, false],
+            [true, false, true, false, true],
+            [false, true, false, true, false],
+            [true, false, true, false, true],
+          ],
+        },
+        solution: {
+          'moves': [[0, 0], [0, 2], [0, 4], [2, 0], [2, 2], [2, 4], [4, 0], [4, 2], [4, 4]],
+        },
+      ),
+      DailyPuzzle(
+        id: 'wordladder-${today.toIso8601String().split('T')[0]}',
+        gameType: GameType.wordLadder,
+        difficulty: Difficulty.medium,
+        date: today,
+        targetTime: 300,
+        puzzleData: {
+          'startWord': 'COLD',
+          'endWord': 'WARM',
+          'wordLength': 4,
+        },
+        solution: {
+          'path': ['COLD', 'CORD', 'CARD', 'WARD', 'WARM'],
+        },
+      ),
+      DailyPuzzle(
+        id: 'connections-${today.toIso8601String().split('T')[0]}',
+        gameType: GameType.connections,
+        difficulty: Difficulty.hard,
+        date: today,
+        targetTime: 300,
+        puzzleData: {
+          'words': [
+            'APPLE', 'BANANA', 'CHERRY', 'DATE',
+            'RED', 'BLUE', 'GREEN', 'YELLOW',
+            'DOG', 'CAT', 'BIRD', 'FISH',
+            'CAR', 'BIKE', 'TRAIN', 'PLANE'
+          ],
+          'groups': [
+            {'name': 'Fruits', 'words': ['APPLE', 'BANANA', 'CHERRY', 'DATE'], 'difficulty': 1},
+            {'name': 'Colors', 'words': ['RED', 'BLUE', 'GREEN', 'YELLOW'], 'difficulty': 2},
+            {'name': 'Pets', 'words': ['DOG', 'CAT', 'BIRD', 'FISH'], 'difficulty': 3},
+            {'name': 'Transport', 'words': ['CAR', 'BIKE', 'TRAIN', 'PLANE'], 'difficulty': 4},
+          ],
+        },
+        solution: {
+          'groups': [
+            {'name': 'Fruits', 'words': ['APPLE', 'BANANA', 'CHERRY', 'DATE']},
+            {'name': 'Colors', 'words': ['RED', 'BLUE', 'GREEN', 'YELLOW']},
+            {'name': 'Pets', 'words': ['DOG', 'CAT', 'BIRD', 'FISH']},
+            {'name': 'Transport', 'words': ['CAR', 'BIKE', 'TRAIN', 'PLANE']},
+          ],
+        },
+      ),
     ];
   }
 }

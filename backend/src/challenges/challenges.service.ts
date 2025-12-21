@@ -1,16 +1,33 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { Challenge, ChallengeDocument, ChallengeStatus, GameType, Difficulty } from './schemas/challenge.schema';
-import { CreateChallengeDto, SubmitChallengeResultDto, ChallengeResponseDto, ChallengeStatsDto } from './dto/challenge.dto';
-import { PuzzlesService } from '../puzzles/puzzles.service';
-import { UsersService } from '../users/users.service';
-import { FriendsService } from '../friends/friends.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model, Types } from "mongoose";
+import {
+  Challenge,
+  ChallengeDocument,
+  ChallengeStatus,
+  GameType,
+  Difficulty,
+} from "./schemas/challenge.schema";
+import {
+  CreateChallengeDto,
+  SubmitChallengeResultDto,
+  ChallengeResponseDto,
+  ChallengeStatsDto,
+} from "./dto/challenge.dto";
+import { PuzzlesService } from "../puzzles/puzzles.service";
+import { UsersService } from "../users/users.service";
+import { FriendsService } from "../friends/friends.service";
 
 @Injectable()
 export class ChallengesService {
   constructor(
-    @InjectModel(Challenge.name) private challengeModel: Model<ChallengeDocument>,
+    @InjectModel(Challenge.name)
+    private challengeModel: Model<ChallengeDocument>,
     private puzzlesService: PuzzlesService,
     private usersService: UsersService,
     private friendsService: FriendsService,
@@ -19,34 +36,51 @@ export class ChallengesService {
   /**
    * Create a new challenge
    */
-  async createChallenge(challengerId: string, dto: CreateChallengeDto): Promise<ChallengeResponseDto> {
+  async createChallenge(
+    challengerId: string,
+    dto: CreateChallengeDto,
+  ): Promise<ChallengeResponseDto> {
     // Verify opponent exists
     const opponent = await this.usersService.findById(dto.opponentId);
     if (!opponent) {
-      throw new NotFoundException('Opponent not found');
+      throw new NotFoundException("Opponent not found");
     }
 
     // Verify they are friends
-    const areFriends = await this.friendsService.areFriends(challengerId, dto.opponentId);
+    const areFriends = await this.friendsService.areFriends(
+      challengerId,
+      dto.opponentId,
+    );
     if (!areFriends) {
-      throw new ForbiddenException('You can only challenge friends');
+      throw new ForbiddenException("You can only challenge friends");
     }
 
     // Check for existing pending challenge between these users
     const existingChallenge = await this.challengeModel.findOne({
       $or: [
-        { challengerId: new Types.ObjectId(challengerId), opponentId: new Types.ObjectId(dto.opponentId) },
-        { challengerId: new Types.ObjectId(dto.opponentId), opponentId: new Types.ObjectId(challengerId) },
+        {
+          challengerId: new Types.ObjectId(challengerId),
+          opponentId: new Types.ObjectId(dto.opponentId),
+        },
+        {
+          challengerId: new Types.ObjectId(dto.opponentId),
+          opponentId: new Types.ObjectId(challengerId),
+        },
       ],
       status: { $in: [ChallengeStatus.PENDING, ChallengeStatus.ACCEPTED] },
     });
 
     if (existingChallenge) {
-      throw new BadRequestException('There is already an active challenge between you and this friend');
+      throw new BadRequestException(
+        "There is already an active challenge between you and this friend",
+      );
     }
 
     // Find a suitable puzzle for the challenge
-    const puzzle = await this.findPuzzleForChallenge(dto.gameType, dto.difficulty);
+    const puzzle = await this.findPuzzleForChallenge(
+      dto.gameType,
+      dto.difficulty,
+    );
 
     // Set expiry to 24 hours from now
     const expiresAt = new Date();
@@ -70,7 +104,10 @@ export class ChallengesService {
   /**
    * Find a random puzzle for the challenge
    */
-  private async findPuzzleForChallenge(gameType: GameType, difficulty: Difficulty): Promise<any> {
+  private async findPuzzleForChallenge(
+    gameType: GameType,
+    difficulty: Difficulty,
+  ): Promise<any> {
     // Get puzzles of the specified type and difficulty
     const puzzles = await this.puzzlesService.findAll({
       gameType: gameType as any,
@@ -79,7 +116,9 @@ export class ChallengesService {
     });
 
     if (puzzles.length === 0) {
-      throw new NotFoundException(`No puzzles available for ${gameType} ${difficulty}`);
+      throw new NotFoundException(
+        `No puzzles available for ${gameType} ${difficulty}`,
+      );
     }
 
     // Select a random puzzle
@@ -90,22 +129,29 @@ export class ChallengesService {
   /**
    * Accept a challenge
    */
-  async acceptChallenge(userId: string, challengeId: string): Promise<ChallengeResponseDto> {
+  async acceptChallenge(
+    userId: string,
+    challengeId: string,
+  ): Promise<ChallengeResponseDto> {
     const challenge = await this.findChallengeById(challengeId);
 
     if (challenge.opponentId.toString() !== userId) {
-      throw new ForbiddenException('You are not the opponent of this challenge');
+      throw new ForbiddenException(
+        "You are not the opponent of this challenge",
+      );
     }
 
     if (challenge.status !== ChallengeStatus.PENDING) {
-      throw new BadRequestException(`Challenge is not pending (current status: ${challenge.status})`);
+      throw new BadRequestException(
+        `Challenge is not pending (current status: ${challenge.status})`,
+      );
     }
 
     // Check if expired
     if (new Date() > challenge.expiresAt) {
       challenge.status = ChallengeStatus.EXPIRED;
       await challenge.save();
-      throw new BadRequestException('This challenge has expired');
+      throw new BadRequestException("This challenge has expired");
     }
 
     challenge.status = ChallengeStatus.ACCEPTED;
@@ -116,15 +162,22 @@ export class ChallengesService {
   /**
    * Decline a challenge
    */
-  async declineChallenge(userId: string, challengeId: string): Promise<ChallengeResponseDto> {
+  async declineChallenge(
+    userId: string,
+    challengeId: string,
+  ): Promise<ChallengeResponseDto> {
     const challenge = await this.findChallengeById(challengeId);
 
     if (challenge.opponentId.toString() !== userId) {
-      throw new ForbiddenException('You are not the opponent of this challenge');
+      throw new ForbiddenException(
+        "You are not the opponent of this challenge",
+      );
     }
 
     if (challenge.status !== ChallengeStatus.PENDING) {
-      throw new BadRequestException(`Challenge is not pending (current status: ${challenge.status})`);
+      throw new BadRequestException(
+        `Challenge is not pending (current status: ${challenge.status})`,
+      );
     }
 
     challenge.status = ChallengeStatus.DECLINED;
@@ -135,15 +188,20 @@ export class ChallengesService {
   /**
    * Cancel a challenge (by challenger)
    */
-  async cancelChallenge(userId: string, challengeId: string): Promise<ChallengeResponseDto> {
+  async cancelChallenge(
+    userId: string,
+    challengeId: string,
+  ): Promise<ChallengeResponseDto> {
     const challenge = await this.findChallengeById(challengeId);
 
     if (challenge.challengerId.toString() !== userId) {
-      throw new ForbiddenException('You are not the challenger');
+      throw new ForbiddenException("You are not the challenger");
     }
 
     if (challenge.status !== ChallengeStatus.PENDING) {
-      throw new BadRequestException(`Can only cancel pending challenges (current status: ${challenge.status})`);
+      throw new BadRequestException(
+        `Can only cancel pending challenges (current status: ${challenge.status})`,
+      );
     }
 
     challenge.status = ChallengeStatus.CANCELLED;
@@ -154,24 +212,31 @@ export class ChallengesService {
   /**
    * Submit challenge result
    */
-  async submitResult(userId: string, dto: SubmitChallengeResultDto): Promise<ChallengeResponseDto> {
+  async submitResult(
+    userId: string,
+    dto: SubmitChallengeResultDto,
+  ): Promise<ChallengeResponseDto> {
     const challenge = await this.findChallengeById(dto.challengeId);
 
     if (challenge.status !== ChallengeStatus.ACCEPTED) {
-      throw new BadRequestException(`Cannot submit result for challenge with status: ${challenge.status}`);
+      throw new BadRequestException(
+        `Cannot submit result for challenge with status: ${challenge.status}`,
+      );
     }
 
     const isChallenger = challenge.challengerId.toString() === userId;
     const isOpponent = challenge.opponentId.toString() === userId;
 
     if (!isChallenger && !isOpponent) {
-      throw new ForbiddenException('You are not a participant in this challenge');
+      throw new ForbiddenException(
+        "You are not a participant in this challenge",
+      );
     }
 
     // Update the appropriate player's result
     if (isChallenger) {
       if (challenge.challengerCompleted) {
-        throw new BadRequestException('You have already submitted your result');
+        throw new BadRequestException("You have already submitted your result");
       }
       challenge.challengerScore = dto.score;
       challenge.challengerTime = dto.time;
@@ -179,7 +244,7 @@ export class ChallengesService {
       challenge.challengerCompleted = true;
     } else {
       if (challenge.opponentCompleted) {
-        throw new BadRequestException('You have already submitted your result');
+        throw new BadRequestException("You have already submitted your result");
       }
       challenge.opponentScore = dto.score;
       challenge.opponentTime = dto.time;
@@ -214,7 +279,10 @@ export class ChallengesService {
   /**
    * Get challenges for a user
    */
-  async getChallenges(userId: string, status?: ChallengeStatus): Promise<ChallengeResponseDto[]> {
+  async getChallenges(
+    userId: string,
+    status?: ChallengeStatus,
+  ): Promise<ChallengeResponseDto[]> {
     const query: any = {
       $or: [
         { challengerId: new Types.ObjectId(userId) },
@@ -231,7 +299,7 @@ export class ChallengesService {
       .sort({ createdAt: -1 })
       .exec();
 
-    return Promise.all(challenges.map(c => this.toChallengeResponse(c)));
+    return Promise.all(challenges.map((c) => this.toChallengeResponse(c)));
   }
 
   /**
@@ -247,7 +315,7 @@ export class ChallengesService {
       .sort({ createdAt: -1 })
       .exec();
 
-    return Promise.all(challenges.map(c => this.toChallengeResponse(c)));
+    return Promise.all(challenges.map((c) => this.toChallengeResponse(c)));
   }
 
   /**
@@ -265,13 +333,16 @@ export class ChallengesService {
       .sort({ createdAt: -1 })
       .exec();
 
-    return Promise.all(challenges.map(c => this.toChallengeResponse(c)));
+    return Promise.all(challenges.map((c) => this.toChallengeResponse(c)));
   }
 
   /**
    * Get challenge by ID
    */
-  async getChallenge(userId: string, challengeId: string): Promise<ChallengeResponseDto> {
+  async getChallenge(
+    userId: string,
+    challengeId: string,
+  ): Promise<ChallengeResponseDto> {
     const challenge = await this.findChallengeById(challengeId);
 
     // Verify user is a participant
@@ -280,7 +351,9 @@ export class ChallengesService {
       challenge.opponentId.toString() === userId;
 
     if (!isParticipant) {
-      throw new ForbiddenException('You are not a participant in this challenge');
+      throw new ForbiddenException(
+        "You are not a participant in this challenge",
+      );
     }
 
     return this.toChallengeResponse(challenge);
@@ -295,10 +368,7 @@ export class ChallengesService {
     const [stats] = await this.challengeModel.aggregate([
       {
         $match: {
-          $or: [
-            { challengerId: userObjectId },
-            { opponentId: userObjectId },
-          ],
+          $or: [{ challengerId: userObjectId }, { opponentId: userObjectId }],
         },
       },
       {
@@ -306,12 +376,19 @@ export class ChallengesService {
           _id: null,
           totalChallenges: { $sum: 1 },
           completed: {
-            $sum: { $cond: [{ $eq: ['$status', ChallengeStatus.COMPLETED] }, 1, 0] },
+            $sum: {
+              $cond: [{ $eq: ["$status", ChallengeStatus.COMPLETED] }, 1, 0],
+            },
           },
           pending: {
             $sum: {
               $cond: [
-                { $in: ['$status', [ChallengeStatus.PENDING, ChallengeStatus.ACCEPTED]] },
+                {
+                  $in: [
+                    "$status",
+                    [ChallengeStatus.PENDING, ChallengeStatus.ACCEPTED],
+                  ],
+                },
                 1,
                 0,
               ],
@@ -322,8 +399,8 @@ export class ChallengesService {
               $cond: [
                 {
                   $and: [
-                    { $eq: ['$status', ChallengeStatus.COMPLETED] },
-                    { $eq: ['$winnerId', userObjectId] },
+                    { $eq: ["$status", ChallengeStatus.COMPLETED] },
+                    { $eq: ["$winnerId", userObjectId] },
                   ],
                 },
                 1,
@@ -336,9 +413,9 @@ export class ChallengesService {
               $cond: [
                 {
                   $and: [
-                    { $eq: ['$status', ChallengeStatus.COMPLETED] },
-                    { $ne: ['$winnerId', null] },
-                    { $ne: ['$winnerId', userObjectId] },
+                    { $eq: ["$status", ChallengeStatus.COMPLETED] },
+                    { $ne: ["$winnerId", null] },
+                    { $ne: ["$winnerId", userObjectId] },
                   ],
                 },
                 1,
@@ -351,8 +428,8 @@ export class ChallengesService {
               $cond: [
                 {
                   $and: [
-                    { $eq: ['$status', ChallengeStatus.COMPLETED] },
-                    { $eq: ['$winnerId', null] },
+                    { $eq: ["$status", ChallengeStatus.COMPLETED] },
+                    { $eq: ["$winnerId", null] },
                   ],
                 },
                 1,
@@ -379,14 +456,20 @@ export class ChallengesService {
       losses: result.losses,
       ties: result.ties,
       pending: result.pending,
-      winRate: result.completed > 0 ? Math.round((result.wins / result.completed) * 100) : 0,
+      winRate:
+        result.completed > 0
+          ? Math.round((result.wins / result.completed) * 100)
+          : 0,
     };
   }
 
   /**
    * Get challenge stats between two users
    */
-  async getChallengeStatsBetweenUsers(userId: string, friendId: string): Promise<ChallengeStatsDto> {
+  async getChallengeStatsBetweenUsers(
+    userId: string,
+    friendId: string,
+  ): Promise<ChallengeStatsDto> {
     const userObjectId = new Types.ObjectId(userId);
     const friendObjectId = new Types.ObjectId(friendId);
 
@@ -404,12 +487,19 @@ export class ChallengesService {
           _id: null,
           totalChallenges: { $sum: 1 },
           completed: {
-            $sum: { $cond: [{ $eq: ['$status', ChallengeStatus.COMPLETED] }, 1, 0] },
+            $sum: {
+              $cond: [{ $eq: ["$status", ChallengeStatus.COMPLETED] }, 1, 0],
+            },
           },
           pending: {
             $sum: {
               $cond: [
-                { $in: ['$status', [ChallengeStatus.PENDING, ChallengeStatus.ACCEPTED]] },
+                {
+                  $in: [
+                    "$status",
+                    [ChallengeStatus.PENDING, ChallengeStatus.ACCEPTED],
+                  ],
+                },
                 1,
                 0,
               ],
@@ -420,8 +510,8 @@ export class ChallengesService {
               $cond: [
                 {
                   $and: [
-                    { $eq: ['$status', ChallengeStatus.COMPLETED] },
-                    { $eq: ['$winnerId', userObjectId] },
+                    { $eq: ["$status", ChallengeStatus.COMPLETED] },
+                    { $eq: ["$winnerId", userObjectId] },
                   ],
                 },
                 1,
@@ -434,8 +524,8 @@ export class ChallengesService {
               $cond: [
                 {
                   $and: [
-                    { $eq: ['$status', ChallengeStatus.COMPLETED] },
-                    { $eq: ['$winnerId', friendObjectId] },
+                    { $eq: ["$status", ChallengeStatus.COMPLETED] },
+                    { $eq: ["$winnerId", friendObjectId] },
                   ],
                 },
                 1,
@@ -448,8 +538,8 @@ export class ChallengesService {
               $cond: [
                 {
                   $and: [
-                    { $eq: ['$status', ChallengeStatus.COMPLETED] },
-                    { $eq: ['$winnerId', null] },
+                    { $eq: ["$status", ChallengeStatus.COMPLETED] },
+                    { $eq: ["$winnerId", null] },
                   ],
                 },
                 1,
@@ -476,7 +566,10 @@ export class ChallengesService {
       losses: result.losses,
       ties: result.ties,
       pending: result.pending,
-      winRate: result.completed > 0 ? Math.round((result.wins / result.completed) * 100) : 0,
+      winRate:
+        result.completed > 0
+          ? Math.round((result.wins / result.completed) * 100)
+          : 0,
     };
   }
 
@@ -494,22 +587,30 @@ export class ChallengesService {
   /**
    * Helper: Convert challenge document to response DTO
    */
-  private async toChallengeResponse(challenge: ChallengeDocument): Promise<ChallengeResponseDto> {
-    const challenger = await this.usersService.findById(challenge.challengerId.toString());
-    const opponent = await this.usersService.findById(challenge.opponentId.toString());
+  private async toChallengeResponse(
+    challenge: ChallengeDocument,
+  ): Promise<ChallengeResponseDto> {
+    const challenger = await this.usersService.findById(
+      challenge.challengerId.toString(),
+    );
+    const opponent = await this.usersService.findById(
+      challenge.opponentId.toString(),
+    );
 
     let winnerUsername: string | undefined;
     if (challenge.winnerId) {
-      const winner = await this.usersService.findById(challenge.winnerId.toString());
+      const winner = await this.usersService.findById(
+        challenge.winnerId.toString(),
+      );
       winnerUsername = winner?.username;
     }
 
     return {
       id: (challenge as any)._id.toString(),
       challengerId: challenge.challengerId.toString(),
-      challengerUsername: challenger?.username || 'Unknown',
+      challengerUsername: challenger?.username || "Unknown",
       opponentId: challenge.opponentId.toString(),
-      opponentUsername: opponent?.username || 'Unknown',
+      opponentUsername: opponent?.username || "Unknown",
       puzzleId: challenge.puzzleId.toString(),
       gameType: challenge.gameType,
       difficulty: challenge.difficulty,

@@ -1,15 +1,16 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Loader2, Upload } from 'lucide-react'
+import { ArrowLeft, Loader2, Upload, Code, Grid3X3 } from 'lucide-react'
 import { puzzlesApi } from '../lib/api'
+import PuzzleEditorWrapper from '../components/editors/PuzzleEditorWrapper'
 
 const puzzleSchema = z.object({
-  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch']),
+  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch', 'wordForge', 'nonogram', 'numberTarget', 'ballSort', 'pipes', 'lightsOut', 'wordLadder', 'connections']),
   difficulty: z.enum(['easy', 'medium', 'hard', 'expert']),
   date: z.string().min(1, 'Date is required'),
   title: z.string().optional(),
@@ -20,10 +21,14 @@ const puzzleSchema = z.object({
 
 type PuzzleFormData = z.infer<typeof puzzleSchema>
 
+type EditorMode = 'visual' | 'json'
+
 export default function PuzzleCreate() {
   const navigate = useNavigate()
   const [puzzleDataJson, setPuzzleDataJson] = useState('')
   const [jsonError, setJsonError] = useState('')
+  const [editorMode, setEditorMode] = useState<EditorMode>('visual')
+  const [visualPuzzleData, setVisualPuzzleData] = useState<any>(null)
 
   const {
     register,
@@ -54,15 +59,28 @@ export default function PuzzleCreate() {
     },
   })
 
+  const handleVisualDataChange = useCallback((data: any) => {
+    setVisualPuzzleData(data)
+  }, [])
+
   const onSubmit = (data: PuzzleFormData) => {
-    // Validate JSON
     let puzzleData
-    try {
-      puzzleData = JSON.parse(puzzleDataJson)
-      setJsonError('')
-    } catch (e) {
-      setJsonError('Invalid JSON format')
-      return
+
+    if (editorMode === 'visual') {
+      if (!visualPuzzleData) {
+        setJsonError('Please enter puzzle data in the visual editor')
+        return
+      }
+      puzzleData = visualPuzzleData
+    } else {
+      // Validate JSON
+      try {
+        puzzleData = JSON.parse(puzzleDataJson)
+        setJsonError('')
+      } catch (e) {
+        setJsonError('Invalid JSON format')
+        return
+      }
     }
 
     createMutation.mutate({
@@ -156,6 +174,82 @@ export default function PuzzleCreate() {
           { word: 'DART', startRow: 2, startCol: 0, endRow: 2, endCol: 3 },
         ],
       },
+      wordForge: {
+        letters: ['A', 'C', 'E', 'L', 'N', 'R', 'T'],
+        centerLetter: 'A',
+        validWords: ['CRANE', 'LANCE', 'ANTLER', 'CENTRAL', 'RECANT', 'NECTAR', 'TRANCE'],
+        pangrams: ['CENTRAL'],
+      },
+      nonogram: {
+        rows: 5,
+        cols: 5,
+        rowClues: [[1, 1], [5], [1, 1, 1], [5], [1, 1]],
+        colClues: [[1, 1], [5], [1, 1, 1], [5], [1, 1]],
+        solution: [
+          [1, 0, 1, 0, 1],
+          [1, 1, 1, 1, 1],
+          [1, 0, 1, 0, 1],
+          [1, 1, 1, 1, 1],
+          [1, 0, 1, 0, 1],
+        ],
+      },
+      numberTarget: {
+        numbers: [2, 5, 7, 3],
+        target: 24,
+        solutions: ['(7-5)*(3+2)*2', '(5+7)*(3-2+1)'],
+      },
+      ballSort: {
+        tubes: 6,
+        colors: 4,
+        tubeCapacity: 4,
+        initialState: [
+          ['red', 'blue', 'green', 'yellow'],
+          ['blue', 'green', 'red', 'yellow'],
+          ['green', 'yellow', 'blue', 'red'],
+          ['yellow', 'red', 'blue', 'green'],
+          [],
+          [],
+        ],
+      },
+      pipes: {
+        rows: 5,
+        cols: 5,
+        endpoints: [
+          { color: 'red', row: 0, col: 0 },
+          { color: 'red', row: 4, col: 4 },
+          { color: 'blue', row: 0, col: 4 },
+          { color: 'blue', row: 4, col: 0 },
+        ],
+        bridges: [],
+      },
+      lightsOut: {
+        rows: 3,
+        cols: 3,
+        initialState: [
+          [true, false, true],
+          [false, true, false],
+          [true, false, true],
+        ],
+      },
+      wordLadder: {
+        startWord: 'COLD',
+        targetWord: 'WARM',
+        wordLength: 4,
+      },
+      connections: {
+        words: [
+          'APPLE', 'BANANA', 'ORANGE', 'GRAPE',
+          'DOG', 'CAT', 'BIRD', 'FISH',
+          'RED', 'BLUE', 'GREEN', 'YELLOW',
+          'RUN', 'WALK', 'JUMP', 'SWIM',
+        ],
+        categories: [
+          { name: 'Fruits', words: ['APPLE', 'BANANA', 'ORANGE', 'GRAPE'], difficulty: 1 },
+          { name: 'Animals', words: ['DOG', 'CAT', 'BIRD', 'FISH'], difficulty: 2 },
+          { name: 'Colors', words: ['RED', 'BLUE', 'GREEN', 'YELLOW'], difficulty: 3 },
+          { name: 'Actions', words: ['RUN', 'WALK', 'JUMP', 'SWIM'], difficulty: 4 },
+        ],
+      },
     }
     setPuzzleDataJson(JSON.stringify(examples[gameType], null, 2))
     setJsonError('')
@@ -191,6 +285,14 @@ export default function PuzzleCreate() {
                 <option value="killerSudoku">Killer Sudoku</option>
                 <option value="crossword">Crossword</option>
                 <option value="wordSearch">Word Search</option>
+                <option value="wordForge">Word Forge</option>
+                <option value="nonogram">Nonogram</option>
+                <option value="numberTarget">Number Target</option>
+                <option value="ballSort">Ball Sort</option>
+                <option value="pipes">Pipes</option>
+                <option value="lightsOut">Lights Out</option>
+                <option value="wordLadder">Word Ladder</option>
+                <option value="connections">Connections</option>
               </select>
             </div>
 
@@ -249,26 +351,65 @@ export default function PuzzleCreate() {
           <div className="card p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Puzzle Data (JSON)
+                Puzzle Data
               </h2>
-              <button
-                type="button"
-                onClick={getExampleJson}
-                className="btn btn-secondary text-sm"
-              >
-                Load Example
-              </button>
+
+              {/* Editor Mode Toggle */}
+              <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('visual')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    editorMode === 'visual'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                  Visual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('json')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    editorMode === 'json'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Code className="w-4 h-4" />
+                  JSON
+                </button>
+              </div>
             </div>
 
-            <textarea
-              value={puzzleDataJson}
-              onChange={(e) => {
-                setPuzzleDataJson(e.target.value)
-                setJsonError('')
-              }}
-              className="input font-mono text-sm h-96"
-              placeholder="Paste puzzle JSON data here..."
-            />
+            {editorMode === 'visual' ? (
+              <PuzzleEditorWrapper
+                gameType={gameType as any}
+                onChange={handleVisualDataChange}
+              />
+            ) : (
+              <>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={getExampleJson}
+                    className="btn btn-secondary text-sm"
+                  >
+                    Load Example
+                  </button>
+                </div>
+                <textarea
+                  value={puzzleDataJson}
+                  onChange={(e) => {
+                    setPuzzleDataJson(e.target.value)
+                    setJsonError('')
+                  }}
+                  className="input font-mono text-sm h-96"
+                  placeholder="Paste puzzle JSON data here..."
+                />
+              </>
+            )}
             {jsonError && (
               <p className="text-sm text-red-500">{jsonError}</p>
             )}
@@ -301,6 +442,64 @@ export default function PuzzleCreate() {
                   <li>grid: 2D array of letters</li>
                   <li>words: array with positions</li>
                   <li>theme: optional theme name</li>
+                </ul>
+              )}
+              {gameType === 'wordForge' && (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>letters: array of 7 uppercase letters</li>
+                  <li>centerLetter: required letter in all words</li>
+                  <li>validWords: array of valid words</li>
+                  <li>pangrams: words using all 7 letters</li>
+                </ul>
+              )}
+              {gameType === 'nonogram' && (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>rows, cols: grid dimensions</li>
+                  <li>rowClues: array of number arrays per row</li>
+                  <li>colClues: array of number arrays per column</li>
+                  <li>solution: 2D array (1=filled, 0=empty)</li>
+                </ul>
+              )}
+              {gameType === 'numberTarget' && (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>numbers: array of 4 numbers</li>
+                  <li>target: the number to reach</li>
+                  <li>solutions: array of valid expressions</li>
+                </ul>
+              )}
+              {gameType === 'ballSort' && (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>tubes: total number of tubes (e.g., 6)</li>
+                  <li>colors: number of colors (e.g., 4)</li>
+                  <li>tubeCapacity: balls per tube (typically 4)</li>
+                  <li>initialState: 2D array of color strings per tube</li>
+                </ul>
+              )}
+              {gameType === 'pipes' && (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>rows, cols: grid dimensions</li>
+                  <li>endpoints: array of {'{color, row, col}'} (2 per color)</li>
+                  <li>bridges: array of [row, col] positions (optional)</li>
+                </ul>
+              )}
+              {gameType === 'lightsOut' && (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>rows, cols: grid dimensions</li>
+                  <li>initialState: 2D boolean array (true=on, false=off)</li>
+                </ul>
+              )}
+              {gameType === 'wordLadder' && (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>startWord: uppercase starting word</li>
+                  <li>targetWord: uppercase target word (same length)</li>
+                  <li>wordLength: number of letters</li>
+                </ul>
+              )}
+              {gameType === 'connections' && (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>words: array of 16 words (shuffled)</li>
+                  <li>categories: array of 4 categories</li>
+                  <li>Each category: {'{name, words: [...], difficulty: 1-4}'}</li>
                 </ul>
               )}
             </div>
