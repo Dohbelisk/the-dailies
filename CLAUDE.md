@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-The Dailies is a multi-platform daily puzzle game featuring Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, and Number Target puzzles. The project consists of three main components:
+The Dailies is a multi-platform daily puzzle game featuring **12 puzzle types**: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, and Connections. The project consists of three main components:
 
 - **Flutter Mobile App** (`flutter_app/`) - Cross-platform mobile application (iOS, Android, Web)
 - **NestJS Backend API** (`backend/`) - RESTful API with MongoDB and JWT authentication
@@ -173,7 +173,7 @@ User {
 
 // Puzzle Schema
 Puzzle {
-  gameType: 'sudoku' | 'killerSudoku' | 'crossword' | 'wordSearch' | 'wordForge' | 'nonogram' | 'numberTarget'
+  gameType: 'sudoku' | 'killerSudoku' | 'crossword' | 'wordSearch' | 'wordForge' | 'nonogram' | 'numberTarget' | 'ballSort' | 'pipes' | 'lightsOut' | 'wordLadder' | 'connections'
   difficulty: 'easy' | 'medium' | 'hard' | 'expert'
   date: Date
   puzzleData: Object
@@ -266,6 +266,8 @@ FeatureFlag {
 | `ApiService` | HTTP client, offline mock data fallback |
 | `AuthService` | JWT auth, token persistence, user state |
 | `GameService` | Puzzle fetching and parsing |
+| `GameStateService` | Persistent game state (in-progress detection) |
+| `FavoritesService` | Favorite games pinned to top of home screen |
 | `ConfigService` | Feature flags, version checking, app config |
 | `AdMobService` | Rewarded video ads (singleton) |
 | `HintService` | 3 free hints/day + ad rewards |
@@ -294,7 +296,7 @@ FeatureFlag {
 | `TermsOfServiceScreen` / `PrivacyPolicyScreen` | Legal |
 
 **Widgets:**
-- `SudokuGrid`, `KillerSudokuGrid`, `CrosswordGrid`, `WordSearchGrid`, `WordForgeGrid`, `NonogramGrid`, `NumberTargetGrid`
+- `SudokuGrid`, `KillerSudokuGrid`, `CrosswordGrid`, `WordSearchGrid`, `WordForgeGrid`, `NonogramGrid`, `NumberTargetGrid`, `BallSortGrid`, `PipesGrid`, `LightsOutGrid`, `WordLadderGrid`, `ConnectionsGrid`
 - `NumberPad`, `KeyboardInput`
 - `GameTimer`, `PuzzleCard`, `TokenBalanceWidget`
 - `CompletionDialog`, `FeedbackDialog`, `ConsentDialog`
@@ -308,6 +310,11 @@ FeatureFlag {
 - Word Forge: 7-letter honeycomb, center letter required in all words, 4+ letter words only, pangram bonuses
 - Nonogram: fill/mark mode toggle, row/column clue validation
 - Number Target: expression builder with +, -, ×, ÷ operations
+- Ball Sort: tube selection, ball movement validation
+- Pipes: endpoint connections, pipe rotation
+- Lights Out: toggle grid cells and neighbors
+- Word Ladder: single letter changes between words
+- Connections: group 16 words into 4 categories
 
 **Scoring Algorithm:**
 - Base score: 1000 points
@@ -332,11 +339,19 @@ FeatureFlag {
 **Pages:**
 - `Login.tsx` - Admin authentication
 - `Dashboard.tsx` - Statistics overview, today's puzzles
-- `PuzzleList.tsx` - Browse, filter, toggle, delete puzzles
-- `PuzzleCreate.tsx` - Manual puzzle creation with JSON editor
-- `PuzzleEdit.tsx` - Edit existing puzzles
+- `PuzzleList.tsx` - Browse, filter (type, difficulty, status, date range), toggle, delete puzzles
+- `PuzzleCreate.tsx` - Visual editor (Sudoku) or JSON editor with mode toggle
+- `PuzzleEdit.tsx` - Edit existing puzzles with Visual/JSON toggle
 - `PuzzleGenerate.tsx` - Auto-generate single puzzles or full week
 - `FeedbackList.tsx` - View, filter, manage user feedback
+
+**Visual Puzzle Editors** (`components/editors/`):
+- `SudokuEditor.tsx` - Interactive 9x9 grid with validate/solve buttons
+- `KillerSudokuEditor.tsx` - Cage drawing with color assignment
+- `PuzzleEditorWrapper.tsx` - Switches editor by game type
+- `shared/GridEditor.tsx` - Reusable 9x9 grid component
+- `shared/NumberPad.tsx` - Number input buttons 1-9
+- `shared/ValidationStatus.tsx` - Shows validation results
 
 ---
 
@@ -409,6 +424,11 @@ POST   /api/generate/word-forge            # Generate Word Forge
 POST   /api/generate/nonogram              # Generate Nonogram
 POST   /api/generate/number-target         # Generate Number Target
 POST   /api/generate/week                  # Generate full week
+
+POST   /api/validate/sudoku                # Validate Sudoku puzzle
+POST   /api/validate/sudoku/solve          # Solve Sudoku puzzle
+POST   /api/validate/killer-sudoku         # Validate Killer Sudoku cages
+POST   /api/validate/killer-sudoku/solve   # Solve Killer Sudoku puzzle
 
 GET    /api/feedback                       # List feedback with filters
 GET    /api/feedback/stats                 # Feedback statistics
@@ -520,6 +540,68 @@ GET  /api/dictionary/status                # Get dictionary status
   "numbers": [2, 5, 7, 3],           // 4 numbers to use
   "target": 24,                       // Target to reach
   "solutions": ["(7-5)*(3+2)*2", ...] // Valid expressions
+}
+```
+
+### Ball Sort
+```json
+{
+  "tubes": 6,                          // Total tubes
+  "colors": 4,                         // Number of colors
+  "tubeCapacity": 4,                   // Balls per tube
+  "initialState": [                    // 2D array of color strings per tube
+    ["red", "blue", "green", "yellow"],
+    ["blue", "green", "red", "yellow"],
+    // ... more tubes, last 2 typically empty
+  ]
+}
+```
+
+### Pipes
+```json
+{
+  "rows": 5, "cols": 5,
+  "endpoints": [                       // 2 endpoints per color
+    { "color": "red", "row": 0, "col": 0 },
+    { "color": "red", "row": 4, "col": 4 }
+  ],
+  "bridges": []                        // Optional bridge cells [row, col]
+}
+```
+
+### Lights Out
+```json
+{
+  "rows": 3, "cols": 3,
+  "initialState": [                    // 2D boolean array (true=on)
+    [true, false, true],
+    [false, true, false],
+    [true, false, true]
+  ]
+}
+```
+
+### Word Ladder
+```json
+{
+  "startWord": "COLD",                 // Starting word
+  "targetWord": "WARM",                // Target word (same length)
+  "wordLength": 4
+}
+```
+
+### Connections
+```json
+{
+  "words": [                           // 16 shuffled words
+    "APPLE", "DOG", "RED", "RUN", ...
+  ],
+  "categories": [                      // 4 categories of 4 words each
+    { "name": "Fruits", "words": ["APPLE", "BANANA", "ORANGE", "GRAPE"], "difficulty": 1 },
+    { "name": "Animals", "words": ["DOG", "CAT", "BIRD", "FISH"], "difficulty": 2 },
+    { "name": "Colors", "words": ["RED", "BLUE", "GREEN", "YELLOW"], "difficulty": 3 },
+    { "name": "Actions", "words": ["RUN", "WALK", "JUMP", "SWIM"], "difficulty": 4 }
+  ]
 }
 ```
 
@@ -686,6 +768,26 @@ enum VersionStatus {
 - Verifies at least one valid solution exists
 - Target ranges: easy 10, medium 24, hard 100, expert 50-500
 
+**BallSortGenerator:**
+- Creates tube puzzles with colored balls
+- Ensures solvability with empty tubes
+
+**PipesGenerator:**
+- Places color endpoints on grid
+- Validates paths don't cross
+
+**LightsOutGenerator:**
+- Creates solvable light toggle puzzles
+- Random initial states
+
+**WordLadderGenerator:**
+- Selects start/target words of same length
+- Validates path exists through dictionary
+
+**ConnectionsGenerator:**
+- Groups words into themed categories
+- Assigns difficulty levels 1-4
+
 **Target Times (seconds):**
 | Difficulty | Sudoku | Killer | Crossword | Word Search | Word Forge | Nonogram | Number Target |
 |------------|--------|--------|-----------|-------------|------------|----------|---------------|
@@ -827,3 +929,4 @@ Configuration in `render.yaml`:
 8. [ ] Add feature flag management UI to admin portal
 9. [ ] Add app config management UI to admin portal
 10. [ ] Seed initial feature flags (debug_menu_enabled, etc.)
+11. [ ] Add visual editors for remaining puzzle types (Killer Sudoku, Crossword, etc.)
