@@ -1,7 +1,7 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service';
-import { UserDocument } from '../users/schemas/user.schema';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { UsersService } from "../users/users.service";
+import { UserDocument } from "../users/schemas/user.schema";
 
 @Injectable()
 export class AuthService {
@@ -10,9 +10,12 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<UserDocument | null> {
+  async validateUser(
+    email: string,
+    password: string,
+  ): Promise<UserDocument | null> {
     const user = await this.usersService.findByEmail(email);
-    if (user && await this.usersService.validatePassword(user, password)) {
+    if (user && (await this.usersService.validatePassword(user, password))) {
       return user;
     }
     return null;
@@ -50,7 +53,7 @@ export class AuthService {
     try {
       return this.jwtService.verify(token);
     } catch {
-      throw new UnauthorizedException('Invalid token');
+      throw new UnauthorizedException("Invalid token");
     }
   }
 }

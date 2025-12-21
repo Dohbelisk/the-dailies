@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { AppConfigService } from './config.service';
-import { ConfigController } from './config.controller';
-import { AppConfig, AppConfigSchema } from './schemas/app-config.schema';
-import { FeatureFlag, FeatureFlagSchema } from './schemas/feature-flag.schema';
+import { Module } from "@nestjs/common";
+import { MongooseModule } from "@nestjs/mongoose";
+import { AppConfigService } from "./config.service";
+import { ConfigController } from "./config.controller";
+import { AppConfig, AppConfigSchema } from "./schemas/app-config.schema";
+import { FeatureFlag, FeatureFlagSchema } from "./schemas/feature-flag.schema";
 
 @Module({
   imports: [

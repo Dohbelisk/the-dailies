@@ -1,8 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Puzzle, PuzzleDocument, GameType } from './schemas/puzzle.schema';
-import { CreatePuzzleDto, UpdatePuzzleDto, PuzzleQueryDto } from './dto/puzzle.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import { Puzzle, PuzzleDocument, GameType } from "./schemas/puzzle.schema";
+import {
+  CreatePuzzleDto,
+  UpdatePuzzleDto,
+  PuzzleQueryDto,
+} from "./dto/puzzle.dto";
 
 @Injectable()
 export class PuzzlesService {
@@ -43,10 +47,7 @@ export class PuzzlesService {
       }
     }
 
-    return this.puzzleModel
-      .find(filter)
-      .sort({ date: -1 })
-      .exec();
+    return this.puzzleModel.find(filter).sort({ date: -1 }).exec();
   }
 
   async findOne(id: string): Promise<Puzzle> {
@@ -60,7 +61,7 @@ export class PuzzlesService {
   async findTodaysPuzzles(): Promise<Puzzle[]> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -75,7 +76,7 @@ export class PuzzlesService {
   async findByTypeAndDate(gameType: GameType, date: string): Promise<Puzzle> {
     const targetDate = new Date(date);
     targetDate.setHours(0, 0, 0, 0);
-    
+
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
 
@@ -104,7 +105,7 @@ export class PuzzlesService {
 
   async update(id: string, updatePuzzleDto: UpdatePuzzleDto): Promise<Puzzle> {
     const updateData: any = { ...updatePuzzleDto };
-    
+
     if (updatePuzzleDto.date) {
       updateData.date = new Date(updatePuzzleDto.date);
     }
@@ -131,10 +132,10 @@ export class PuzzlesService {
     const stats = await this.puzzleModel.aggregate([
       {
         $group: {
-          _id: '$gameType',
+          _id: "$gameType",
           count: { $sum: 1 },
           activeCount: {
-            $sum: { $cond: ['$isActive', 1, 0] },
+            $sum: { $cond: ["$isActive", 1, 0] },
           },
         },
       },
@@ -154,15 +155,15 @@ export class PuzzlesService {
   }
 
   // Bulk operations for admin
-    async createMany(puzzles: CreatePuzzleDto[]): Promise<Puzzle[]> {
-        const puzzleDocs = puzzles.map(p => ({
-            ...p,
-            date: new Date(p.date),
-            solution: p.solution || {},
-        }));
-        const created = await this.puzzleModel.insertMany(puzzleDocs);
-        return created as Puzzle[];
-    }
+  async createMany(puzzles: CreatePuzzleDto[]): Promise<Puzzle[]> {
+    const puzzleDocs = puzzles.map((p) => ({
+      ...p,
+      date: new Date(p.date),
+      solution: p.solution || {},
+    }));
+    const created = await this.puzzleModel.insertMany(puzzleDocs);
+    return created as Puzzle[];
+  }
 
   async toggleActive(id: string): Promise<Puzzle> {
     const puzzle = await this.puzzleModel.findById(id);

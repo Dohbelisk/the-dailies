@@ -1,9 +1,9 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document } from "mongoose";
 
 export type DictionaryDocument = Dictionary & Document;
 
-@Schema({ collection: 'dictionary' })
+@Schema({ collection: "dictionary" })
 export class Dictionary {
   @Prop({ required: true, unique: true, index: true })
   word: string;

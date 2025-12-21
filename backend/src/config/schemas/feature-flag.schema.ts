@@ -1,5 +1,5 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document } from "mongoose";
 
 export type FeatureFlagDocument = FeatureFlag & Document;
 
@@ -11,7 +11,7 @@ export class FeatureFlag {
   @Prop({ required: true })
   name: string; // Human-readable name
 
-  @Prop({ default: '' })
+  @Prop({ default: "" })
   description: string;
 
   @Prop({ required: true, default: false })

@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { ScoresService } from './scores.service';
-import { ScoresController } from './scores.controller';
-import { Score, ScoreSchema } from './schemas/score.schema';
+import { Module } from "@nestjs/common";
+import { MongooseModule } from "@nestjs/mongoose";
+import { ScoresService } from "./scores.service";
+import { ScoresController } from "./scores.controller";
+import { Score, ScoreSchema } from "./schemas/score.schema";
 
 @Module({
   imports: [

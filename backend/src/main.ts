@@ -1,15 +1,15 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from './app.module';
+import { NestFactory } from "@nestjs/core";
+import { ValidationPipe } from "@nestjs/common";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
+import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   // Enable CORS - allow configured origins or all in production
   const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',')
-    : ['http://localhost:3000', 'http://localhost:5173'];
+    ? process.env.CORS_ORIGINS.split(",")
+    : ["http://localhost:3000", "http://localhost:5173"];
 
   app.enableCors({
     origin: allowedOrigins,
@@ -17,25 +17,29 @@ async function bootstrap() {
   });
 
   // Global validation pipe
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    transform: true,
-    forbidNonWhitelisted: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
 
   // API prefix
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix("api");
 
   // Swagger documentation
   const config = new DocumentBuilder()
-    .setTitle('The Dailies API')
-    .setDescription('API for managing daily puzzles - Sudoku, Killer Sudoku, Crossword, Word Search')
-    .setVersion('1.0')
+    .setTitle("The Dailies API")
+    .setDescription(
+      "API for managing daily puzzles - Sudoku, Killer Sudoku, Crossword, Word Search",
+    )
+    .setVersion("1.0")
     .addBearerAuth()
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup("api/docs", app, document);
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

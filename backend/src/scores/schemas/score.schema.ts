@@ -1,24 +1,24 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
-import { ApiProperty } from '@nestjs/swagger';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document, Types } from "mongoose";
+import { ApiProperty } from "@nestjs/swagger";
 
 export type ScoreDocument = Score & Document;
 
 @Schema({ timestamps: true })
 export class Score {
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'Puzzle', required: true })
+  @Prop({ type: Types.ObjectId, ref: "Puzzle", required: true })
   puzzleId: Types.ObjectId;
 
   @ApiProperty()
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: Types.ObjectId, ref: "User" })
   userId: Types.ObjectId;
 
-  @ApiProperty({ description: 'Device ID for anonymous users' })
+  @ApiProperty({ description: "Device ID for anonymous users" })
   @Prop()
   deviceId: string;
 
-  @ApiProperty({ description: 'Completion time in seconds' })
+  @ApiProperty({ description: "Completion time in seconds" })
   @Prop({ required: true })
   time: number;
 

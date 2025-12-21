@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
 export interface ValidationError {
   row: number;
@@ -49,7 +49,7 @@ export class ValidateService {
     if (!grid || grid.length !== 9) {
       return {
         isValid: false,
-        errors: [{ row: -1, col: -1, message: 'Grid must be 9x9' }],
+        errors: [{ row: -1, col: -1, message: "Grid must be 9x9" }],
         hasUniqueSolution: false,
       };
     }
@@ -58,7 +58,9 @@ export class ValidateService {
       if (!grid[i] || grid[i].length !== 9) {
         return {
           isValid: false,
-          errors: [{ row: i, col: -1, message: `Row ${i + 1} must have 9 cells` }],
+          errors: [
+            { row: i, col: -1, message: `Row ${i + 1} must have 9 cells` },
+          ],
           hasUniqueSolution: false,
         };
       }
@@ -85,7 +87,11 @@ export class ValidateService {
     // Check for constraint violations in initial grid
     const constraintErrors = this.checkConstraints(grid);
     if (constraintErrors.length > 0) {
-      return { isValid: false, errors: constraintErrors, hasUniqueSolution: false };
+      return {
+        isValid: false,
+        errors: constraintErrors,
+        hasUniqueSolution: false,
+      };
     }
 
     // Try to solve and check for unique solution
@@ -94,7 +100,7 @@ export class ValidateService {
     if (!solveResult.success) {
       return {
         isValid: false,
-        errors: [{ row: -1, col: -1, message: 'Puzzle has no solution' }],
+        errors: [{ row: -1, col: -1, message: "Puzzle has no solution" }],
         hasUniqueSolution: false,
       };
     }
@@ -115,13 +121,13 @@ export class ValidateService {
    */
   solveSudoku(grid: number[][]): SudokuSolveResult {
     // Make a deep copy
-    const workingGrid = grid.map(row => [...row]);
+    const workingGrid = grid.map((row) => [...row]);
 
     if (this.solve(workingGrid)) {
       return { success: true, solution: workingGrid };
     }
 
-    return { success: false, error: 'No solution exists for this puzzle' };
+    return { success: false, error: "No solution exists for this puzzle" };
   }
 
   /**
@@ -159,7 +165,12 @@ export class ValidateService {
   /**
    * Check if placing num at (row, col) is valid
    */
-  private isValidPlacement(grid: number[][], row: number, col: number, num: number): boolean {
+  private isValidPlacement(
+    grid: number[][],
+    row: number,
+    col: number,
+    num: number,
+  ): boolean {
     // Check row
     if (grid[row].includes(num)) return false;
 
@@ -253,7 +264,7 @@ export class ValidateService {
    * Check if the puzzle has exactly one solution
    */
   private hasUniqueSolution(grid: number[][]): boolean {
-    const workingGrid = grid.map(row => [...row]);
+    const workingGrid = grid.map((row) => [...row]);
     let solutionCount = 0;
 
     const countSolutions = (g: number[][]): void => {
@@ -295,7 +306,9 @@ export class ValidateService {
     if (!cages || cages.length === 0) {
       return {
         isValid: false,
-        errors: [{ row: -1, col: -1, message: 'At least one cage is required' }],
+        errors: [
+          { row: -1, col: -1, message: "At least one cage is required" },
+        ],
         hasUniqueSolution: false,
       };
     }
@@ -366,7 +379,7 @@ export class ValidateService {
 
     // Check for uncovered or multiply-covered cells
     for (const [key, count] of cellCoverage) {
-      const [row, col] = key.split(',').map(Number);
+      const [row, col] = key.split(",").map(Number);
       if (count === 0) {
         errors.push({
           row,
@@ -392,7 +405,7 @@ export class ValidateService {
     if (!solveResult.success) {
       return {
         isValid: false,
-        errors: [{ row: -1, col: -1, message: 'Puzzle has no solution' }],
+        errors: [{ row: -1, col: -1, message: "Puzzle has no solution" }],
         hasUniqueSolution: false,
       };
     }
@@ -412,13 +425,15 @@ export class ValidateService {
    * Solves a Killer Sudoku puzzle
    */
   solveKillerSudoku(cages: Cage[]): KillerSudokuSolveResult {
-    const grid: number[][] = Array(9).fill(null).map(() => Array(9).fill(0));
+    const grid: number[][] = Array(9)
+      .fill(null)
+      .map(() => Array(9).fill(0));
 
     if (this.solveKiller(grid, cages)) {
       return { success: true, solution: grid };
     }
 
-    return { success: false, error: 'No solution exists for this puzzle' };
+    return { success: false, error: "No solution exists for this puzzle" };
   }
 
   /**
@@ -457,7 +472,9 @@ export class ValidateService {
     }
 
     // Find the cage containing this cell
-    const cage = cages.find(c => c.cells.some(([r, c]) => r === row && c === col));
+    const cage = cages.find((c) =>
+      c.cells.some(([r, c]) => r === row && c === col),
+    );
     if (!cage) return false;
 
     // Check no duplicate in cage
@@ -553,7 +570,11 @@ export class ValidateService {
   /**
    * Check if remaining sum can be achieved with n more unique digits
    */
-  private canAchieveSum(sum: number, n: number, usedDigits: Set<number>): boolean {
+  private canAchieveSum(
+    sum: number,
+    n: number,
+    usedDigits: Set<number>,
+  ): boolean {
     if (n === 0) return sum === 0;
     if (sum <= 0) return false;
 
@@ -577,7 +598,9 @@ export class ValidateService {
    * Check if Killer Sudoku has unique solution
    */
   private hasUniqueKillerSolution(cages: Cage[]): boolean {
-    const grid: number[][] = Array(9).fill(null).map(() => Array(9).fill(0));
+    const grid: number[][] = Array(9)
+      .fill(null)
+      .map(() => Array(9).fill(0));
     let solutionCount = 0;
 
     const countSolutions = (g: number[][]): void => {

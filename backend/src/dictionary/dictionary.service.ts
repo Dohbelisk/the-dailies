@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Dictionary, DictionaryDocument } from './schemas/dictionary.schema';
+import { Injectable } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import { Dictionary, DictionaryDocument } from "./schemas/dictionary.schema";
 
 @Injectable()
 export class DictionaryService {
@@ -22,16 +22,18 @@ export class DictionaryService {
   /**
    * Validate multiple words at once
    */
-  async validateWords(words: string[]): Promise<{ word: string; valid: boolean }[]> {
-    const normalizedWords = words.map(w => w.toUpperCase().trim());
+  async validateWords(
+    words: string[],
+  ): Promise<{ word: string; valid: boolean }[]> {
+    const normalizedWords = words.map((w) => w.toUpperCase().trim());
     const validWords = await this.dictionaryModel
       .find({ word: { $in: normalizedWords } })
-      .select('word')
+      .select("word")
       .lean();
 
-    const validSet = new Set(validWords.map(w => w.word));
+    const validSet = new Set(validWords.map((w) => w.word));
 
-    return normalizedWords.map(word => ({
+    return normalizedWords.map((word) => ({
       word,
       valid: validSet.has(word),
     }));
@@ -46,7 +48,7 @@ export class DictionaryService {
     centerLetter: string,
     minLength: number = 4,
   ): Promise<string[]> {
-    const normalizedLetters = letters.map(l => l.toUpperCase());
+    const normalizedLetters = letters.map((l) => l.toUpperCase());
     const normalizedCenter = centerLetter.toUpperCase();
 
     // Get all words that are at least minLength and contain the center letter
@@ -55,7 +57,7 @@ export class DictionaryService {
         length: { $gte: minLength },
         word: { $regex: normalizedCenter },
       })
-      .select('word')
+      .select("word")
       .lean();
 
     // Filter to only words that can be made from the available letters
@@ -110,17 +112,20 @@ export class DictionaryService {
     minLength: number = 4,
   ): Promise<{ valid: boolean; reason?: string }> {
     const normalizedWord = word.toUpperCase().trim();
-    const normalizedLetters = letters.map(l => l.toUpperCase());
+    const normalizedLetters = letters.map((l) => l.toUpperCase());
     const normalizedCenter = centerLetter.toUpperCase();
 
     // Check minimum length
     if (normalizedWord.length < minLength) {
-      return { valid: false, reason: `Word must be at least ${minLength} letters` };
+      return {
+        valid: false,
+        reason: `Word must be at least ${minLength} letters`,
+      };
     }
 
     // Check if word contains center letter
     if (!normalizedWord.includes(normalizedCenter)) {
-      return { valid: false, reason: 'Word must contain the center letter' };
+      return { valid: false, reason: "Word must contain the center letter" };
     }
 
     // Check if all letters are available
@@ -133,7 +138,7 @@ export class DictionaryService {
     // Check if word exists in dictionary
     const exists = await this.isValidWord(normalizedWord);
     if (!exists) {
-      return { valid: false, reason: 'Word not in dictionary' };
+      return { valid: false, reason: "Word not in dictionary" };
     }
 
     return { valid: true };
@@ -151,7 +156,7 @@ export class DictionaryService {
    */
   async addWord(word: string): Promise<Dictionary> {
     const normalizedWord = word.toUpperCase().trim();
-    const letters = [...new Set(normalizedWord.split(''))].sort();
+    const letters = [...new Set(normalizedWord.split(""))].sort();
 
     return this.dictionaryModel.findOneAndUpdate(
       { word: normalizedWord },
@@ -169,16 +174,16 @@ export class DictionaryService {
    */
   async bulkAddWords(words: string[]): Promise<number> {
     const operations = words
-      .map(w => w.toUpperCase().trim())
-      .filter(w => w.length >= 4 && /^[A-Z]+$/.test(w))
-      .map(word => ({
+      .map((w) => w.toUpperCase().trim())
+      .filter((w) => w.length >= 4 && /^[A-Z]+$/.test(w))
+      .map((word) => ({
         updateOne: {
           filter: { word },
           update: {
             $set: {
               word,
               length: word.length,
-              letters: [...new Set(word.split(''))].sort(),
+              letters: [...new Set(word.split(""))].sort(),
             },
           },
           upsert: true,

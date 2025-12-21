@@ -1,33 +1,45 @@
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { AppConfig, AppConfigDocument } from './schemas/app-config.schema';
-import { FeatureFlag, FeatureFlagDocument } from './schemas/feature-flag.schema';
-import { CreateFeatureFlagDto, UpdateFeatureFlagDto, UpdateAppConfigDto } from './dto/config.dto';
+import { Injectable } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import { AppConfig, AppConfigDocument } from "./schemas/app-config.schema";
+import {
+  FeatureFlag,
+  FeatureFlagDocument,
+} from "./schemas/feature-flag.schema";
+import {
+  CreateFeatureFlagDto,
+  UpdateFeatureFlagDto,
+  UpdateAppConfigDto,
+} from "./dto/config.dto";
 
 @Injectable()
 export class AppConfigService {
   constructor(
-    @InjectModel(AppConfig.name) private appConfigModel: Model<AppConfigDocument>,
-    @InjectModel(FeatureFlag.name) private featureFlagModel: Model<FeatureFlagDocument>,
+    @InjectModel(AppConfig.name)
+    private appConfigModel: Model<AppConfigDocument>,
+    @InjectModel(FeatureFlag.name)
+    private featureFlagModel: Model<FeatureFlagDocument>,
   ) {}
 
   // ============ App Config Methods ============
 
   async getAppConfig(): Promise<AppConfig> {
-    let config = await this.appConfigModel.findOne({ configId: 'main' });
+    let config = await this.appConfigModel.findOne({ configId: "main" });
 
     if (!config) {
       // Create default config if it doesn't exist
       config = await this.appConfigModel.create({
-        configId: 'main',
-        latestVersion: '1.0.0',
-        minVersion: '1.0.0',
-        updateUrl: '',
-        updateMessage: 'A new version is available. Please update for the best experience.',
-        forceUpdateMessage: 'This version is no longer supported. Please update to continue.',
+        configId: "main",
+        latestVersion: "1.0.0",
+        minVersion: "1.0.0",
+        updateUrl: "",
+        updateMessage:
+          "A new version is available. Please update for the best experience.",
+        forceUpdateMessage:
+          "This version is no longer supported. Please update to continue.",
         maintenanceMode: false,
-        maintenanceMessage: 'We are currently performing maintenance. Please try again later.',
+        maintenanceMessage:
+          "We are currently performing maintenance. Please try again later.",
       });
     }
 
@@ -36,7 +48,7 @@ export class AppConfigService {
 
   async updateAppConfig(updateDto: UpdateAppConfigDto): Promise<AppConfig> {
     const config = await this.appConfigModel.findOneAndUpdate(
-      { configId: 'main' },
+      { configId: "main" },
       { $set: updateDto },
       { new: true, upsert: true },
     );
@@ -48,8 +60,8 @@ export class AppConfigService {
    * Returns: -1 if v1 < v2, 0 if equal, 1 if v1 > v2
    */
   compareVersions(v1: string, v2: string): number {
-    const parts1 = v1.split('.').map(p => parseInt(p, 10) || 0);
-    const parts2 = v2.split('.').map(p => parseInt(p, 10) || 0);
+    const parts1 = v1.split(".").map((p) => parseInt(p, 10) || 0);
+    const parts2 = v2.split(".").map((p) => parseInt(p, 10) || 0);
 
     const maxLength = Math.max(parts1.length, parts2.length);
 
@@ -66,7 +78,9 @@ export class AppConfigService {
 
   // ============ Feature Flag Methods ============
 
-  async createFeatureFlag(createDto: CreateFeatureFlagDto): Promise<FeatureFlag> {
+  async createFeatureFlag(
+    createDto: CreateFeatureFlagDto,
+  ): Promise<FeatureFlag> {
     const flag = await this.featureFlagModel.create(createDto);
     return flag;
   }
@@ -79,7 +93,10 @@ export class AppConfigService {
     return this.featureFlagModel.findOne({ key });
   }
 
-  async updateFeatureFlag(key: string, updateDto: UpdateFeatureFlagDto): Promise<FeatureFlag | null> {
+  async updateFeatureFlag(
+    key: string,
+    updateDto: UpdateFeatureFlagDto,
+  ): Promise<FeatureFlag | null> {
     return this.featureFlagModel.findOneAndUpdate(
       { key },
       { $set: updateDto },
@@ -112,10 +129,16 @@ export class AppConfigService {
 
       // Check version requirements
       if (isEnabled && appVersion) {
-        if (flag.minAppVersion && this.compareVersions(appVersion, flag.minAppVersion) < 0) {
+        if (
+          flag.minAppVersion &&
+          this.compareVersions(appVersion, flag.minAppVersion) < 0
+        ) {
           isEnabled = false;
         }
-        if (flag.maxAppVersion && this.compareVersions(appVersion, flag.maxAppVersion) > 0) {
+        if (
+          flag.maxAppVersion &&
+          this.compareVersions(appVersion, flag.maxAppVersion) > 0
+        ) {
           isEnabled = false;
         }
       }
@@ -126,7 +149,11 @@ export class AppConfigService {
       }
 
       // Check rollout percentage (simple hash-based rollout)
-      if (isEnabled && flag.rolloutPercentage > 0 && flag.rolloutPercentage < 100) {
+      if (
+        isEnabled &&
+        flag.rolloutPercentage > 0 &&
+        flag.rolloutPercentage < 100
+      ) {
         if (userId) {
           // Deterministic rollout based on user ID
           const hash = this.simpleHash(userId + flag.key);
@@ -151,7 +178,7 @@ export class AppConfigService {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
     return Math.abs(hash);
@@ -174,53 +201,53 @@ export class AppConfigService {
   async seedDefaultFlags(): Promise<void> {
     const defaultFlags: CreateFeatureFlagDto[] = [
       {
-        key: 'challenges_enabled',
-        name: 'Challenges',
-        description: 'Enable head-to-head puzzle challenges between friends',
+        key: "challenges_enabled",
+        name: "Challenges",
+        description: "Enable head-to-head puzzle challenges between friends",
         enabled: true,
-        minAppVersion: '1.0.0',
+        minAppVersion: "1.0.0",
       },
       {
-        key: 'friends_enabled',
-        name: 'Friends System',
-        description: 'Enable friends list and friend requests',
+        key: "friends_enabled",
+        name: "Friends System",
+        description: "Enable friends list and friend requests",
         enabled: true,
-        minAppVersion: '1.0.0',
+        minAppVersion: "1.0.0",
       },
       {
-        key: 'archive_enabled',
-        name: 'Puzzle Archive',
-        description: 'Enable access to past puzzles',
+        key: "archive_enabled",
+        name: "Puzzle Archive",
+        description: "Enable access to past puzzles",
         enabled: true,
-        minAppVersion: '1.0.0',
+        minAppVersion: "1.0.0",
       },
       {
-        key: 'ads_enabled',
-        name: 'Advertisements',
-        description: 'Enable AdMob advertisements',
+        key: "ads_enabled",
+        name: "Advertisements",
+        description: "Enable AdMob advertisements",
         enabled: true,
-        minAppVersion: '1.0.0',
+        minAppVersion: "1.0.0",
       },
       {
-        key: 'iap_enabled',
-        name: 'In-App Purchases',
-        description: 'Enable premium subscription purchases',
+        key: "iap_enabled",
+        name: "In-App Purchases",
+        description: "Enable premium subscription purchases",
         enabled: true,
-        minAppVersion: '1.0.0',
+        minAppVersion: "1.0.0",
       },
       {
-        key: 'dark_mode_enabled',
-        name: 'Dark Mode',
-        description: 'Enable dark mode theme option',
+        key: "dark_mode_enabled",
+        name: "Dark Mode",
+        description: "Enable dark mode theme option",
         enabled: true,
-        minAppVersion: '1.0.0',
+        minAppVersion: "1.0.0",
       },
       {
-        key: 'debug_menu_enabled',
-        name: 'Debug Menu',
-        description: 'Enable hidden debug menu access',
+        key: "debug_menu_enabled",
+        name: "Debug Menu",
+        description: "Enable hidden debug menu access",
         enabled: true,
-        minAppVersion: '1.0.0',
+        minAppVersion: "1.0.0",
       },
     ];
 

@@ -1,10 +1,13 @@
-import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { FriendsService } from './friends.service';
-import { FriendsController } from './friends.controller';
-import { Friend, FriendSchema } from './schemas/friend.schema';
-import { FriendRequest, FriendRequestSchema } from './schemas/friend-request.schema';
-import { UsersModule } from '../users/users.module';
+import { Module } from "@nestjs/common";
+import { MongooseModule } from "@nestjs/mongoose";
+import { FriendsService } from "./friends.service";
+import { FriendsController } from "./friends.controller";
+import { Friend, FriendSchema } from "./schemas/friend.schema";
+import {
+  FriendRequest,
+  FriendRequestSchema,
+} from "./schemas/friend-request.schema";
+import { UsersModule } from "../users/users.module";
 
 @Module({
   imports: [

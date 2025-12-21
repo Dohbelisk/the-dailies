@@ -1,8 +1,15 @@
-import { Controller, Post, Body, UseGuards, Request, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
-import { LocalAuthGuard } from './guards/local-auth.guard';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Get,
+} from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { AuthService } from "./auth.service";
+import { LocalAuthGuard } from "./guards/local-auth.guard";
+import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 
 // LoginDto used for Swagger documentation
 class _LoginDto {
@@ -16,20 +23,20 @@ class RegisterDto {
   username?: string;
 }
 
-@ApiTags('auth')
-@Controller('auth')
+@ApiTags("auth")
+@Controller("auth")
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Post('login')
+  @Post("login")
   @UseGuards(LocalAuthGuard)
-  @ApiOperation({ summary: 'Login with email and password' })
+  @ApiOperation({ summary: "Login with email and password" })
   async login(@Request() req) {
     return this.authService.login(req.user);
   }
 
-  @Post('register')
-  @ApiOperation({ summary: 'Register a new user' })
+  @Post("register")
+  @ApiOperation({ summary: "Register a new user" })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(
       registerDto.email,
@@ -38,10 +45,10 @@ export class AuthController {
     );
   }
 
-  @Get('me')
+  @Get("me")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current user info' })
+  @ApiOperation({ summary: "Get current user info" })
   getMe(@Request() req) {
     return req.user;
   }

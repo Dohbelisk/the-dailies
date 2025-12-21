@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
-import { ConfigService } from '@nestjs/config';
+import { Injectable } from "@nestjs/common";
+import { MailerService } from "@nestjs-modules/mailer";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class EmailService {
@@ -11,7 +11,8 @@ export class EmailService {
     private readonly configService: ConfigService,
   ) {
     this.feedbackEmail =
-      this.configService.get<string>('FEEDBACK_EMAIL') || 'wayne@steedman.co.za';
+      this.configService.get<string>("FEEDBACK_EMAIL") ||
+      "wayne@steedman.co.za";
   }
 
   async sendFeedbackNotification(feedback: {
@@ -32,14 +33,14 @@ export class EmailService {
       ? `
 Game Context:
 - Puzzle ID: ${feedback.puzzleId}
-- Game Type: ${feedback.gameType || 'N/A'}
-- Difficulty: ${feedback.difficulty || 'N/A'}
-- Puzzle Date: ${feedback.puzzleDate ? new Date(feedback.puzzleDate).toLocaleDateString() : 'N/A'}`
-      : '';
+- Game Type: ${feedback.gameType || "N/A"}
+- Difficulty: ${feedback.difficulty || "N/A"}
+- Puzzle Date: ${feedback.puzzleDate ? new Date(feedback.puzzleDate).toLocaleDateString() : "N/A"}`
+      : "";
 
     const replyInfo = feedback.email
       ? `\nUser provided email for follow-up: ${feedback.email}`
-      : '\nNo contact email provided (anonymous submission)';
+      : "\nNo contact email provided (anonymous submission)";
 
     const text = `
 New feedback submitted:
@@ -51,7 +52,7 @@ Message:
 ${feedback.message}
 ${replyInfo}
 
-Device Info: ${feedback.deviceInfo || 'Not provided'}
+Device Info: ${feedback.deviceInfo || "Not provided"}
 
 ---
 Submitted: ${feedback.createdAt ? new Date(feedback.createdAt).toISOString() : new Date().toISOString()}
@@ -65,18 +66,18 @@ Feedback ID: ${feedback._id}
         text,
       });
     } catch (error) {
-      console.error('Failed to send feedback notification email:', error);
+      console.error("Failed to send feedback notification email:", error);
       // Don't throw - we don't want email failure to break feedback submission
     }
   }
 
   private formatFeedbackType(type: string): string {
     const mapping: Record<string, string> = {
-      bug_report: 'Bug Report',
-      new_game_suggestion: 'New Game Type Suggestion',
-      puzzle_suggestion: 'New Puzzle Suggestion',
-      puzzle_mistake: 'Puzzle Mistake Report',
-      general: 'General Feedback',
+      bug_report: "Bug Report",
+      new_game_suggestion: "New Game Type Suggestion",
+      puzzle_suggestion: "New Puzzle Suggestion",
+      puzzle_mistake: "Puzzle Mistake Report",
+      general: "General Feedback",
     };
     return mapping[type] || type;
   }
