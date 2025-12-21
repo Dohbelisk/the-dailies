@@ -36,9 +36,9 @@ async function seed() {
     // Create admin user
     const adminPassword = await bcrypt.hash('5nifrenypro', 10);
     await User.findOneAndUpdate(
-      { email: 'admin@thedailies.app' },
+      { email: 'admin@dohbelisk.com' },
       {
-        email: 'admin@thedailies.app',
+        email: 'admin@dohbelisk.com',
         password: adminPassword,
         username: 'Admin',
         role: 'admin',
@@ -46,7 +46,7 @@ async function seed() {
       },
       { upsert: true }
     );
-    console.log('✅ Admin user created: admin@thedailies.app / 5nifrenypro');
+    console.log('✅ Admin user created: admin@dohbelisk.com / 5nifrenypro');
 
     // Create sample puzzles for today
     const today = new Date();

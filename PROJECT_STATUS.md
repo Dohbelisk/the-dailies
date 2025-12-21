@@ -437,7 +437,7 @@ flutter run --dart-define=ENV=production \
 cd backend && npm run seed
 
 # Default admin login
-Email: admin@thedailies.app
+Email: admin@dohbelisk.com
 Password: 5nifrenypro
 ```
 

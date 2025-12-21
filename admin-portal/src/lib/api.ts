@@ -87,4 +87,21 @@ export const feedbackApi = {
     api.delete(`/feedback/${id}`),
 }
 
+// Validation
+export interface Cage {
+  sum: number
+  cells: [number, number][]
+}
+
+export const validateApi = {
+  validateSudoku: (grid: number[][]) =>
+    api.post('/validate/sudoku', { grid }),
+  solveSudoku: (grid: number[][]) =>
+    api.post('/validate/sudoku/solve', { grid }),
+  validateKillerSudoku: (cages: Cage[]) =>
+    api.post('/validate/killer-sudoku', { cages }),
+  solveKillerSudoku: (cages: Cage[]) =>
+    api.post('/validate/killer-sudoku/solve', { cages }),
+}
+
 export default api

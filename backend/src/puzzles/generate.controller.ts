@@ -12,6 +12,11 @@ import {
   generateWordForge,
   generateNonogram,
   generateNumberTarget,
+  generateBallSort,
+  generatePipes,
+  generateLightsOut,
+  generateWordLadder,
+  generateConnections,
 } from '../utils/puzzle-generators';
 import { PuzzlesService } from './puzzles.service';
 import { GameType, Difficulty } from './schemas/puzzle.schema';
@@ -148,6 +153,66 @@ class GenerateNumberTargetDto {
   @IsOptional()
   @IsNumber()
   target?: number;
+}
+
+class GenerateBallSortDto {
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
+  date: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+}
+
+class GeneratePipesDto {
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
+  date: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+}
+
+class GenerateLightsOutDto {
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
+  date: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+}
+
+class GenerateWordLadderDto {
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
+  date: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+}
+
+class GenerateConnectionsDto {
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+
+  @IsString()
+  date: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
 }
 
 @ApiTags('generate')
@@ -326,6 +391,126 @@ export class GenerateController {
       solution: result.solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Number Target - ${dto.difficulty}`,
+      isActive: true,
+    });
+  }
+
+  @Post('ball-sort')
+  @ApiOperation({ summary: 'Generate a new Ball Sort puzzle' })
+  async generateBallSort(@Body() dto: GenerateBallSortDto) {
+    const result = generateBallSort(dto.difficulty);
+
+    const targetTimes = {
+      easy: 120,
+      medium: 180,
+      hard: 300,
+      expert: 420,
+    };
+
+    return this.puzzlesService.create({
+      gameType: GameType.BALL_SORT,
+      difficulty: dto.difficulty as Difficulty,
+      date: dto.date,
+      puzzleData: result.puzzleData,
+      solution: result.solution,
+      targetTime: targetTimes[dto.difficulty],
+      title: dto.title || `Ball Sort - ${dto.difficulty}`,
+      isActive: true,
+    });
+  }
+
+  @Post('pipes')
+  @ApiOperation({ summary: 'Generate a new Pipes puzzle' })
+  async generatePipes(@Body() dto: GeneratePipesDto) {
+    const result = generatePipes(dto.difficulty);
+
+    const targetTimes = {
+      easy: 60,
+      medium: 120,
+      hard: 180,
+      expert: 300,
+    };
+
+    return this.puzzlesService.create({
+      gameType: GameType.PIPES,
+      difficulty: dto.difficulty as Difficulty,
+      date: dto.date,
+      puzzleData: result.puzzleData,
+      solution: result.solution,
+      targetTime: targetTimes[dto.difficulty],
+      title: dto.title || `Pipes - ${dto.difficulty}`,
+      isActive: true,
+    });
+  }
+
+  @Post('lights-out')
+  @ApiOperation({ summary: 'Generate a new Lights Out puzzle' })
+  async generateLightsOut(@Body() dto: GenerateLightsOutDto) {
+    const result = generateLightsOut(dto.difficulty);
+
+    const targetTimes = {
+      easy: 30,
+      medium: 60,
+      hard: 120,
+      expert: 180,
+    };
+
+    return this.puzzlesService.create({
+      gameType: GameType.LIGHTS_OUT,
+      difficulty: dto.difficulty as Difficulty,
+      date: dto.date,
+      puzzleData: result.puzzleData,
+      solution: result.solution,
+      targetTime: targetTimes[dto.difficulty],
+      title: dto.title || `Lights Out - ${dto.difficulty}`,
+      isActive: true,
+    });
+  }
+
+  @Post('word-ladder')
+  @ApiOperation({ summary: 'Generate a new Word Ladder puzzle' })
+  async generateWordLadder(@Body() dto: GenerateWordLadderDto) {
+    const result = generateWordLadder(dto.difficulty);
+
+    const targetTimes = {
+      easy: 60,
+      medium: 120,
+      hard: 180,
+      expert: 300,
+    };
+
+    return this.puzzlesService.create({
+      gameType: GameType.WORD_LADDER,
+      difficulty: dto.difficulty as Difficulty,
+      date: dto.date,
+      puzzleData: result.puzzleData,
+      solution: result.solution,
+      targetTime: targetTimes[dto.difficulty],
+      title: dto.title || `Word Ladder - ${dto.difficulty}`,
+      isActive: true,
+    });
+  }
+
+  @Post('connections')
+  @ApiOperation({ summary: 'Generate a new Connections puzzle' })
+  async generateConnections(@Body() dto: GenerateConnectionsDto) {
+    const result = generateConnections(dto.difficulty);
+
+    const targetTimes = {
+      easy: 120,
+      medium: 180,
+      hard: 300,
+      expert: 420,
+    };
+
+    return this.puzzlesService.create({
+      gameType: GameType.CONNECTIONS,
+      difficulty: dto.difficulty as Difficulty,
+      date: dto.date,
+      puzzleData: result.puzzleData,
+      solution: result.solution,
+      targetTime: targetTimes[dto.difficulty],
+      title: dto.title || `Connections - ${dto.difficulty}`,
       isActive: true,
     });
   }
@@ -516,6 +701,86 @@ export class GenerateController {
           isActive: true,
         });
         createdPuzzles.push(numberTarget);
+      }
+
+      // Generate Ball Sort if requested
+      if (dto.gameTypes.includes('ballSort')) {
+        const bsResult = generateBallSort(difficulty);
+        const ballSort = await this.puzzlesService.create({
+          gameType: GameType.BALL_SORT,
+          difficulty: difficulty as Difficulty,
+          date: dateStr,
+          puzzleData: bsResult.puzzleData,
+          solution: bsResult.solution,
+          targetTime: { easy: 120, medium: 180, hard: 300, expert: 420 }[difficulty],
+          title: `Ball Sort`,
+          isActive: true,
+        });
+        createdPuzzles.push(ballSort);
+      }
+
+      // Generate Pipes if requested
+      if (dto.gameTypes.includes('pipes')) {
+        const pipesResult = generatePipes(difficulty);
+        const pipes = await this.puzzlesService.create({
+          gameType: GameType.PIPES,
+          difficulty: difficulty as Difficulty,
+          date: dateStr,
+          puzzleData: pipesResult.puzzleData,
+          solution: pipesResult.solution,
+          targetTime: { easy: 60, medium: 120, hard: 180, expert: 300 }[difficulty],
+          title: `Pipes`,
+          isActive: true,
+        });
+        createdPuzzles.push(pipes);
+      }
+
+      // Generate Lights Out if requested
+      if (dto.gameTypes.includes('lightsOut')) {
+        const loResult = generateLightsOut(difficulty);
+        const lightsOut = await this.puzzlesService.create({
+          gameType: GameType.LIGHTS_OUT,
+          difficulty: difficulty as Difficulty,
+          date: dateStr,
+          puzzleData: loResult.puzzleData,
+          solution: loResult.solution,
+          targetTime: { easy: 30, medium: 60, hard: 120, expert: 180 }[difficulty],
+          title: `Lights Out`,
+          isActive: true,
+        });
+        createdPuzzles.push(lightsOut);
+      }
+
+      // Generate Word Ladder if requested
+      if (dto.gameTypes.includes('wordLadder')) {
+        const wlResult = generateWordLadder(difficulty);
+        const wordLadder = await this.puzzlesService.create({
+          gameType: GameType.WORD_LADDER,
+          difficulty: difficulty as Difficulty,
+          date: dateStr,
+          puzzleData: wlResult.puzzleData,
+          solution: wlResult.solution,
+          targetTime: { easy: 60, medium: 120, hard: 180, expert: 300 }[difficulty],
+          title: `Word Ladder`,
+          isActive: true,
+        });
+        createdPuzzles.push(wordLadder);
+      }
+
+      // Generate Connections if requested
+      if (dto.gameTypes.includes('connections')) {
+        const connResult = generateConnections(difficulty);
+        const connections = await this.puzzlesService.create({
+          gameType: GameType.CONNECTIONS,
+          difficulty: difficulty as Difficulty,
+          date: dateStr,
+          puzzleData: connResult.puzzleData,
+          solution: connResult.solution,
+          targetTime: { easy: 120, medium: 180, hard: 300, expert: 420 }[difficulty],
+          title: `Connections`,
+          isActive: true,
+        });
+        createdPuzzles.push(connections);
       }
     }
 

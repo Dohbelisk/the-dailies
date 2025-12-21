@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -19,6 +19,16 @@ extension GameTypeExtension on GameType {
         return 'Nonogram';
       case GameType.numberTarget:
         return 'Number Target';
+      case GameType.ballSort:
+        return 'Ball Sort';
+      case GameType.pipes:
+        return 'Pipes';
+      case GameType.lightsOut:
+        return 'Lights Out';
+      case GameType.wordLadder:
+        return 'Word Ladder';
+      case GameType.connections:
+        return 'Connections';
     }
   }
 
@@ -38,6 +48,16 @@ extension GameTypeExtension on GameType {
         return '🖼️';
       case GameType.numberTarget:
         return '🎯';
+      case GameType.ballSort:
+        return '🔴';
+      case GameType.pipes:
+        return '🔗';
+      case GameType.lightsOut:
+        return '💡';
+      case GameType.wordLadder:
+        return '🪜';
+      case GameType.connections:
+        return '🔗';
     }
   }
 
@@ -210,12 +230,12 @@ class SudokuPuzzle {
     for (int i = 0; i < 9; i++) {
       if (i != col && grid[row][i] == value) return false;
     }
-    
+
     // Check column
     for (int i = 0; i < 9; i++) {
       if (i != row && grid[i][col] == value) return false;
     }
-    
+
     // Check 3x3 box
     final boxRow = (row ~/ 3) * 3;
     final boxCol = (col ~/ 3) * 3;
@@ -224,8 +244,30 @@ class SudokuPuzzle {
         if (i != row && j != col && grid[i][j] == value) return false;
       }
     }
-    
+
     return true;
+  }
+
+  /// Returns a set of numbers (1-9) that have all 9 instances placed on the grid
+  Set<int> get completedNumbers {
+    final counts = <int, int>{};
+    for (int i = 1; i <= 9; i++) {
+      counts[i] = 0;
+    }
+
+    for (int row = 0; row < 9; row++) {
+      for (int col = 0; col < 9; col++) {
+        final value = grid[row][col];
+        if (value != null && value >= 1 && value <= 9) {
+          counts[value] = counts[value]! + 1;
+        }
+      }
+    }
+
+    return counts.entries
+        .where((e) => e.value >= 9)
+        .map((e) => e.key)
+        .toSet();
   }
 }
 
@@ -829,5 +871,630 @@ class NumberTargetPuzzle {
     }
 
     return result;
+  }
+}
+
+// Ball Sort specific models
+class BallSortMove {
+  final int from;
+  final int to;
+
+  BallSortMove({required this.from, required this.to});
+
+  factory BallSortMove.fromJson(Map<String, dynamic> json) {
+    return BallSortMove(
+      from: json['from'] as int,
+      to: json['to'] as int,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'from': from, 'to': to};
+}
+
+class BallSortPuzzle {
+  final int tubeCount;
+  final int colorCount;
+  final int tubeCapacity;
+  final List<List<String>> initialState;
+  List<List<String>> currentState;
+  final int minMoves;
+  int moveCount;
+  final List<BallSortMove> moveHistory;
+
+  BallSortPuzzle({
+    required this.tubeCount,
+    required this.colorCount,
+    required this.tubeCapacity,
+    required this.initialState,
+    List<List<String>>? currentState,
+    required this.minMoves,
+    this.moveCount = 0,
+    List<BallSortMove>? moveHistory,
+  })  : currentState = currentState ?? initialState.map((t) => List<String>.from(t)).toList(),
+        moveHistory = moveHistory ?? [];
+
+  factory BallSortPuzzle.fromJson(Map<String, dynamic> json) {
+    final puzzleData = json;
+    final solutionData = json['solution'] ?? json;
+
+    final initialState = (puzzleData['initialState'] as List).map<List<String>>((tube) {
+      return (tube as List).map<String>((ball) => ball as String).toList();
+    }).toList();
+
+    return BallSortPuzzle(
+      tubeCount: puzzleData['tubes'] as int,
+      colorCount: puzzleData['colors'] as int,
+      tubeCapacity: puzzleData['tubeCapacity'] as int,
+      initialState: initialState,
+      minMoves: solutionData['minMoves'] as int? ?? 0,
+    );
+  }
+
+  bool get isComplete {
+    for (final tube in currentState) {
+      if (tube.isEmpty) continue;
+      if (tube.length != tubeCapacity) return false;
+      final firstColor = tube.first;
+      if (!tube.every((ball) => ball == firstColor)) return false;
+    }
+    // Count filled tubes - should equal colorCount
+    final filledTubes = currentState.where((t) => t.length == tubeCapacity).length;
+    return filledTubes == colorCount;
+  }
+
+  String? getTopBall(int tubeIndex) {
+    if (tubeIndex < 0 || tubeIndex >= currentState.length) return null;
+    final tube = currentState[tubeIndex];
+    return tube.isEmpty ? null : tube.last;
+  }
+
+  bool canMoveTo(int fromIndex, int toIndex) {
+    if (fromIndex == toIndex) return false;
+    if (fromIndex < 0 || fromIndex >= currentState.length) return false;
+    if (toIndex < 0 || toIndex >= currentState.length) return false;
+
+    final fromTube = currentState[fromIndex];
+    final toTube = currentState[toIndex];
+
+    // Can't move from empty tube
+    if (fromTube.isEmpty) return false;
+
+    // Can't move to full tube
+    if (toTube.length >= tubeCapacity) return false;
+
+    final ballToMove = fromTube.last;
+
+    // Can move to empty tube (unless source is all same color - pointless move)
+    if (toTube.isEmpty) {
+      // Allow moving to empty even if source is all same color
+      // (User might want to rearrange)
+      return true;
+    }
+
+    // Can move if destination top ball matches
+    return toTube.last == ballToMove;
+  }
+
+  bool moveBall(int fromIndex, int toIndex) {
+    if (!canMoveTo(fromIndex, toIndex)) return false;
+
+    final ball = currentState[fromIndex].removeLast();
+    currentState[toIndex].add(ball);
+    moveHistory.add(BallSortMove(from: fromIndex, to: toIndex));
+    moveCount++;
+    return true;
+  }
+
+  bool undoMove() {
+    if (moveHistory.isEmpty) return false;
+
+    final lastMove = moveHistory.removeLast();
+    final ball = currentState[lastMove.to].removeLast();
+    currentState[lastMove.from].add(ball);
+    moveCount--;
+    return true;
+  }
+
+  void reset() {
+    currentState = initialState.map((t) => List<String>.from(t)).toList();
+    moveHistory.clear();
+    moveCount = 0;
+  }
+
+  /// Returns true if the tube contains only one color (or is empty)
+  bool isTubeSorted(int tubeIndex) {
+    if (tubeIndex < 0 || tubeIndex >= currentState.length) return false;
+    final tube = currentState[tubeIndex];
+    if (tube.isEmpty) return true;
+    final firstColor = tube.first;
+    return tube.every((ball) => ball == firstColor);
+  }
+
+  /// Returns true if the tube is completely sorted (full with one color)
+  bool isTubeComplete(int tubeIndex) {
+    if (tubeIndex < 0 || tubeIndex >= currentState.length) return false;
+    final tube = currentState[tubeIndex];
+    if (tube.length != tubeCapacity) return false;
+    final firstColor = tube.first;
+    return tube.every((ball) => ball == firstColor);
+  }
+}
+
+// Pipes (Flow Free) specific models
+class PipesEndpoint {
+  final String color;
+  final int row;
+  final int col;
+
+  PipesEndpoint({required this.color, required this.row, required this.col});
+
+  factory PipesEndpoint.fromJson(Map<String, dynamic> json) {
+    return PipesEndpoint(
+      color: json['color'] as String,
+      row: json['row'] as int,
+      col: json['col'] as int,
+    );
+  }
+}
+
+class PipesPuzzle {
+  final int rows;
+  final int cols;
+  final List<PipesEndpoint> endpoints;
+  final List<List<int>> bridges; // [row, col] positions for bridge tiles
+  final Map<String, List<List<int>>> solutionPaths; // color -> path cells
+
+  // User state
+  Map<String, List<List<int>>> currentPaths; // color -> path cells user has drawn
+  String? selectedColor; // Currently drawing this color
+
+  PipesPuzzle({
+    required this.rows,
+    required this.cols,
+    required this.endpoints,
+    required this.bridges,
+    required this.solutionPaths,
+    Map<String, List<List<int>>>? currentPaths,
+    this.selectedColor,
+  }) : currentPaths = currentPaths ?? {};
+
+  factory PipesPuzzle.fromJson(Map<String, dynamic> json) {
+    final puzzleData = json;
+    final solutionData = json['solution'] ?? {};
+
+    final endpoints = (puzzleData['endpoints'] as List)
+        .map<PipesEndpoint>((e) => PipesEndpoint.fromJson(e))
+        .toList();
+
+    final bridges = puzzleData['bridges'] != null
+        ? (puzzleData['bridges'] as List).map<List<int>>((b) {
+            return (b as List).map<int>((c) => c as int).toList();
+          }).toList()
+        : <List<int>>[];
+
+    final solutionPaths = <String, List<List<int>>>{};
+    if (solutionData['paths'] != null) {
+      (solutionData['paths'] as Map<String, dynamic>).forEach((color, path) {
+        solutionPaths[color] = (path as List).map<List<int>>((cell) {
+          return (cell as List).map<int>((c) => c as int).toList();
+        }).toList();
+      });
+    }
+
+    return PipesPuzzle(
+      rows: puzzleData['rows'] as int,
+      cols: puzzleData['cols'] as int,
+      endpoints: endpoints,
+      bridges: bridges,
+      solutionPaths: solutionPaths,
+    );
+  }
+
+  /// Get all unique colors in the puzzle
+  Set<String> get colors => endpoints.map((e) => e.color).toSet();
+
+  /// Get endpoints for a specific color
+  List<PipesEndpoint> getEndpointsForColor(String color) {
+    return endpoints.where((e) => e.color == color).toList();
+  }
+
+  /// Check if a cell is an endpoint
+  PipesEndpoint? getEndpointAt(int row, int col) {
+    try {
+      return endpoints.firstWhere((e) => e.row == row && e.col == col);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Check if a cell is a bridge
+  bool isBridge(int row, int col) {
+    return bridges.any((b) => b[0] == row && b[1] == col);
+  }
+
+  /// Check if all cells are filled with paths
+  bool get allCellsFilled {
+    final filledCells = <String>{};
+
+    for (final path in currentPaths.values) {
+      for (final cell in path) {
+        filledCells.add('${cell[0]},${cell[1]}');
+      }
+    }
+
+    // Bridges can have 2 paths, so we count them specially
+    int totalCells = rows * cols;
+    int bridgeCount = bridges.length;
+
+    // Each bridge allows one extra path through it
+    return filledCells.length >= totalCells;
+  }
+
+  /// Check if all color pairs are connected
+  bool get allPairsConnected {
+    for (final color in colors) {
+      final colorEndpoints = getEndpointsForColor(color);
+      if (colorEndpoints.length != 2) continue;
+
+      final path = currentPaths[color];
+      if (path == null || path.length < 2) return false;
+
+      // Check if path connects both endpoints
+      final start = path.first;
+      final end = path.last;
+      final ep1 = colorEndpoints[0];
+      final ep2 = colorEndpoints[1];
+
+      final startsAtEndpoint = (start[0] == ep1.row && start[1] == ep1.col) ||
+                               (start[0] == ep2.row && start[1] == ep2.col);
+      final endsAtEndpoint = (end[0] == ep1.row && end[1] == ep1.col) ||
+                             (end[0] == ep2.row && end[1] == ep2.col);
+
+      if (!startsAtEndpoint || !endsAtEndpoint) return false;
+    }
+    return true;
+  }
+
+  bool get isComplete => allCellsFilled && allPairsConnected;
+
+  /// Clear path for a specific color
+  void clearPath(String color) {
+    currentPaths.remove(color);
+  }
+
+  /// Add cell to current path
+  void addToPath(String color, int row, int col) {
+    currentPaths[color] ??= [];
+    currentPaths[color]!.add([row, col]);
+  }
+
+  /// Reset all paths
+  void reset() {
+    currentPaths.clear();
+    selectedColor = null;
+  }
+}
+
+// Lights Out specific models
+class LightsOutPuzzle {
+  final int rows;
+  final int cols;
+  final List<List<bool>> initialState; // true = on, false = off
+  List<List<bool>> currentState;
+  final List<List<int>> solutionMoves; // Optimal solution moves [row, col]
+  final int minMoves;
+  int moveCount;
+
+  LightsOutPuzzle({
+    required this.rows,
+    required this.cols,
+    required this.initialState,
+    List<List<bool>>? currentState,
+    required this.solutionMoves,
+    required this.minMoves,
+    this.moveCount = 0,
+  }) : currentState = currentState ??
+         initialState.map((row) => List<bool>.from(row)).toList();
+
+  factory LightsOutPuzzle.fromJson(Map<String, dynamic> json) {
+    final puzzleData = json;
+    final solutionData = json['solution'] ?? {};
+
+    final initialState = (puzzleData['initialState'] as List).map<List<bool>>((row) {
+      return (row as List).map<bool>((cell) => cell as bool).toList();
+    }).toList();
+
+    final solutionMoves = solutionData['moves'] != null
+        ? (solutionData['moves'] as List).map<List<int>>((move) {
+            return (move as List).map<int>((c) => c as int).toList();
+          }).toList()
+        : <List<int>>[];
+
+    return LightsOutPuzzle(
+      rows: puzzleData['rows'] as int,
+      cols: puzzleData['cols'] as int,
+      initialState: initialState,
+      solutionMoves: solutionMoves,
+      minMoves: solutionData['minMoves'] as int? ?? 0,
+    );
+  }
+
+  /// Toggle a light and its neighbors
+  void toggle(int row, int col) {
+    if (row < 0 || row >= rows || col < 0 || col >= cols) return;
+
+    // Toggle the cell
+    currentState[row][col] = !currentState[row][col];
+
+    // Toggle up
+    if (row > 0) currentState[row - 1][col] = !currentState[row - 1][col];
+    // Toggle down
+    if (row < rows - 1) currentState[row + 1][col] = !currentState[row + 1][col];
+    // Toggle left
+    if (col > 0) currentState[row][col - 1] = !currentState[row][col - 1];
+    // Toggle right
+    if (col < cols - 1) currentState[row][col + 1] = !currentState[row][col + 1];
+
+    moveCount++;
+  }
+
+  /// Check if all lights are off
+  bool get isComplete {
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (currentState[r][c]) return false;
+      }
+    }
+    return true;
+  }
+
+  /// Count of lights currently on
+  int get lightsOnCount {
+    int count = 0;
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (currentState[r][c]) count++;
+      }
+    }
+    return count;
+  }
+
+  /// Reset to initial state
+  void reset() {
+    currentState = initialState.map((row) => List<bool>.from(row)).toList();
+    moveCount = 0;
+  }
+}
+
+// Word Ladder specific models
+class WordLadderPuzzle {
+  final String startWord;
+  final String targetWord;
+  final int wordLength;
+  final List<String> solutionPath; // Optimal path from start to target
+  final int minSteps;
+
+  // User state
+  List<String> currentPath; // User's current path
+
+  WordLadderPuzzle({
+    required this.startWord,
+    required this.targetWord,
+    required this.wordLength,
+    required this.solutionPath,
+    required this.minSteps,
+    List<String>? currentPath,
+  }) : currentPath = currentPath ?? [startWord];
+
+  factory WordLadderPuzzle.fromJson(Map<String, dynamic> json) {
+    final puzzleData = json;
+    final solutionData = json['solution'] ?? {};
+
+    return WordLadderPuzzle(
+      startWord: puzzleData['startWord'] as String,
+      targetWord: puzzleData['targetWord'] as String,
+      wordLength: puzzleData['wordLength'] as int,
+      solutionPath: List<String>.from(solutionData['path'] ?? []),
+      minSteps: solutionData['minSteps'] as int? ?? 0,
+    );
+  }
+
+  /// Check if a word differs by exactly one letter from another
+  bool differsByOneLetter(String word1, String word2) {
+    if (word1.length != word2.length) return false;
+    int differences = 0;
+    for (int i = 0; i < word1.length; i++) {
+      if (word1[i].toUpperCase() != word2[i].toUpperCase()) {
+        differences++;
+        if (differences > 1) return false;
+      }
+    }
+    return differences == 1;
+  }
+
+  /// Check if a word can be added to the current path
+  bool canAddWord(String word) {
+    if (word.length != wordLength) return false;
+    if (currentPath.isEmpty) return true;
+    return differsByOneLetter(currentPath.last, word);
+  }
+
+  /// Add a word to the path
+  bool addWord(String word) {
+    final upperWord = word.toUpperCase();
+    if (!canAddWord(upperWord)) return false;
+    currentPath.add(upperWord);
+    return true;
+  }
+
+  /// Remove the last word from the path (undo)
+  bool undoLastWord() {
+    if (currentPath.length <= 1) return false; // Can't remove start word
+    currentPath.removeLast();
+    return true;
+  }
+
+  /// Check if puzzle is complete
+  bool get isComplete {
+    if (currentPath.isEmpty) return false;
+    return currentPath.last.toUpperCase() == targetWord.toUpperCase();
+  }
+
+  /// Get current step count
+  int get currentSteps => currentPath.length - 1;
+
+  /// Reset to start
+  void reset() {
+    currentPath = [startWord];
+  }
+}
+
+// Connections specific models
+class ConnectionsCategory {
+  final String name;
+  final List<String> words;
+  final int difficulty; // 1-4, 1=easiest (yellow), 4=hardest (purple)
+
+  ConnectionsCategory({
+    required this.name,
+    required this.words,
+    required this.difficulty,
+  });
+
+  factory ConnectionsCategory.fromJson(Map<String, dynamic> json) {
+    return ConnectionsCategory(
+      name: json['name'] as String,
+      words: List<String>.from(json['words'] as List),
+      difficulty: json['difficulty'] as int,
+    );
+  }
+}
+
+class ConnectionsPuzzle {
+  final List<String> words; // 16 words, shuffled
+  final List<ConnectionsCategory> categories; // 4 categories
+
+  // User state
+  Set<String> selectedWords; // Currently selected words
+  List<ConnectionsCategory> foundCategories; // Successfully found categories
+  int mistakesRemaining;
+  static const int maxMistakes = 4;
+
+  ConnectionsPuzzle({
+    required this.words,
+    required this.categories,
+    Set<String>? selectedWords,
+    List<ConnectionsCategory>? foundCategories,
+    this.mistakesRemaining = maxMistakes,
+  })  : selectedWords = selectedWords ?? {},
+        foundCategories = foundCategories ?? [];
+
+  factory ConnectionsPuzzle.fromJson(Map<String, dynamic> json) {
+    final puzzleData = json;
+
+    final categories = (puzzleData['categories'] as List)
+        .map<ConnectionsCategory>((c) => ConnectionsCategory.fromJson(c))
+        .toList();
+
+    return ConnectionsPuzzle(
+      words: List<String>.from(puzzleData['words'] as List),
+      categories: categories,
+    );
+  }
+
+  /// Get words that haven't been found yet
+  List<String> get remainingWords {
+    final foundWords = <String>{};
+    for (final cat in foundCategories) {
+      foundWords.addAll(cat.words);
+    }
+    return words.where((w) => !foundWords.contains(w)).toList();
+  }
+
+  /// Toggle word selection
+  void toggleWord(String word) {
+    if (selectedWords.contains(word)) {
+      selectedWords.remove(word);
+    } else if (selectedWords.length < 4) {
+      selectedWords.add(word);
+    }
+  }
+
+  /// Check if selected words form a valid category
+  ConnectionsCategory? checkSelection() {
+    if (selectedWords.length != 4) return null;
+
+    for (final category in categories) {
+      if (foundCategories.contains(category)) continue;
+
+      final categoryWords = Set<String>.from(category.words);
+      if (categoryWords.containsAll(selectedWords) &&
+          selectedWords.containsAll(categoryWords)) {
+        return category;
+      }
+    }
+    return null;
+  }
+
+  /// Submit the current selection
+  /// Returns: the category if correct, null if wrong
+  ConnectionsCategory? submitSelection() {
+    final category = checkSelection();
+    if (category != null) {
+      foundCategories.add(category);
+      selectedWords.clear();
+      // Sort found categories by difficulty
+      foundCategories.sort((a, b) => a.difficulty.compareTo(b.difficulty));
+    } else {
+      mistakesRemaining--;
+      selectedWords.clear();
+    }
+    return category;
+  }
+
+  /// Check how many words match any category
+  int get matchCount {
+    if (selectedWords.length != 4) return 0;
+
+    int bestMatch = 0;
+    for (final category in categories) {
+      if (foundCategories.contains(category)) continue;
+
+      int matches = 0;
+      for (final word in selectedWords) {
+        if (category.words.contains(word)) matches++;
+      }
+      if (matches > bestMatch) bestMatch = matches;
+    }
+    return bestMatch;
+  }
+
+  /// Check if game is over (won or lost)
+  bool get isGameOver => isComplete || mistakesRemaining <= 0;
+
+  /// Check if puzzle is complete (all categories found)
+  bool get isComplete => foundCategories.length == 4;
+
+  /// Clear selection
+  void clearSelection() {
+    selectedWords.clear();
+  }
+
+  /// Reset the puzzle
+  void reset() {
+    selectedWords.clear();
+    foundCategories.clear();
+    mistakesRemaining = maxMistakes;
+  }
+
+  /// Get color for a difficulty level
+  static String getDifficultyColor(int difficulty) {
+    switch (difficulty) {
+      case 1: return 'yellow';
+      case 2: return 'green';
+      case 3: return 'blue';
+      case 4: return 'purple';
+      default: return 'gray';
+    }
   }
 }

@@ -1241,6 +1241,240 @@ export class NumberTargetGenerator {
   }
 }
 
+// Ball Sort Generator
+export class BallSortGenerator {
+  private static readonly COLORS = [
+    'red', 'blue', 'green', 'yellow', 'purple',
+    'orange', 'pink', 'cyan', 'lime', 'teal'
+  ];
+
+  generate(difficulty: 'easy' | 'medium' | 'hard' | 'expert'): {
+    puzzleData: {
+      tubes: number;
+      colors: number;
+      tubeCapacity: number;
+      initialState: string[][];
+    };
+    solution: {
+      moves: Array<{ from: number; to: number }>;
+      minMoves: number;
+    };
+  } {
+    // Configuration based on difficulty
+    // Easy: 6 tubes (4 colors + 2 empty)
+    // Medium: 8 tubes (6 colors + 2 empty)
+    // Hard: 10 tubes (8 colors + 2 empty)
+    // Expert: 12 tubes (10 colors + 2 empty)
+    const config = {
+      easy: { colors: 4, tubes: 6, tubeCapacity: 4 },
+      medium: { colors: 6, tubes: 8, tubeCapacity: 4 },
+      hard: { colors: 8, tubes: 10, tubeCapacity: 4 },
+      expert: { colors: 10, tubes: 12, tubeCapacity: 4 },
+    }[difficulty];
+
+    const colors = BallSortGenerator.COLORS.slice(0, config.colors);
+
+    // Generate a solvable puzzle
+    let result = this.generateSolvablePuzzle(config, colors);
+    let attempts = 0;
+
+    // Try to generate a puzzle with good minimum moves
+    while (result.minMoves < 10 && attempts < 20) {
+      const newResult = this.generateSolvablePuzzle(config, colors);
+      if (newResult.minMoves > result.minMoves) {
+        result = newResult;
+      }
+      attempts++;
+    }
+
+    return {
+      puzzleData: {
+        tubes: config.tubes,
+        colors: config.colors,
+        tubeCapacity: config.tubeCapacity,
+        initialState: result.initialState,
+      },
+      solution: {
+        moves: result.moves,
+        minMoves: result.minMoves,
+      },
+    };
+  }
+
+  private generateSolvablePuzzle(
+    config: { colors: number; tubes: number; tubeCapacity: number },
+    colors: string[]
+  ): {
+    initialState: string[][];
+    moves: Array<{ from: number; to: number }>;
+    minMoves: number;
+  } {
+    // Start with solved state and scramble
+    const solvedState: string[][] = [];
+
+    // Fill tubes with single colors (solved state)
+    for (let i = 0; i < config.colors; i++) {
+      const tube: string[] = [];
+      for (let j = 0; j < config.tubeCapacity; j++) {
+        tube.push(colors[i]);
+      }
+      solvedState.push(tube);
+    }
+
+    // Add empty tubes
+    for (let i = config.colors; i < config.tubes; i++) {
+      solvedState.push([]);
+    }
+
+    // Scramble by making random valid moves in reverse
+    const scrambled = this.scramblePuzzle(solvedState, config);
+
+    // Solve the scrambled puzzle to get the solution
+    const solution = this.solvePuzzle(scrambled, config);
+
+    return {
+      initialState: scrambled,
+      moves: solution.moves,
+      minMoves: solution.moves.length,
+    };
+  }
+
+  private scramblePuzzle(
+    state: string[][],
+    config: { colors: number; tubes: number; tubeCapacity: number }
+  ): string[][] {
+    // Deep copy
+    const scrambled = state.map(tube => [...tube]);
+
+    // Make random moves to scramble
+    const numMoves = config.colors * config.tubeCapacity * 2;
+
+    for (let i = 0; i < numMoves; i++) {
+      const validMoves = this.getValidMoves(scrambled, config.tubeCapacity);
+      if (validMoves.length > 0) {
+        const move = validMoves[Math.floor(Math.random() * validMoves.length)];
+        this.makeMove(scrambled, move.from, move.to);
+      }
+    }
+
+    // Ensure puzzle isn't already solved
+    if (this.isSolved(scrambled)) {
+      // Make a few more moves
+      for (let i = 0; i < 10; i++) {
+        const validMoves = this.getValidMoves(scrambled, config.tubeCapacity);
+        if (validMoves.length > 0) {
+          const move = validMoves[Math.floor(Math.random() * validMoves.length)];
+          this.makeMove(scrambled, move.from, move.to);
+        }
+      }
+    }
+
+    return scrambled;
+  }
+
+  private getValidMoves(
+    state: string[][],
+    tubeCapacity: number
+  ): Array<{ from: number; to: number }> {
+    const moves: Array<{ from: number; to: number }> = [];
+
+    for (let from = 0; from < state.length; from++) {
+      if (state[from].length === 0) continue; // Can't move from empty tube
+
+      const topBall = state[from][state[from].length - 1];
+
+      for (let to = 0; to < state.length; to++) {
+        if (from === to) continue;
+
+        // Can move to empty tube or tube with same color on top
+        if (state[to].length === 0) {
+          // Don't move to empty if source tube is all same color (pointless)
+          if (!this.isTubeAllSameColor(state[from])) {
+            moves.push({ from, to });
+          }
+        } else if (state[to].length < tubeCapacity) {
+          const topOfDest = state[to][state[to].length - 1];
+          if (topOfDest === topBall) {
+            moves.push({ from, to });
+          }
+        }
+      }
+    }
+
+    return moves;
+  }
+
+  private isTubeAllSameColor(tube: string[]): boolean {
+    if (tube.length === 0) return true;
+    return tube.every(ball => ball === tube[0]);
+  }
+
+  private makeMove(state: string[][], from: number, to: number): void {
+    const ball = state[from].pop();
+    if (ball) {
+      state[to].push(ball);
+    }
+  }
+
+  private isSolved(state: string[][]): boolean {
+    for (const tube of state) {
+      if (tube.length > 0 && !this.isTubeAllSameColor(tube)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private solvePuzzle(
+    initialState: string[][],
+    config: { colors: number; tubes: number; tubeCapacity: number }
+  ): { moves: Array<{ from: number; to: number }> } {
+    // BFS to find shortest solution
+    const stateToString = (state: string[][]): string => {
+      return state.map(tube => tube.join(',')).join('|');
+    };
+
+    const queue: Array<{
+      state: string[][];
+      moves: Array<{ from: number; to: number }>;
+    }> = [{ state: initialState.map(t => [...t]), moves: [] }];
+
+    const visited = new Set<string>();
+    visited.add(stateToString(initialState));
+
+    let iterations = 0;
+    const maxIterations = 50000;
+
+    while (queue.length > 0 && iterations < maxIterations) {
+      iterations++;
+      const current = queue.shift()!;
+
+      if (this.isSolved(current.state)) {
+        return { moves: current.moves };
+      }
+
+      const validMoves = this.getValidMoves(current.state, config.tubeCapacity);
+
+      for (const move of validMoves) {
+        const newState = current.state.map(t => [...t]);
+        this.makeMove(newState, move.from, move.to);
+
+        const stateStr = stateToString(newState);
+        if (!visited.has(stateStr)) {
+          visited.add(stateStr);
+          queue.push({
+            state: newState,
+            moves: [...current.moves, move],
+          });
+        }
+      }
+    }
+
+    // If no solution found in time, return empty (shouldn't happen with valid puzzles)
+    return { moves: [] };
+  }
+}
+
 // Export convenience functions
 export const generateWordForge = (difficulty: 'easy' | 'medium' | 'hard' | 'expert') => {
   const generator = new WordForgeGenerator();
@@ -1254,5 +1488,523 @@ export const generateNonogram = (difficulty: 'easy' | 'medium' | 'hard' | 'exper
 
 export const generateNumberTarget = (difficulty: 'easy' | 'medium' | 'hard' | 'expert') => {
   const generator = new NumberTargetGenerator();
+  return generator.generate(difficulty);
+};
+
+export const generateBallSort = (difficulty: 'easy' | 'medium' | 'hard' | 'expert') => {
+  const generator = new BallSortGenerator();
+  return generator.generate(difficulty);
+};
+
+// Pipes (Flow Free) Generator
+export class PipesGenerator {
+  private static readonly COLORS = [
+    'red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'cyan'
+  ];
+
+  generate(difficulty: 'easy' | 'medium' | 'hard' | 'expert'): {
+    puzzleData: {
+      rows: number;
+      cols: number;
+      endpoints: Array<{ color: string; row: number; col: number }>;
+      bridges: Array<{ row: number; col: number }>;
+    };
+    solution: {
+      paths: Record<string, Array<{ row: number; col: number }>>;
+    };
+  } {
+    const config = {
+      easy: { size: 5, colors: 4, bridges: 0 },
+      medium: { size: 6, colors: 5, bridges: 1 },
+      hard: { size: 7, colors: 6, bridges: 2 },
+      expert: { size: 8, colors: 8, bridges: 3 },
+    }[difficulty];
+
+    const colors = PipesGenerator.COLORS.slice(0, config.colors);
+
+    // Generate puzzle by working backwards from solution
+    const result = this.generateSolvablePuzzle(config.size, colors, config.bridges);
+
+    return {
+      puzzleData: {
+        rows: config.size,
+        cols: config.size,
+        endpoints: result.endpoints,
+        bridges: result.bridges,
+      },
+      solution: {
+        paths: result.paths,
+      },
+    };
+  }
+
+  private generateSolvablePuzzle(
+    size: number,
+    colors: string[],
+    numBridges: number
+  ): {
+    endpoints: Array<{ color: string; row: number; col: number }>;
+    bridges: Array<{ row: number; col: number }>;
+    paths: Record<string, Array<{ row: number; col: number }>>;
+  } {
+    const grid: (string | null)[][] = Array(size).fill(null).map(() => Array(size).fill(null));
+    const paths: Record<string, Array<{ row: number; col: number }>> = {};
+    const endpoints: Array<{ color: string; row: number; col: number }> = [];
+    const bridges: Array<{ row: number; col: number }> = [];
+
+    // Place paths for each color
+    for (const color of colors) {
+      const path = this.generatePath(grid, size);
+      if (path.length >= 2) {
+        paths[color] = path;
+        // Mark grid cells
+        for (const cell of path) {
+          grid[cell.row][cell.col] = color;
+        }
+        // Add endpoints (first and last)
+        endpoints.push({ color, row: path[0].row, col: path[0].col });
+        endpoints.push({ color, row: path[path.length - 1].row, col: path[path.length - 1].col });
+      }
+    }
+
+    // Add bridges at random empty or overlapping positions (for harder puzzles)
+    // Note: Simplified - real bridges would require path recalculation
+
+    return { endpoints, bridges, paths };
+  }
+
+  private generatePath(
+    grid: (string | null)[][],
+    size: number
+  ): Array<{ row: number; col: number }> {
+    // Find empty starting cell
+    let startRow = -1, startCol = -1;
+    for (let attempts = 0; attempts < 50; attempts++) {
+      const r = Math.floor(Math.random() * size);
+      const c = Math.floor(Math.random() * size);
+      if (grid[r][c] === null) {
+        startRow = r;
+        startCol = c;
+        break;
+      }
+    }
+
+    if (startRow === -1) return [];
+
+    const path: Array<{ row: number; col: number }> = [{ row: startRow, col: startCol }];
+    const visited = new Set<string>();
+    visited.add(`${startRow},${startCol}`);
+
+    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+    const minLength = 3;
+    const maxLength = Math.floor(size * 1.5);
+
+    while (path.length < maxLength) {
+      const current = path[path.length - 1];
+      const validMoves: Array<{ row: number; col: number }> = [];
+
+      for (const [dr, dc] of directions) {
+        const nr = current.row + dr;
+        const nc = current.col + dc;
+        const key = `${nr},${nc}`;
+
+        if (nr >= 0 && nr < size && nc >= 0 && nc < size &&
+            grid[nr][nc] === null && !visited.has(key)) {
+          validMoves.push({ row: nr, col: nc });
+        }
+      }
+
+      if (validMoves.length === 0) break;
+
+      // Random chance to stop if we have minimum length
+      if (path.length >= minLength && Math.random() < 0.3) break;
+
+      const next = validMoves[Math.floor(Math.random() * validMoves.length)];
+      path.push(next);
+      visited.add(`${next.row},${next.col}`);
+    }
+
+    return path.length >= 2 ? path : [];
+  }
+}
+
+// Lights Out Generator
+export class LightsOutGenerator {
+  generate(difficulty: 'easy' | 'medium' | 'hard' | 'expert'): {
+    puzzleData: {
+      rows: number;
+      cols: number;
+      initialState: boolean[][];
+    };
+    solution: {
+      moves: Array<{ row: number; col: number }>;
+      minMoves: number;
+    };
+  } {
+    const config = {
+      easy: { size: 3, minLights: 3, maxLights: 4 },
+      medium: { size: 4, minLights: 5, maxLights: 7 },
+      hard: { size: 5, minLights: 8, maxLights: 12 },
+      expert: { size: 5, minLights: 12, maxLights: 16 },
+    }[difficulty];
+
+    // Generate by working backwards from solved state
+    const result = this.generateSolvablePuzzle(config.size, config.minLights, config.maxLights);
+
+    return {
+      puzzleData: {
+        rows: config.size,
+        cols: config.size,
+        initialState: result.initialState,
+      },
+      solution: {
+        moves: result.moves,
+        minMoves: result.moves.length,
+      },
+    };
+  }
+
+  private generateSolvablePuzzle(
+    size: number,
+    minLights: number,
+    maxLights: number
+  ): {
+    initialState: boolean[][];
+    moves: Array<{ row: number; col: number }>;
+  } {
+    // Start with all lights off
+    const state: boolean[][] = Array(size).fill(null).map(() => Array(size).fill(false));
+    const moves: Array<{ row: number; col: number }> = [];
+
+    // Randomly toggle cells to create the puzzle
+    // These toggles become the solution
+    const numToggles = minLights + Math.floor(Math.random() * (maxLights - minLights + 1));
+    const usedPositions = new Set<string>();
+
+    for (let i = 0; i < numToggles; i++) {
+      let row: number, col: number;
+      let attempts = 0;
+
+      do {
+        row = Math.floor(Math.random() * size);
+        col = Math.floor(Math.random() * size);
+        attempts++;
+      } while (usedPositions.has(`${row},${col}`) && attempts < 50);
+
+      if (!usedPositions.has(`${row},${col}`)) {
+        usedPositions.add(`${row},${col}`);
+        this.toggle(state, row, col);
+        moves.push({ row, col });
+      }
+    }
+
+    // Count lit cells - if none, retry
+    const litCount = state.flat().filter(v => v).length;
+    if (litCount === 0) {
+      return this.generateSolvablePuzzle(size, minLights, maxLights);
+    }
+
+    return { initialState: state, moves };
+  }
+
+  private toggle(state: boolean[][], row: number, col: number): void {
+    const size = state.length;
+    const directions = [[0, 0], [0, 1], [1, 0], [0, -1], [-1, 0]];
+
+    for (const [dr, dc] of directions) {
+      const nr = row + dr;
+      const nc = col + dc;
+      if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+        state[nr][nc] = !state[nr][nc];
+      }
+    }
+  }
+}
+
+// Word Ladder Generator
+export class WordLadderGenerator {
+  // Common 3-4-5 letter words for word ladder puzzles
+  private static readonly WORD_LISTS: Record<number, string[]> = {
+    3: ['CAT', 'BAT', 'HAT', 'RAT', 'SAT', 'COT', 'COW', 'BOW', 'ROW', 'TOW',
+        'DOG', 'LOG', 'FOG', 'HOG', 'JOG', 'BOG', 'PIG', 'BIG', 'DIG', 'FIG',
+        'CAN', 'MAN', 'TAN', 'PAN', 'RAN', 'BAN', 'FAN', 'VAN', 'WAR', 'CAR',
+        'BAR', 'FAR', 'JAR', 'TAR', 'BED', 'RED', 'LED', 'WED', 'FED', 'PEN',
+        'TEN', 'HEN', 'MEN', 'DEN', 'BIN', 'PIN', 'TIN', 'WIN', 'SIN', 'FIN'],
+    4: ['COLD', 'CORD', 'CARD', 'WARD', 'WARM', 'WORM', 'WORD', 'WORK', 'FORK',
+        'FORM', 'FARM', 'HARM', 'HARD', 'HAND', 'LAND', 'LANE', 'LATE', 'GATE',
+        'GAME', 'CAME', 'CASE', 'CAVE', 'HAVE', 'HATE', 'HARE', 'CARE', 'CORE',
+        'BORE', 'BONE', 'CONE', 'TONE', 'TUNE', 'DUNE', 'DONE', 'GONE', 'LONE',
+        'LOVE', 'LIVE', 'GIVE', 'GAVE', 'SAVE', 'SAFE', 'SAGE', 'PAGE', 'PALE',
+        'TALE', 'TALL', 'BALL', 'BELL', 'BELT', 'BEST', 'REST', 'RUST', 'JUST',
+        'MUST', 'MIST', 'LIST', 'LOST', 'COST', 'COAT', 'BOAT', 'BEAT', 'HEAT'],
+    5: ['STONE', 'STORE', 'STARE', 'SPARE', 'SPACE', 'PLACE', 'PLANE', 'PLATE',
+        'SLATE', 'SKATE', 'STATE', 'STAGE', 'STAKE', 'SNAKE', 'SHAKE', 'SHADE',
+        'SHARE', 'SHORE', 'SHORT', 'SHIRT', 'SHIFT', 'SHAFT', 'SHALT', 'SHALL',
+        'SMALL', 'SMELL', 'SPELL', 'SWELL', 'DWELL', 'DWELT', 'DEALT', 'DELTA',
+        'WORLD', 'WOULD', 'COULD', 'CLOUD', 'CLOUT', 'CLOTH', 'CLOSE', 'CHOSE',
+        'CHASE', 'CHANT', 'CHART', 'CHARM', 'CHAIN', 'CHAIR', 'CHEER', 'CLEAR',
+        'CLEAN', 'CREAM', 'DREAM', 'DREAD', 'BREAD', 'BREAK', 'BLEAK', 'BLANK'],
+  };
+
+  generate(difficulty: 'easy' | 'medium' | 'hard' | 'expert'): {
+    puzzleData: {
+      startWord: string;
+      targetWord: string;
+      wordLength: number;
+    };
+    solution: {
+      path: string[];
+      minSteps: number;
+    };
+  } {
+    const config = {
+      easy: { lengths: [3, 4], minSteps: 3, maxSteps: 4 },
+      medium: { lengths: [4], minSteps: 5, maxSteps: 6 },
+      hard: { lengths: [4, 5], minSteps: 7, maxSteps: 8 },
+      expert: { lengths: [5], minSteps: 9, maxSteps: 12 },
+    }[difficulty];
+
+    const wordLength = config.lengths[Math.floor(Math.random() * config.lengths.length)];
+    const words = WordLadderGenerator.WORD_LISTS[wordLength] || WordLadderGenerator.WORD_LISTS[4];
+
+    // Find a valid word pair with a path
+    let result = this.findValidPuzzle(words, config.minSteps, config.maxSteps);
+    let attempts = 0;
+
+    while (!result && attempts < 50) {
+      result = this.findValidPuzzle(words, config.minSteps, config.maxSteps);
+      attempts++;
+    }
+
+    if (!result) {
+      // Fallback
+      result = {
+        startWord: 'COLD',
+        targetWord: 'WARM',
+        path: ['COLD', 'CORD', 'CARD', 'WARD', 'WARM'],
+      };
+    }
+
+    return {
+      puzzleData: {
+        startWord: result.startWord,
+        targetWord: result.targetWord,
+        wordLength: result.startWord.length,
+      },
+      solution: {
+        path: result.path,
+        minSteps: result.path.length - 1,
+      },
+    };
+  }
+
+  private findValidPuzzle(
+    words: string[],
+    minSteps: number,
+    maxSteps: number
+  ): { startWord: string; targetWord: string; path: string[] } | null {
+    // Pick random start word
+    const startWord = words[Math.floor(Math.random() * words.length)];
+
+    // BFS to find all reachable words with distances
+    const distances = new Map<string, number>();
+    const parents = new Map<string, string>();
+    const queue: string[] = [startWord];
+    distances.set(startWord, 0);
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const dist = distances.get(current)!;
+
+      if (dist >= maxSteps) continue;
+
+      for (const next of this.getNeighbors(current, words)) {
+        if (!distances.has(next)) {
+          distances.set(next, dist + 1);
+          parents.set(next, current);
+          queue.push(next);
+        }
+      }
+    }
+
+    // Find words at target distance
+    const candidates = words.filter(w => {
+      const d = distances.get(w);
+      return d !== undefined && d >= minSteps && d <= maxSteps;
+    });
+
+    if (candidates.length === 0) return null;
+
+    const targetWord = candidates[Math.floor(Math.random() * candidates.length)];
+
+    // Reconstruct path
+    const path: string[] = [targetWord];
+    let current = targetWord;
+    while (parents.has(current)) {
+      current = parents.get(current)!;
+      path.unshift(current);
+    }
+
+    return { startWord, targetWord, path };
+  }
+
+  private getNeighbors(word: string, wordList: string[]): string[] {
+    return wordList.filter(w => {
+      if (w === word || w.length !== word.length) return false;
+      let diff = 0;
+      for (let i = 0; i < word.length; i++) {
+        if (word[i] !== w[i]) diff++;
+        if (diff > 1) return false;
+      }
+      return diff === 1;
+    });
+  }
+}
+
+// Connections Generator
+export class ConnectionsGenerator {
+  // Pre-built category database
+  private static readonly CATEGORIES: Array<{
+    name: string;
+    words: string[];
+    difficulty: 1 | 2 | 3 | 4;
+  }> = [
+    // Difficulty 1 (Yellow - Easy)
+    { name: 'Primary Colors', words: ['RED', 'BLUE', 'YELLOW', 'GREEN'], difficulty: 1 },
+    { name: 'Fruits', words: ['APPLE', 'BANANA', 'ORANGE', 'GRAPE'], difficulty: 1 },
+    { name: 'Planets', words: ['MARS', 'VENUS', 'EARTH', 'SATURN'], difficulty: 1 },
+    { name: 'Seasons', words: ['SPRING', 'SUMMER', 'FALL', 'WINTER'], difficulty: 1 },
+    { name: 'Card Suits', words: ['HEARTS', 'CLUBS', 'SPADES', 'DIAMONDS'], difficulty: 1 },
+    { name: 'Directions', words: ['NORTH', 'SOUTH', 'EAST', 'WEST'], difficulty: 1 },
+    { name: 'Body Parts', words: ['HAND', 'FOOT', 'HEAD', 'ARM'], difficulty: 1 },
+
+    // Difficulty 2 (Green - Medium)
+    { name: 'Types of Bread', words: ['RYE', 'WHEAT', 'SOURDOUGH', 'BRIOCHE'], difficulty: 2 },
+    { name: 'Shades of Blue', words: ['NAVY', 'TEAL', 'AZURE', 'COBALT'], difficulty: 2 },
+    { name: 'Greek Letters', words: ['ALPHA', 'BETA', 'GAMMA', 'DELTA'], difficulty: 2 },
+    { name: 'Chess Pieces', words: ['KING', 'QUEEN', 'ROOK', 'KNIGHT'], difficulty: 2 },
+    { name: 'Musical Instruments', words: ['PIANO', 'GUITAR', 'DRUMS', 'VIOLIN'], difficulty: 2 },
+    { name: 'Dog Breeds', words: ['POODLE', 'BEAGLE', 'BOXER', 'HUSKY'], difficulty: 2 },
+    { name: 'Trees', words: ['OAK', 'MAPLE', 'PINE', 'BIRCH'], difficulty: 2 },
+
+    // Difficulty 3 (Blue - Hard)
+    { name: '_____ King', words: ['LION', 'BURGER', 'STEPHEN', 'KONG'], difficulty: 3 },
+    { name: 'Words Before "HOUSE"', words: ['WHITE', 'GREEN', 'POWER', 'TREE'], difficulty: 3 },
+    { name: 'Double Letters', words: ['BALLOON', 'COFFEE', 'LETTER', 'BUTTER'], difficulty: 3 },
+    { name: 'Things That Are Round', words: ['BALL', 'MOON', 'WHEEL', 'COIN'], difficulty: 3 },
+    { name: 'Poker Terms', words: ['FOLD', 'CALL', 'RAISE', 'CHECK'], difficulty: 3 },
+    { name: 'Units of Time', words: ['MINUTE', 'SECOND', 'HOUR', 'DECADE'], difficulty: 3 },
+
+    // Difficulty 4 (Purple - Tricky)
+    { name: 'Homophones of Numbers', words: ['WON', 'TOO', 'ATE', 'FOR'], difficulty: 4 },
+    { name: 'Anagrams of "LISTEN"', words: ['SILENT', 'TINSEL', 'ENLIST', 'INLETS'], difficulty: 4 },
+    { name: 'Words That Sound Like Letters', words: ['BEE', 'SEA', 'JAY', 'TEA'], difficulty: 4 },
+    { name: 'Hidden Body Parts', words: ['FARM', 'BELOW', 'FENCING', 'SEARCH'], difficulty: 4 }, // ARM, ELBOW, CHIN, EAR
+    { name: 'Famous _____s', words: ['JACKSON', 'JORDAN', 'JAMES', 'JOHNSON'], difficulty: 4 },
+  ];
+
+  generate(difficulty: 'easy' | 'medium' | 'hard' | 'expert'): {
+    puzzleData: {
+      words: string[];
+      categories: Array<{ name: string; words: string[]; difficulty: number }>;
+    };
+    solution: {
+      categories: Array<{ name: string; words: string[]; difficulty: number }>;
+    };
+  } {
+    // Select categories based on difficulty
+    const config = {
+      easy: { difficulties: [1, 1, 2, 2] },
+      medium: { difficulties: [1, 2, 2, 3] },
+      hard: { difficulties: [2, 3, 3, 4] },
+      expert: { difficulties: [3, 3, 4, 4] },
+    }[difficulty];
+
+    const selectedCategories: Array<{ name: string; words: string[]; difficulty: number }> = [];
+    const usedWords = new Set<string>();
+    const usedCategories = new Set<string>();
+
+    for (const targetDiff of config.difficulties) {
+      const candidates = ConnectionsGenerator.CATEGORIES.filter(c =>
+        c.difficulty === targetDiff &&
+        !usedCategories.has(c.name) &&
+        !c.words.some(w => usedWords.has(w))
+      );
+
+      if (candidates.length > 0) {
+        const selected = candidates[Math.floor(Math.random() * candidates.length)];
+        selectedCategories.push({
+          name: selected.name,
+          words: [...selected.words],
+          difficulty: selected.difficulty,
+        });
+        usedCategories.add(selected.name);
+        selected.words.forEach(w => usedWords.add(w));
+      }
+    }
+
+    // If we couldn't get 4 categories, fill with any available
+    while (selectedCategories.length < 4) {
+      const candidates = ConnectionsGenerator.CATEGORIES.filter(c =>
+        !usedCategories.has(c.name) &&
+        !c.words.some(w => usedWords.has(w))
+      );
+
+      if (candidates.length === 0) break;
+
+      const selected = candidates[Math.floor(Math.random() * candidates.length)];
+      selectedCategories.push({
+        name: selected.name,
+        words: [...selected.words],
+        difficulty: selected.difficulty,
+      });
+      usedCategories.add(selected.name);
+      selected.words.forEach(w => usedWords.add(w));
+    }
+
+    // Collect all words and shuffle
+    const allWords = selectedCategories.flatMap(c => c.words);
+    this.shuffleArray(allWords);
+
+    // Sort categories by difficulty for display
+    selectedCategories.sort((a, b) => a.difficulty - b.difficulty);
+
+    return {
+      puzzleData: {
+        words: allWords,
+        categories: selectedCategories,
+      },
+      solution: {
+        categories: selectedCategories,
+      },
+    };
+  }
+
+  private shuffleArray<T>(array: T[]): void {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+}
+
+// Export convenience functions for new games
+export const generatePipes = (difficulty: 'easy' | 'medium' | 'hard' | 'expert') => {
+  const generator = new PipesGenerator();
+  return generator.generate(difficulty);
+};
+
+export const generateLightsOut = (difficulty: 'easy' | 'medium' | 'hard' | 'expert') => {
+  const generator = new LightsOutGenerator();
+  return generator.generate(difficulty);
+};
+
+export const generateWordLadder = (difficulty: 'easy' | 'medium' | 'hard' | 'expert') => {
+  const generator = new WordLadderGenerator();
+  return generator.generate(difficulty);
+};
+
+export const generateConnections = (difficulty: 'easy' | 'medium' | 'hard' | 'expert') => {
+  const generator = new ConnectionsGenerator();
   return generator.generate(difficulty);
 };

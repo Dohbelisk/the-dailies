@@ -128,7 +128,7 @@ Once started, access your services at:
 ## 🔐 Default Credentials
 
 **Admin Login:**
-- Email: `admin@thedailies.app`
+- Email: `admin@dohbelisk.com`
 - Password: `5nifrenypro`
 
 > ⚠️ Change these in production!
@@ -233,7 +233,7 @@ npm run lint             # Lint all code
 - [ ] Run `npm run seed` to create admin user
 - [ ] Run `npm run dev` to start services
 - [ ] Open http://localhost:5173
-- [ ] Login with admin@thedailies.app / 5nifrenypro
+- [ ] Login with admin@dohbelisk.com / 5nifrenypro
 - [ ] Generate some puzzles!
 
 ---

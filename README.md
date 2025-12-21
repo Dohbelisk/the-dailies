@@ -138,7 +138,7 @@ The API will be available at `http://localhost:3000`
 Swagger docs at `http://localhost:3000/api/docs`
 
 **Default Admin Login:**
-- Email: `admin@thedailies.app`
+- Email: `admin@dohbelisk.com`
 - Password: `5nifrenypro`
 
 ### 2. Admin Portal Setup

@@ -5,12 +5,20 @@ class PuzzleCard extends StatelessWidget {
   final DailyPuzzle puzzle;
   final VoidCallback onTap;
   final bool isLocked;
+  final bool isCompleted;
+  final bool isInProgress;
+  final bool isFavorite;
+  final VoidCallback? onFavoriteToggle;
 
   const PuzzleCard({
     super.key,
     required this.puzzle,
     required this.onTap,
     this.isLocked = false,
+    this.isCompleted = false,
+    this.isInProgress = false,
+    this.isFavorite = false,
+    this.onFavoriteToggle,
   });
 
   @override
@@ -47,12 +55,12 @@ class PuzzleCard extends StatelessWidget {
           children: [
             // Background pattern
             Positioned(
-              right: -20,
-              bottom: -20,
+              right: -10,
+              bottom: -10,
               child: Text(
                 puzzle.gameType.icon,
                 style: TextStyle(
-                  fontSize: 80,
+                  fontSize: 50,
                   color: colors.$1.withOpacity(0.1),
                 ),
               ),
@@ -78,36 +86,82 @@ class PuzzleCard extends StatelessWidget {
 
             // Content
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Icon
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: colors.$1.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      puzzle.gameType.icon,
-                      style: const TextStyle(fontSize: 28),
-                    ),
+                  // Top row: Icon, status, and favorite
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: colors.$1.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          puzzle.gameType.icon,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                      ),
+                      const Spacer(),
+                      // Status badge
+                      if (isCompleted || puzzle.isCompleted)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.check_circle_rounded,
+                            size: 14,
+                            color: Colors.green,
+                          ),
+                        )
+                      else if (isInProgress)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.play_arrow_rounded,
+                            size: 14,
+                            color: Colors.orange,
+                          ),
+                        ),
+                      // Favorite button
+                      if (onFavoriteToggle != null) ...[
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: onFavoriteToggle,
+                          child: Icon(
+                            isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            size: 18,
+                            color: isFavorite ? Colors.red : theme.colorScheme.onSurface.withOpacity(0.4),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
 
-                  const Spacer(),
+                  const SizedBox(height: 8),
 
                   // Title
                   Text(
                     puzzle.gameType.displayName,
-                    style: theme.textTheme.titleLarge?.copyWith(
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
 
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
 
-                  // Difficulty stars
+                  // Difficulty stars (compact)
                   Row(
                     children: [
                       ...List.generate(
@@ -116,72 +170,47 @@ class PuzzleCard extends StatelessWidget {
                           index < puzzle.difficulty.stars
                               ? Icons.star_rounded
                               : Icons.star_outline_rounded,
-                          size: 16,
+                          size: 12,
                           color: index < puzzle.difficulty.stars
                               ? colors.$1
                               : theme.colorScheme.onSurface.withOpacity(0.3),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 4),
                       Text(
                         puzzle.difficulty.displayName,
-                        style: theme.textTheme.bodySmall?.copyWith(
+                        style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          fontSize: 10,
                         ),
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 12),
+                  const Spacer(),
 
-                  // Status indicator
-                  if (puzzle.isCompleted)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                  // Play button row
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.play_circle_filled_rounded,
+                        size: 16,
+                        color: colors.$1,
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            size: 14,
-                            color: Colors.green,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Completed',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.play_circle_filled_rounded,
-                          size: 18,
+                      const SizedBox(width: 4),
+                      Text(
+                        isCompleted || puzzle.isCompleted
+                            ? 'Play Again'
+                            : isInProgress
+                                ? 'Continue'
+                                : 'Play',
+                        style: theme.textTheme.labelSmall?.copyWith(
                           color: colors.$1,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Play Now',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colors.$1,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -207,6 +236,16 @@ class PuzzleCard extends StatelessWidget {
         return (const Color(0xFF64748B), const Color(0xFF94A3B8)); // Slate/Gray
       case GameType.numberTarget:
         return (const Color(0xFF10B981), const Color(0xFF34D399)); // Emerald/Green
+      case GameType.ballSort:
+        return (const Color(0xFFF472B6), const Color(0xFFFBCFE8)); // Pink
+      case GameType.pipes:
+        return (const Color(0xFF06B6D4), const Color(0xFF14B8A6)); // Cyan/Teal
+      case GameType.lightsOut:
+        return (const Color(0xFFEAB308), const Color(0xFFF59E0B)); // Yellow/Amber
+      case GameType.wordLadder:
+        return (const Color(0xFF6366F1), const Color(0xFF8B5CF6)); // Indigo/Purple
+      case GameType.connections:
+        return (const Color(0xFFF43F5E), const Color(0xFFEC4899)); // Rose/Pink
     }
   }
 }

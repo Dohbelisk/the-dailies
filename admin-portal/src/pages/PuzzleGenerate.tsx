@@ -70,6 +70,16 @@ export default function PuzzleGenerate() {
         return api.post('/generate/nonogram', { difficulty, date, title })
       } else if (gameType === 'numberTarget') {
         return api.post('/generate/number-target', { difficulty, date, title })
+      } else if (gameType === 'ballSort') {
+        return api.post('/generate/ball-sort', { difficulty, date, title })
+      } else if (gameType === 'pipes') {
+        return api.post('/generate/pipes', { difficulty, date, title })
+      } else if (gameType === 'lightsOut') {
+        return api.post('/generate/lights-out', { difficulty, date, title })
+      } else if (gameType === 'wordLadder') {
+        return api.post('/generate/word-ladder', { difficulty, date, title })
+      } else if (gameType === 'connections') {
+        return api.post('/generate/connections', { difficulty, date, title })
       }
     },
     onSuccess: () => {
@@ -169,6 +179,11 @@ export default function PuzzleGenerate() {
                   <option value="wordForge">Word Forge</option>
                   <option value="nonogram">Nonogram</option>
                   <option value="numberTarget">Number Target</option>
+                  <option value="ballSort">Ball Sort</option>
+                  <option value="pipes">Pipes</option>
+                  <option value="lightsOut">Lights Out</option>
+                  <option value="wordLadder">Word Ladder</option>
+                  <option value="connections">Connections</option>
                 </select>
                 <p className="mt-1 text-sm text-gray-500">
                   {gameType === 'sudoku' && 'Generates a valid Sudoku puzzle with unique solution'}
@@ -178,6 +193,11 @@ export default function PuzzleGenerate() {
                   {gameType === 'wordForge' && 'Generates Word Forge with 7 letters and valid words'}
                   {gameType === 'nonogram' && 'Generates Nonogram picture logic puzzle'}
                   {gameType === 'numberTarget' && 'Generates Number Target math puzzle'}
+                  {gameType === 'ballSort' && 'Generates Ball Sort puzzle with colored balls to sort'}
+                  {gameType === 'pipes' && 'Connect colored dots without crossing paths'}
+                  {gameType === 'lightsOut' && 'Toggle lights to turn them all off'}
+                  {gameType === 'wordLadder' && 'Transform one word to another, one letter at a time'}
+                  {gameType === 'connections' && 'Group 16 words into 4 categories'}
                 </p>
               </div>
 
@@ -370,6 +390,113 @@ export default function PuzzleGenerate() {
                 </div>
               </div>
             )}
+
+            {gameType === 'ballSort' && (
+              <div className="flex items-center justify-center bg-gray-50 dark:bg-gray-700/50 rounded-xl p-8">
+                <div className="text-center">
+                  <span className="text-6xl mb-4 block">🔴</span>
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Ball Sort Generator
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Sort colored balls into tubes so each tube has only one color.
+                    Move one ball at a time to matching colors or empty tubes.
+                  </p>
+                  <ul className="mt-4 text-sm text-left text-gray-600 dark:text-gray-400 space-y-1">
+                    <li>• Easy: 6 tubes, 4 colors</li>
+                    <li>• Medium: 8 tubes, 6 colors</li>
+                    <li>• Hard: 10 tubes, 8 colors</li>
+                    <li>• Expert: 12 tubes, 10 colors</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {gameType === 'pipes' && (
+              <div className="flex items-center justify-center bg-gray-50 dark:bg-gray-700/50 rounded-xl p-8">
+                <div className="text-center">
+                  <span className="text-6xl mb-4 block">🔗</span>
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Pipes Generator
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Connect matching colored dots with pipes.
+                    Paths cannot cross unless using a bridge tile.
+                    All cells must be filled.
+                  </p>
+                  <ul className="mt-4 text-sm text-left text-gray-600 dark:text-gray-400 space-y-1">
+                    <li>• Easy: 5x5 grid, 4 colors</li>
+                    <li>• Medium: 6x6 grid, 5 colors, 1 bridge</li>
+                    <li>• Hard: 7x7 grid, 6 colors, 2 bridges</li>
+                    <li>• Expert: 8x8 grid, 8 colors, 3 bridges</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {gameType === 'lightsOut' && (
+              <div className="flex items-center justify-center bg-gray-50 dark:bg-gray-700/50 rounded-xl p-8">
+                <div className="text-center">
+                  <span className="text-6xl mb-4 block">💡</span>
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Lights Out Generator
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Tap a light to toggle it and its 4 neighbors.
+                    Goal: Turn all lights off in minimum moves.
+                  </p>
+                  <ul className="mt-4 text-sm text-left text-gray-600 dark:text-gray-400 space-y-1">
+                    <li>• Easy: 3x3 grid, 3-4 lights on</li>
+                    <li>• Medium: 4x4 grid, 5-7 lights on</li>
+                    <li>• Hard: 5x5 grid, 8-12 lights on</li>
+                    <li>• Expert: 5x5 grid, 12-16 lights on</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {gameType === 'wordLadder' && (
+              <div className="flex items-center justify-center bg-gray-50 dark:bg-gray-700/50 rounded-xl p-8">
+                <div className="text-center">
+                  <span className="text-6xl mb-4 block">🪜</span>
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Word Ladder Generator
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Transform the start word into the target word,
+                    changing one letter at a time. Each step must be a valid word.
+                  </p>
+                  <ul className="mt-4 text-sm text-left text-gray-600 dark:text-gray-400 space-y-1">
+                    <li>• Easy: 3-4 letter words, 3-4 steps</li>
+                    <li>• Medium: 4 letter words, 5-6 steps</li>
+                    <li>• Hard: 4-5 letter words, 7-8 steps</li>
+                    <li>• Expert: 5 letter words, 9+ steps</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {gameType === 'connections' && (
+              <div className="flex items-center justify-center bg-gray-50 dark:bg-gray-700/50 rounded-xl p-8">
+                <div className="text-center">
+                  <span className="text-6xl mb-4 block">🔗</span>
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Connections Generator
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Group 16 words into 4 categories of 4 words each.
+                    Categories range from easy (yellow) to hard (purple).
+                    4 mistakes allowed.
+                  </p>
+                  <ul className="mt-4 text-sm text-left text-gray-600 dark:text-gray-400 space-y-1">
+                    <li>• Easy: 2 easy + 2 medium categories</li>
+                    <li>• Medium: 1 easy + 2 medium + 1 hard</li>
+                    <li>• Hard: 1 medium + 2 hard + 1 tricky</li>
+                    <li>• Expert: All tricky categories</li>
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -426,6 +553,11 @@ export default function PuzzleGenerate() {
                     { id: 'wordForge', label: 'Word Forge', desc: 'Forge words from letters' },
                     { id: 'nonogram', label: 'Nonogram', desc: 'Picture logic puzzle' },
                     { id: 'numberTarget', label: 'Number Target', desc: 'Math puzzle' },
+                    { id: 'ballSort', label: 'Ball Sort', desc: 'Sort colored balls' },
+                    { id: 'pipes', label: 'Pipes', desc: 'Connect colored dots' },
+                    { id: 'lightsOut', label: 'Lights Out', desc: 'Toggle lights puzzle' },
+                    { id: 'wordLadder', label: 'Word Ladder', desc: 'Transform words step by step' },
+                    { id: 'connections', label: 'Connections', desc: 'Group words into categories' },
                   ].map((type) => (
                     <label
                       key={type.id}

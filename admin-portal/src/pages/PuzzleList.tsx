@@ -18,6 +18,13 @@ import {
   Hexagon,
   LayoutGrid,
   Target,
+  Circle,
+  GitBranch,
+  Lightbulb,
+  ArrowUpDown,
+  Link2,
+  Calendar,
+  X,
 } from 'lucide-react'
 import { puzzlesApi } from '../lib/api'
 
@@ -29,12 +36,54 @@ const gameTypeIcons: Record<string, typeof Grid3X3> = {
   wordForge: Hexagon,
   nonogram: LayoutGrid,
   numberTarget: Target,
+  ballSort: Circle,
+  pipes: GitBranch,
+  lightsOut: Lightbulb,
+  wordLadder: ArrowUpDown,
+  connections: Link2,
 }
+
+const gameTypes = [
+  { value: 'sudoku', label: 'Sudoku' },
+  { value: 'killerSudoku', label: 'Killer Sudoku' },
+  { value: 'crossword', label: 'Crossword' },
+  { value: 'wordSearch', label: 'Word Search' },
+  { value: 'wordForge', label: 'Word Forge' },
+  { value: 'nonogram', label: 'Nonogram' },
+  { value: 'numberTarget', label: 'Number Target' },
+  { value: 'ballSort', label: 'Ball Sort' },
+  { value: 'pipes', label: 'Pipes' },
+  { value: 'lightsOut', label: 'Lights Out' },
+  { value: 'wordLadder', label: 'Word Ladder' },
+  { value: 'connections', label: 'Connections' },
+]
+
+const difficulties = [
+  { value: 'easy', label: 'Easy' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'hard', label: 'Hard' },
+  { value: 'expert', label: 'Expert' },
+]
 
 export default function PuzzleList() {
   const [searchQuery, setSearchQuery] = useState('')
   const [gameTypeFilter, setGameTypeFilter] = useState<string>('')
+  const [difficultyFilter, setDifficultyFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [dateFrom, setDateFrom] = useState<string>('')
+  const [dateTo, setDateTo] = useState<string>('')
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
+
+  const hasActiveFilters = gameTypeFilter || difficultyFilter || statusFilter || dateFrom || dateTo
+
+  const clearFilters = () => {
+    setGameTypeFilter('')
+    setDifficultyFilter('')
+    setStatusFilter('')
+    setDateFrom('')
+    setDateTo('')
+    setSearchQuery('')
+  }
 
   const queryClient = useQueryClient()
 
@@ -69,13 +118,42 @@ export default function PuzzleList() {
   })
 
   const filteredPuzzles = puzzles?.filter((puzzle: any) => {
-    if (!searchQuery) return true
-    const search = searchQuery.toLowerCase()
-    return (
-      puzzle.title?.toLowerCase().includes(search) ||
-      puzzle.gameType.toLowerCase().includes(search) ||
-      puzzle.difficulty.toLowerCase().includes(search)
-    )
+    // Search filter
+    if (searchQuery) {
+      const search = searchQuery.toLowerCase()
+      const matchesSearch =
+        puzzle.title?.toLowerCase().includes(search) ||
+        puzzle.gameType.toLowerCase().includes(search) ||
+        puzzle.difficulty.toLowerCase().includes(search)
+      if (!matchesSearch) return false
+    }
+
+    // Difficulty filter
+    if (difficultyFilter && puzzle.difficulty !== difficultyFilter) {
+      return false
+    }
+
+    // Status filter
+    if (statusFilter) {
+      const isActive = statusFilter === 'active'
+      if (puzzle.isActive !== isActive) return false
+    }
+
+    // Date range filter
+    if (dateFrom) {
+      const puzzleDate = new Date(puzzle.date)
+      const fromDate = new Date(dateFrom)
+      if (puzzleDate < fromDate) return false
+    }
+
+    if (dateTo) {
+      const puzzleDate = new Date(puzzle.date)
+      const toDate = new Date(dateTo)
+      toDate.setHours(23, 59, 59, 999) // Include the entire day
+      if (puzzleDate > toDate) return false
+    }
+
+    return true
   })
 
   const handleDelete = (id: string) => {
@@ -99,8 +177,9 @@ export default function PuzzleList() {
       </div>
 
       {/* Filters */}
-      <div className="card p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
+      <div className="card p-4 space-y-4">
+        {/* Search and primary filters */}
+        <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -111,24 +190,93 @@ export default function PuzzleList() {
               className="input pl-10"
             />
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex flex-wrap items-center gap-2">
             <Filter className="w-4 h-4 text-gray-400" />
+
+            {/* Game Type Filter */}
             <select
               value={gameTypeFilter}
               onChange={(e) => setGameTypeFilter(e.target.value)}
               className="input w-auto"
             >
               <option value="">All Types</option>
-              <option value="sudoku">Sudoku</option>
-              <option value="killerSudoku">Killer Sudoku</option>
-              <option value="crossword">Crossword</option>
-              <option value="wordSearch">Word Search</option>
-              <option value="wordForge">Word Forge</option>
-              <option value="nonogram">Nonogram</option>
-              <option value="numberTarget">Number Target</option>
+              {gameTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Difficulty Filter */}
+            <select
+              value={difficultyFilter}
+              onChange={(e) => setDifficultyFilter(e.target.value)}
+              className="input w-auto"
+            >
+              <option value="">All Difficulties</option>
+              {difficulties.map((diff) => (
+                <option key={diff.value} value={diff.value}>
+                  {diff.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="input w-auto"
+            >
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
             </select>
           </div>
         </div>
+
+        {/* Date range filters */}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400" />
+            <span className="text-sm text-gray-500 dark:text-gray-400">Date Range:</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="input w-auto"
+              placeholder="From"
+            />
+            <span className="text-gray-400">to</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="input w-auto"
+              placeholder="To"
+            />
+          </div>
+
+          {/* Clear filters button */}
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-gray-100 dark:bg-gray-700 rounded-lg transition-colors"
+            >
+              <X className="w-3 h-3" />
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        {/* Results count */}
+        {filteredPuzzles && (
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Showing {filteredPuzzles.length} of {puzzles?.length || 0} puzzles
+          </div>
+        )}
       </div>
 
       {/* Table */}

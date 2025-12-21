@@ -7,6 +7,8 @@ import '../models/game_models.dart';
 import '../services/game_service.dart';
 import '../services/auth_service.dart';
 import '../services/consent_service.dart';
+import '../services/game_state_service.dart';
+import '../services/favorites_service.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/puzzle_card.dart';
 import '../widgets/animated_background.dart';
@@ -31,6 +33,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Future<List<DailyPuzzle>> _puzzlesFuture;
   late AnimationController _headerController;
   bool _consentChecked = false;
+  Map<GameType, Map<String, dynamic>> _completions = {};
+  Map<GameType, bool> _inProgress = {};
+  Set<GameType> _favorites = {};
 
   @override
   void initState() {
@@ -73,6 +78,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _loadPuzzles() {
     final gameService = Provider.of<GameService>(context, listen: false);
     _puzzlesFuture = gameService.getTodaysPuzzles();
+    _loadPuzzleStatuses();
+    _loadFavorites();
+  }
+
+  Future<void> _loadPuzzleStatuses() async {
+    final today = DateTime.now();
+    final completions = await GameStateService.getCompletionsForDate(today);
+    final inProgress = await GameStateService.getInProgressForDate(today);
+    if (mounted) {
+      setState(() {
+        _completions = completions;
+        _inProgress = inProgress;
+      });
+    }
+  }
+
+  Future<void> _loadFavorites() async {
+    final favorites = await FavoritesService.getFavorites();
+    if (mounted) {
+      setState(() {
+        _favorites = favorites;
+      });
+    }
+  }
+
+  Future<void> _toggleFavorite(GameType gameType) async {
+    final isFav = await FavoritesService.toggleFavorite(gameType);
+    if (mounted) {
+      setState(() {
+        if (isFav) {
+          _favorites.add(gameType);
+        } else {
+          _favorites.remove(gameType);
+        }
+      });
+    }
   }
 
   void _handleFriendsPressed() {
@@ -316,21 +357,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         );
                       }
 
-                      final puzzles = snapshot.data ?? [];
-                      
+                      final rawPuzzles = snapshot.data ?? [];
+                      // Sort puzzles with favorites first
+                      final puzzles = FavoritesService.sortByFavorites(rawPuzzles, _favorites);
+
                       return SliverGrid(
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.85,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 1.3,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final puzzle = puzzles[index];
+                            final isCompleted = _completions.containsKey(puzzle.gameType);
+                            final isInProgress = _inProgress[puzzle.gameType] ?? false;
+                            final isFavorite = _favorites.contains(puzzle.gameType);
                             return PuzzleCard(
                               puzzle: puzzle,
                               onTap: () => _openPuzzle(context, puzzle),
+                              isCompleted: isCompleted,
+                              isInProgress: isInProgress && !isCompleted,
+                              isFavorite: isFavorite,
+                              onFavoriteToggle: () => _toggleFavorite(puzzle.gameType),
                             ).animate()
                               .fadeIn(
                                 delay: Duration(milliseconds: 400 + index * 100),
@@ -381,6 +431,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         },
         transitionDuration: const Duration(milliseconds: 400),
       ),
-    );
+    ).then((_) {
+      // Reload puzzle statuses when returning from game
+      _loadPuzzleStatuses();
+    });
   }
 }

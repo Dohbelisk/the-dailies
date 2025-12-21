@@ -622,6 +622,38 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.search_rounded;
         label = 'Word Search';
         break;
+      case GameType.wordForge:
+        icon = Icons.text_fields_rounded;
+        label = 'Word Forge';
+        break;
+      case GameType.nonogram:
+        icon = Icons.grid_view_rounded;
+        label = 'Nonogram';
+        break;
+      case GameType.numberTarget:
+        icon = Icons.calculate_rounded;
+        label = 'Number Target';
+        break;
+      case GameType.ballSort:
+        icon = Icons.sports_baseball_rounded;
+        label = 'Ball Sort';
+        break;
+      case GameType.pipes:
+        icon = Icons.plumbing_rounded;
+        label = 'Pipes';
+        break;
+      case GameType.lightsOut:
+        icon = Icons.lightbulb_rounded;
+        label = 'Lights Out';
+        break;
+      case GameType.wordLadder:
+        icon = Icons.stairs_rounded;
+        label = 'Word Ladder';
+        break;
+      case GameType.connections:
+        icon = Icons.hub_rounded;
+        label = 'Connections';
+        break;
     }
 
     if (small) {

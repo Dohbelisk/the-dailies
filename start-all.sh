@@ -292,7 +292,7 @@ echo -e "  ${GREEN}Admin Portal:${NC}     ${CYAN}http://localhost:5173${NC}"
 if [ "$FLUTTER_ENABLED" = true ] && [ -n "$FLUTTER_PID" ]; then
     echo -e "  ${GREEN}Flutter App:${NC}      Running on connected device"
 fi
-echo -e "  ${GREEN}Default Login:${NC}    admin@thedailies.app / 5nifrenypro\n"
+echo -e "  ${GREEN}Default Login:${NC}    admin@dohbelisk.com / 5nifrenypro\n"
 
 echo -e "${YELLOW}📝 Logs:${NC}"
 echo -e "  Backend:       tail -f backend.log"

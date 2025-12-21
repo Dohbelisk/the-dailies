@@ -99,7 +99,7 @@ npm run lint
 ```
 
 **Default admin credentials:**
-- Email: `admin@thedailies.app`
+- Email: `admin@dohbelisk.com`
 - Password: `5nifrenypro`
 
 ### Admin Portal (React + Vite)

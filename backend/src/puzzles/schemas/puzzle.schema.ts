@@ -12,6 +12,11 @@ export enum GameType {
   WORD_FORGE = 'wordForge',
   NONOGRAM = 'nonogram',
   NUMBER_TARGET = 'numberTarget',
+  BALL_SORT = 'ballSort',
+  PIPES = 'pipes',
+  LIGHTS_OUT = 'lightsOut',
+  WORD_LADDER = 'wordLadder',
+  CONNECTIONS = 'connections',
 }
 
 export enum Difficulty {

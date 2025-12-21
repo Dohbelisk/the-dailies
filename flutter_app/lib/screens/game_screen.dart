@@ -12,6 +12,7 @@ import '../services/hint_service.dart';
 import '../services/audio_service.dart';
 import '../services/challenge_service.dart';
 import '../services/api_service.dart';
+import '../services/game_state_service.dart';
 import '../widgets/sudoku_grid.dart';
 import '../widgets/killer_sudoku_grid.dart';
 import '../widgets/crossword_grid.dart';
@@ -19,6 +20,11 @@ import '../widgets/word_search_grid.dart';
 import '../widgets/word_forge_grid.dart';
 import '../widgets/nonogram_grid.dart';
 import '../widgets/number_target_grid.dart';
+import '../widgets/ball_sort_grid.dart';
+import '../widgets/pipes_grid.dart';
+import '../widgets/lights_out_grid.dart';
+import '../widgets/word_ladder_grid.dart';
+import '../widgets/connections_grid.dart';
 import '../widgets/number_pad.dart';
 import '../widgets/keyboard_input.dart';
 import '../widgets/game_timer.dart';
@@ -100,13 +106,81 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _loadPuzzleIntoProvider() {
-    final gameProvider = Provider.of<GameProvider>(context, listen: false);
-    gameProvider.loadPuzzle(_puzzle!);
+  Future<void> _loadPuzzleIntoProvider() async {
+    // Check if there's saved state for this puzzle
+    final hasSavedState = await GameStateService.hasInProgressState(
+      gameType: _puzzle!.gameType,
+      puzzleDate: _puzzle!.date,
+    );
+
+    if (hasSavedState && mounted) {
+      // Show dialog asking to continue or restart
+      final shouldContinue = await _showContinueOrRestartDialog();
+      if (!mounted) return;
+
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      if (shouldContinue) {
+        // Load with saved state
+        await gameProvider.loadPuzzle(_puzzle!, restoreSavedState: true);
+      } else {
+        // Clear saved state and start fresh
+        await GameStateService.clearGameState(
+          gameType: _puzzle!.gameType,
+          puzzleDate: _puzzle!.date,
+        );
+        await gameProvider.loadPuzzle(_puzzle!, restoreSavedState: false);
+      }
+    } else {
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      await gameProvider.loadPuzzle(_puzzle!);
+    }
+
     setState(() {
       _isLoading = false;
     });
     _startTimer();
+  }
+
+  Future<bool> _showContinueOrRestartDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        final theme = Theme.of(context);
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.play_circle_outline_rounded,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 12),
+              const Text('Continue Game?'),
+            ],
+          ),
+          content: const Text(
+            'You have a game in progress. Would you like to continue where you left off or start a new game?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'Start New',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Continue'),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? true; // Default to continue if dialog dismissed
   }
 
   @override
@@ -119,6 +193,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  Future<void> _saveAndExit() async {
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    if (gameProvider.isPlaying) {
+      await gameProvider.saveState();
+    }
+    gameProvider.reset();
+  }
+
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!_isPaused && mounted) {
@@ -129,7 +211,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
   }
 
-  void _checkCompletion() {
+  Future<void> _checkCompletion() async {
     if (_puzzle == null) return;
 
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
@@ -138,22 +220,37 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     switch (_puzzle!.gameType) {
       case GameType.sudoku:
       case GameType.killerSudoku:
-        isComplete = gameProvider.checkSudokuComplete();
+        isComplete = await gameProvider.checkSudokuComplete();
         break;
       case GameType.crossword:
-        isComplete = gameProvider.checkCrosswordComplete();
+        isComplete = await gameProvider.checkCrosswordComplete();
         break;
       case GameType.wordSearch:
-        isComplete = gameProvider.checkWordSearchComplete();
+        isComplete = await gameProvider.checkWordSearchComplete();
         break;
       case GameType.wordForge:
-        isComplete = gameProvider.checkWordForgeComplete();
+        isComplete = await gameProvider.checkWordForgeComplete();
         break;
       case GameType.nonogram:
-        isComplete = gameProvider.checkNonogramComplete();
+        isComplete = await gameProvider.checkNonogramComplete();
         break;
       case GameType.numberTarget:
-        isComplete = gameProvider.checkNumberTargetComplete();
+        isComplete = await gameProvider.checkNumberTargetComplete();
+        break;
+      case GameType.ballSort:
+        isComplete = await gameProvider.checkBallSortComplete();
+        break;
+      case GameType.pipes:
+        isComplete = await gameProvider.checkPipesComplete();
+        break;
+      case GameType.lightsOut:
+        isComplete = await gameProvider.checkLightsOutComplete();
+        break;
+      case GameType.wordLadder:
+        isComplete = await gameProvider.checkWordLadderComplete();
+        break;
+      case GameType.connections:
+        isComplete = await gameProvider.checkConnectionsComplete();
         break;
     }
 
@@ -278,53 +375,63 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       );
     }
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.background,
-                  theme.colorScheme.surface,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _saveAndExit();
+        if (context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.colorScheme.background,
+                    theme.colorScheme.surface,
+                  ],
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(context),
+                  Expanded(
+                    child: _isPaused
+                        ? _buildPausedOverlay(context)
+                        : _buildGameContent(context),
+                  ),
                 ],
               ),
             ),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(context),
-                Expanded(
-                  child: _isPaused
-                      ? _buildPausedOverlay(context)
-                      : _buildGameContent(context),
-                ),
-              ],
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                particleDrag: 0.05,
+                emissionFrequency: 0.05,
+                numberOfParticles: 30,
+                gravity: 0.1,
+                shouldLoop: false,
+                colors: [
+                  theme.colorScheme.primary,
+                  theme.colorScheme.secondary,
+                  Colors.amber,
+                  Colors.pink,
+                  Colors.purple,
+                ],
+              ),
             ),
-          ),
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              particleDrag: 0.05,
-              emissionFrequency: 0.05,
-              numberOfParticles: 30,
-              gravity: 0.1,
-              shouldLoop: false,
-              colors: [
-                theme.colorScheme.primary,
-                theme.colorScheme.secondary,
-                Colors.amber,
-                Colors.pink,
-                Colors.purple,
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -338,10 +445,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () {
-              final gameProvider = Provider.of<GameProvider>(context, listen: false);
-              gameProvider.reset();
-              Navigator.pop(context);
+            onPressed: () async {
+              await _saveAndExit();
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
             },
           ),
           Expanded(
@@ -400,7 +508,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildPausedOverlay(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -419,6 +527,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             onPressed: _togglePause,
           ),
           const SizedBox(height: 12),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Restart Game'),
+            onPressed: _showRestartConfirmation,
+          ),
+          const SizedBox(height: 8),
           TextButton.icon(
             icon: const Icon(Icons.flag_outlined, size: 18),
             label: const Text('Report Issue'),
@@ -436,6 +550,70 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ],
       ),
     );
+  }
+
+  Future<void> _showRestartConfirmation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final theme = Theme.of(context);
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.refresh_rounded,
+                color: theme.colorScheme.error,
+              ),
+              const SizedBox(width: 12),
+              const Text('Restart Game?'),
+            ],
+          ),
+          content: const Text(
+            'Are you sure you want to restart? All your progress on this puzzle will be lost.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.error,
+              ),
+              child: const Text('Restart'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && mounted) {
+      await _restartGame();
+    }
+  }
+
+  Future<void> _restartGame() async {
+    if (_puzzle == null) return;
+
+    // Clear saved state
+    await GameStateService.clearGameState(
+      gameType: _puzzle!.gameType,
+      puzzleDate: _puzzle!.date,
+    );
+
+    // Reload puzzle fresh
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    await gameProvider.loadPuzzle(_puzzle!, restoreSavedState: false);
+
+    // Resume game
+    setState(() {
+      _isPaused = false;
+    });
+    gameProvider.resume();
   }
 
   Widget _buildGameContent(BuildContext context) {
@@ -458,6 +636,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return _buildNonogramContent(context);
       case GameType.numberTarget:
         return _buildNumberTargetContent(context);
+      case GameType.ballSort:
+        return _buildBallSortContent(context);
+      case GameType.pipes:
+        return _buildPipesContent(context);
+      case GameType.lightsOut:
+        return _buildLightsOutContent(context);
+      case GameType.wordLadder:
+        return _buildWordLadderContent(context);
+      case GameType.connections:
+        return _buildConnectionsContent(context);
     }
   }
 
@@ -489,6 +677,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
             NumberPad(
               notesMode: gameProvider.notesMode,
+              completedNumbers: gameProvider.sudokuPuzzle!.completedNumbers,
               onNumberTap: (number) {
                 final wasCorrect = gameProvider.enterNumber(number);
                 if (gameProvider.notesMode) {
@@ -676,6 +865,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
             NumberPad(
               notesMode: gameProvider.notesMode,
+              completedNumbers: gameProvider.killerSudokuPuzzle!.completedNumbers,
+              showCalculator: true,
               onNumberTap: (number) {
                 final wasCorrect = gameProvider.enterNumber(number);
                 if (gameProvider.notesMode) {
@@ -1253,6 +1444,190 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
           ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
         );
+      },
+    );
+  }
+
+  Widget _buildBallSortContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.ballSortPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: BallSortGrid(
+            puzzle: gameProvider.ballSortPuzzle!,
+            selectedTube: gameProvider.selectedTube,
+            undosRemaining: gameProvider.undosRemaining,
+            onTubeTap: (tubeIndex) {
+              gameProvider.selectBallSortTube(tubeIndex);
+              _audioService.playTap();
+            },
+            onUndo: () {
+              if (gameProvider.undoBallSortMove()) {
+                _audioService.playTap();
+              }
+            },
+            onReset: () {
+              gameProvider.resetBallSortPuzzle();
+              _audioService.playTap();
+            },
+          ),
+        ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
+      },
+    );
+  }
+
+  Widget _buildPipesContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.pipesPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: PipesGrid(
+            puzzle: gameProvider.pipesPuzzle!,
+            onPathStart: (color, row, col) {
+              gameProvider.startPipesPath(color, row, col);
+              _audioService.playTap();
+            },
+            onPathExtend: (row, col) {
+              gameProvider.extendPipesPath(row, col);
+            },
+            onPathEnd: () {
+              gameProvider.endPipesPath();
+            },
+            onReset: () {
+              gameProvider.resetPipesPuzzle();
+              _audioService.playTap();
+            },
+          ),
+        ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
+      },
+    );
+  }
+
+  Widget _buildLightsOutContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.lightsOutPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: LightsOutGrid(
+            puzzle: gameProvider.lightsOutPuzzle!,
+            onCellTap: (row, col) {
+              gameProvider.toggleLightsOutCell(row, col);
+              _audioService.playTap();
+            },
+            onReset: () {
+              gameProvider.resetLightsOutPuzzle();
+              _audioService.playTap();
+            },
+          ),
+        ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
+      },
+    );
+  }
+
+  // Word Ladder state for result messages
+  String? _wordLadderMessage;
+  bool? _wordLadderSuccess;
+
+  Widget _buildWordLadderContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.wordLadderPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: WordLadderGrid(
+            puzzle: gameProvider.wordLadderPuzzle!,
+            currentInput: gameProvider.wordLadderInput,
+            onInputChanged: (value) {
+              gameProvider.setWordLadderInput(value);
+            },
+            onSubmit: () {
+              final result = gameProvider.submitWordLadderWord();
+              setState(() {
+                _wordLadderMessage = result.message;
+                _wordLadderSuccess = result.success;
+              });
+              if (result.success) {
+                _audioService.playWordFound();
+                if (result.isComplete) {
+                  _confettiController.play();
+                }
+              } else {
+                _audioService.playError();
+              }
+            },
+            onUndo: () {
+              gameProvider.undoWordLadderWord();
+              _audioService.playTap();
+            },
+            onReset: () {
+              gameProvider.resetWordLadderPuzzle();
+              _audioService.playTap();
+            },
+          ),
+        ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
+      },
+    );
+  }
+
+  // Connections state for result messages
+  String? _connectionsMessage;
+  bool? _connectionsSuccess;
+
+  Widget _buildConnectionsContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.connectionsPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: ConnectionsGrid(
+            puzzle: gameProvider.connectionsPuzzle!,
+            onWordTap: (word) {
+              gameProvider.toggleConnectionsWord(word);
+              _audioService.playTap();
+            },
+            onSubmit: () {
+              final result = gameProvider.submitConnectionsSelection();
+              setState(() {
+                _connectionsMessage = result.message;
+                _connectionsSuccess = result.success;
+              });
+              if (result.success) {
+                _audioService.playWordFound();
+                if (gameProvider.connectionsPuzzle!.isComplete) {
+                  _confettiController.play();
+                }
+              } else {
+                _audioService.playError();
+              }
+            },
+            onClear: () {
+              gameProvider.clearConnectionsSelection();
+              _audioService.playTap();
+            },
+            onReset: () {
+              gameProvider.resetConnectionsPuzzle();
+              _audioService.playTap();
+            },
+          ),
+        ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
       },
     );
   }

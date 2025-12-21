@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Loader2, Save, Trash2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, Trash2, Code, Grid3X3 } from 'lucide-react'
 import { puzzlesApi } from '../lib/api'
+import PuzzleEditorWrapper from '../components/editors/PuzzleEditorWrapper'
 
 const puzzleSchema = z.object({
-  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch', 'wordForge', 'nonogram', 'numberTarget']),
+  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch', 'wordForge', 'nonogram', 'numberTarget', 'ballSort', 'pipes', 'lightsOut', 'wordLadder', 'connections']),
   difficulty: z.enum(['easy', 'medium', 'hard', 'expert']),
   date: z.string().min(1, 'Date is required'),
   title: z.string().optional(),
@@ -19,6 +20,7 @@ const puzzleSchema = z.object({
 })
 
 type PuzzleFormData = z.infer<typeof puzzleSchema>
+type EditorMode = 'visual' | 'json'
 
 export default function PuzzleEdit() {
   const { id } = useParams<{ id: string }>()
@@ -26,6 +28,8 @@ export default function PuzzleEdit() {
   const queryClient = useQueryClient()
   const [puzzleDataJson, setPuzzleDataJson] = useState('')
   const [jsonError, setJsonError] = useState('')
+  const [editorMode, setEditorMode] = useState<EditorMode>('visual')
+  const [visualPuzzleData, setVisualPuzzleData] = useState<any>(null)
 
   const { data: puzzle, isLoading } = useQuery({
     queryKey: ['puzzle', id],
@@ -37,10 +41,13 @@ export default function PuzzleEdit() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<PuzzleFormData>({
     resolver: zodResolver(puzzleSchema),
   })
+
+  const gameType = watch('gameType')
 
   useEffect(() => {
     if (puzzle) {
@@ -54,8 +61,13 @@ export default function PuzzleEdit() {
         isActive: puzzle.isActive,
       })
       setPuzzleDataJson(JSON.stringify(puzzle.puzzleData, null, 2))
+      setVisualPuzzleData(puzzle.puzzleData)
     }
   }, [puzzle, reset])
+
+  const handleVisualDataChange = useCallback((data: any) => {
+    setVisualPuzzleData(data)
+  }, [])
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => puzzlesApi.update(id!, data),
@@ -84,12 +96,21 @@ export default function PuzzleEdit() {
 
   const onSubmit = (data: PuzzleFormData) => {
     let puzzleData
-    try {
-      puzzleData = JSON.parse(puzzleDataJson)
-      setJsonError('')
-    } catch (e) {
-      setJsonError('Invalid JSON format')
-      return
+
+    if (editorMode === 'visual') {
+      if (!visualPuzzleData) {
+        setJsonError('Please enter puzzle data in the visual editor')
+        return
+      }
+      puzzleData = visualPuzzleData
+    } else {
+      try {
+        puzzleData = JSON.parse(puzzleDataJson)
+        setJsonError('')
+      } catch (e) {
+        setJsonError('Invalid JSON format')
+        return
+      }
     }
 
     updateMutation.mutate({
@@ -170,6 +191,11 @@ export default function PuzzleEdit() {
                 <option value="wordForge">Word Forge</option>
                 <option value="nonogram">Nonogram</option>
                 <option value="numberTarget">Number Target</option>
+                <option value="ballSort">Ball Sort</option>
+                <option value="pipes">Pipes</option>
+                <option value="lightsOut">Lights Out</option>
+                <option value="wordLadder">Word Ladder</option>
+                <option value="connections">Connections</option>
               </select>
             </div>
 
@@ -226,19 +252,57 @@ export default function PuzzleEdit() {
 
           {/* Puzzle Data */}
           <div className="card p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Puzzle Data (JSON)
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Puzzle Data
+              </h2>
 
-            <textarea
-              value={puzzleDataJson}
-              onChange={(e) => {
-                setPuzzleDataJson(e.target.value)
-                setJsonError('')
-              }}
-              className="input font-mono text-sm h-96"
-              placeholder="Puzzle JSON data..."
-            />
+              {/* Editor Mode Toggle */}
+              <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('visual')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    editorMode === 'visual'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                  Visual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('json')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    editorMode === 'json'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Code className="w-4 h-4" />
+                  JSON
+                </button>
+              </div>
+            </div>
+
+            {editorMode === 'visual' ? (
+              <PuzzleEditorWrapper
+                gameType={gameType as any}
+                puzzleData={puzzle?.puzzleData}
+                onChange={handleVisualDataChange}
+              />
+            ) : (
+              <textarea
+                value={puzzleDataJson}
+                onChange={(e) => {
+                  setPuzzleDataJson(e.target.value)
+                  setJsonError('')
+                }}
+                className="input font-mono text-sm h-96"
+                placeholder="Puzzle JSON data..."
+              />
+            )}
             {jsonError && (
               <p className="text-sm text-red-500">{jsonError}</p>
             )}
