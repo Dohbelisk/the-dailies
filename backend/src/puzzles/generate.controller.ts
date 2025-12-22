@@ -24,6 +24,7 @@ import {
   generateLightsOut,
   generateWordLadder,
   generateConnections,
+  generateMathora,
 } from "../utils/puzzle-generators";
 import { PuzzlesService } from "./puzzles.service";
 import { GameType, Difficulty } from "./schemas/puzzle.schema";
@@ -211,6 +212,18 @@ class GenerateWordLadderDto {
 }
 
 class GenerateConnectionsDto {
+  @IsIn(["easy", "medium", "hard", "expert"])
+  difficulty: "easy" | "medium" | "hard" | "expert";
+
+  @IsString()
+  date: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+}
+
+class GenerateMathoraDto {
   @IsIn(["easy", "medium", "hard", "expert"])
   difficulty: "easy" | "medium" | "hard" | "expert";
 
@@ -518,6 +531,30 @@ export class GenerateController {
       solution: result.solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Connections - ${dto.difficulty}`,
+      isActive: true,
+    });
+  }
+
+  @Post("mathora")
+  @ApiOperation({ summary: "Generate a new Mathora puzzle" })
+  async generateMathora(@Body() dto: GenerateMathoraDto) {
+    const result = generateMathora(dto.difficulty);
+
+    const targetTimes = {
+      easy: 60,
+      medium: 90,
+      hard: 120,
+      expert: 180,
+    };
+
+    return this.puzzlesService.create({
+      gameType: GameType.MATHORA,
+      difficulty: dto.difficulty as Difficulty,
+      date: dto.date,
+      puzzleData: result.puzzleData,
+      solution: result.solution,
+      targetTime: targetTimes[dto.difficulty],
+      title: dto.title || `Mathora - ${dto.difficulty}`,
       isActive: true,
     });
   }
@@ -921,6 +958,24 @@ export class GenerateController {
           isActive: true,
         });
         createdPuzzles.push(connections);
+      }
+
+      // Generate Mathora if requested
+      if (dto.gameTypes.includes("mathora")) {
+        const mathResult = generateMathora(difficulty);
+        const mathora = await this.puzzlesService.create({
+          gameType: GameType.MATHORA,
+          difficulty: difficulty as Difficulty,
+          date: dateStr,
+          puzzleData: mathResult.puzzleData,
+          solution: mathResult.solution,
+          targetTime: { easy: 60, medium: 90, hard: 120, expert: 180 }[
+            difficulty
+          ],
+          title: `Mathora`,
+          isActive: true,
+        });
+        createdPuzzles.push(mathora);
       }
     }
 

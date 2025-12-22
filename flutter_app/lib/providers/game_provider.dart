@@ -55,6 +55,9 @@ class GameProvider extends ChangeNotifier {
   // Connections specific state
   ConnectionsPuzzle? _connectionsPuzzle;
 
+  // Mathora specific state
+  MathoraPuzzle? _mathoraPuzzle;
+
   // Getters
   DailyPuzzle? get currentPuzzle => _currentPuzzle;
   int get elapsedSeconds => _elapsedSeconds;
@@ -95,6 +98,7 @@ class GameProvider extends ChangeNotifier {
   String get wordLadderInput => _wordLadderInput;
 
   ConnectionsPuzzle? get connectionsPuzzle => _connectionsPuzzle;
+  MathoraPuzzle? get mathoraPuzzle => _mathoraPuzzle;
 
   /// Serialize current game state to a map for persistence
   Map<String, dynamic> _serializeState() {
@@ -424,6 +428,12 @@ class GameProvider extends ChangeNotifier {
         break;
       case GameType.connections:
         _connectionsPuzzle = ConnectionsPuzzle.fromJson(puzzleDataWithSolution);
+        break;
+      case GameType.mathora:
+        _mathoraPuzzle = MathoraPuzzle.fromJson(
+          puzzleData,
+          puzzle.solution as Map<String, dynamic>?,
+        );
         break;
     }
 
@@ -1521,8 +1531,95 @@ class GameProvider extends ChangeNotifier {
     _wordLadderPuzzle = null;
     _wordLadderInput = '';
     _connectionsPuzzle = null;
+    _mathoraPuzzle = null;
     notifyListeners();
   }
+
+  // ======================================
+  // MATHORA METHODS
+  // ======================================
+
+  /// Apply an operation in Mathora puzzle
+  MathoraOperationResult applyMathoraOperation(MathoraOperation operation) {
+    if (_mathoraPuzzle == null) {
+      return MathoraOperationResult(success: false, message: 'No puzzle');
+    }
+
+    final success = _mathoraPuzzle!.applyOperation(operation);
+    notifyListeners();
+
+    if (!success) {
+      if (_mathoraPuzzle!.movesLeft <= 0) {
+        return MathoraOperationResult(
+          success: false,
+          message: 'No moves left!',
+        );
+      }
+      if (operation.type == 'divide') {
+        return MathoraOperationResult(
+          success: false,
+          message: 'Cannot divide evenly',
+        );
+      }
+      return MathoraOperationResult(
+        success: false,
+        message: 'Invalid operation',
+      );
+    }
+
+    if (_mathoraPuzzle!.isSolved) {
+      return MathoraOperationResult(
+        success: true,
+        message: 'Solved!',
+        isSolved: true,
+      );
+    }
+
+    return MathoraOperationResult(
+      success: true,
+      message: '${_mathoraPuzzle!.movesLeft} moves left',
+    );
+  }
+
+  /// Undo the last operation in Mathora puzzle
+  void undoMathoraOperation() {
+    if (_mathoraPuzzle == null) return;
+    _mathoraPuzzle!.undoLastOperation();
+    notifyListeners();
+  }
+
+  /// Reset the Mathora puzzle
+  void resetMathoraPuzzle() {
+    if (_mathoraPuzzle == null) return;
+    _mathoraPuzzle!.reset();
+    notifyListeners();
+  }
+
+  /// Check if Mathora puzzle is complete
+  Future<bool> checkMathoraComplete() async {
+    if (_mathoraPuzzle == null) return false;
+
+    if (_mathoraPuzzle!.isSolved) {
+      _isPlaying = false;
+      await _markAsCompleted();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+}
+
+/// Result object for Mathora operation
+class MathoraOperationResult {
+  final bool success;
+  final String message;
+  final bool isSolved;
+
+  MathoraOperationResult({
+    required this.success,
+    required this.message,
+    this.isSolved = false,
+  });
 }
 
 /// Result object for Word Forge word submission

@@ -246,6 +246,8 @@ class PuzzleCard extends StatelessWidget {
         return (const Color(0xFF6366F1), const Color(0xFF8B5CF6)); // Indigo/Purple
       case GameType.connections:
         return (const Color(0xFFF43F5E), const Color(0xFFEC4899)); // Rose/Pink
+      case GameType.mathora:
+        return (const Color(0xFF10B981), const Color(0xFF059669)); // Emerald/Green
     }
   }
 }

@@ -17,6 +17,7 @@ export enum GameType {
   LIGHTS_OUT = "lightsOut",
   WORD_LADDER = "wordLadder",
   CONNECTIONS = "connections",
+  MATHORA = "mathora",
 }
 
 export enum Difficulty {
