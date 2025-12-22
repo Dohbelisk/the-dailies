@@ -4577,3 +4577,348 @@ export const generateConnections = (
   const generator = new ConnectionsGenerator();
   return generator.generate(difficulty);
 };
+
+// ============================================
+// MATHORA GENERATOR
+// ============================================
+
+interface MathoraOperation {
+  type: "add" | "subtract" | "multiply" | "divide";
+  value: number;
+  display: string;
+}
+
+interface MathoraPuzzle {
+  puzzleData: {
+    startNumber: number;
+    targetNumber: number;
+    moves: number;
+    operations: MathoraOperation[];
+  };
+  solution: {
+    steps: MathoraOperation[];
+  };
+}
+
+export class MathoraGenerator {
+  private readonly ADD_VALUES = [5, 10, 15, 20, 25, 30, 40, 50, 75, 100];
+  private readonly SUBTRACT_VALUES = [5, 10, 15, 20, 25];
+  private readonly MULTIPLY_VALUES = [2, 3, 4, 5, 6, 8, 10];
+  private readonly DIVIDE_VALUES = [2, 3, 4, 5];
+
+  generate(difficulty: "easy" | "medium" | "hard" | "expert"): MathoraPuzzle {
+    const config = this.getDifficultyConfig(difficulty);
+
+    // Generate a solvable puzzle by working backwards from target
+    let attempts = 0;
+    const maxAttempts = 100;
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      const puzzle = this.tryGeneratePuzzle(config);
+      if (puzzle) {
+        return puzzle;
+      }
+    }
+
+    // Fallback: generate a simple puzzle
+    return this.generateFallbackPuzzle(config);
+  }
+
+  private getDifficultyConfig(difficulty: string): {
+    moves: number;
+    operationCount: number;
+    targetRange: { min: number; max: number };
+    startRange: { min: number; max: number };
+  } {
+    switch (difficulty) {
+      case "easy":
+        return {
+          moves: 3,
+          operationCount: 12,
+          targetRange: { min: 50, max: 200 },
+          startRange: { min: 2, max: 20 },
+        };
+      case "medium":
+        return {
+          moves: 4,
+          operationCount: 15,
+          targetRange: { min: 100, max: 500 },
+          startRange: { min: 5, max: 30 },
+        };
+      case "hard":
+        return {
+          moves: 5,
+          operationCount: 16,
+          targetRange: { min: 200, max: 1000 },
+          startRange: { min: 3, max: 25 },
+        };
+      case "expert":
+        return {
+          moves: 6,
+          operationCount: 18,
+          targetRange: { min: 500, max: 2000 },
+          startRange: { min: 2, max: 20 },
+        };
+      default:
+        return {
+          moves: 3,
+          operationCount: 12,
+          targetRange: { min: 50, max: 200 },
+          startRange: { min: 2, max: 20 },
+        };
+    }
+  }
+
+  private tryGeneratePuzzle(config: {
+    moves: number;
+    operationCount: number;
+    targetRange: { min: number; max: number };
+    startRange: { min: number; max: number };
+  }): MathoraPuzzle | null {
+    // Generate starting number
+    const startNumber =
+      Math.floor(Math.random() * (config.startRange.max - config.startRange.min + 1)) +
+      config.startRange.min;
+
+    // Generate solution operations (working forward)
+    const solutionOps: MathoraOperation[] = [];
+    let currentValue = startNumber;
+
+    for (let i = 0; i < config.moves; i++) {
+      const op = this.generateValidOperation(currentValue, i === config.moves - 1, config.targetRange);
+      if (!op) return null;
+      solutionOps.push(op);
+      currentValue = this.applyOperation(currentValue, op);
+    }
+
+    // Check if target is in valid range
+    if (currentValue < config.targetRange.min || currentValue > config.targetRange.max) {
+      return null;
+    }
+
+    // Ensure target is a nice round number
+    if (currentValue % 5 !== 0) {
+      return null;
+    }
+
+    const targetNumber = currentValue;
+
+    // Generate distractor operations (operations that won't help or are red herrings)
+    const allOperations = [...solutionOps];
+    const distractorCount = config.operationCount - config.moves;
+
+    for (let i = 0; i < distractorCount; i++) {
+      const distractor = this.generateDistractorOperation(solutionOps);
+      if (distractor && !this.operationExists(allOperations, distractor)) {
+        allOperations.push(distractor);
+      }
+    }
+
+    // Fill remaining slots if needed
+    while (allOperations.length < config.operationCount) {
+      const filler = this.generateRandomOperation();
+      if (!this.operationExists(allOperations, filler)) {
+        allOperations.push(filler);
+      }
+    }
+
+    // Shuffle operations
+    this.shuffleArray(allOperations);
+
+    return {
+      puzzleData: {
+        startNumber,
+        targetNumber,
+        moves: config.moves,
+        operations: allOperations,
+      },
+      solution: {
+        steps: solutionOps,
+      },
+    };
+  }
+
+  private generateValidOperation(
+    currentValue: number,
+    isLast: boolean,
+    targetRange: { min: number; max: number },
+  ): MathoraOperation | null {
+    const possibleOps: MathoraOperation[] = [];
+
+    // Add operations
+    for (const value of this.ADD_VALUES) {
+      const result = currentValue + value;
+      if (result <= targetRange.max * 2) {
+        possibleOps.push({ type: "add", value, display: `+${value}` });
+      }
+    }
+
+    // Subtract operations (don't go below 1)
+    for (const value of this.SUBTRACT_VALUES) {
+      const result = currentValue - value;
+      if (result >= 1) {
+        possibleOps.push({ type: "subtract", value, display: `-${value}` });
+      }
+    }
+
+    // Multiply operations
+    for (const value of this.MULTIPLY_VALUES) {
+      const result = currentValue * value;
+      if (result <= targetRange.max * 2) {
+        possibleOps.push({ type: "multiply", value, display: `×${value}` });
+      }
+    }
+
+    // Divide operations (only if result is whole number)
+    for (const value of this.DIVIDE_VALUES) {
+      if (currentValue % value === 0 && currentValue / value >= 1) {
+        possibleOps.push({ type: "divide", value, display: `÷${value}` });
+      }
+    }
+
+    if (possibleOps.length === 0) return null;
+    return possibleOps[Math.floor(Math.random() * possibleOps.length)];
+  }
+
+  private generateDistractorOperation(solutionOps: MathoraOperation[]): MathoraOperation | null {
+    const type = ["add", "subtract", "multiply", "divide"][Math.floor(Math.random() * 4)] as
+      | "add"
+      | "subtract"
+      | "multiply"
+      | "divide";
+
+    let value: number;
+    let display: string;
+
+    switch (type) {
+      case "add":
+        value = this.ADD_VALUES[Math.floor(Math.random() * this.ADD_VALUES.length)];
+        display = `+${value}`;
+        break;
+      case "subtract":
+        value = this.SUBTRACT_VALUES[Math.floor(Math.random() * this.SUBTRACT_VALUES.length)];
+        display = `-${value}`;
+        break;
+      case "multiply":
+        value = this.MULTIPLY_VALUES[Math.floor(Math.random() * this.MULTIPLY_VALUES.length)];
+        display = `×${value}`;
+        break;
+      case "divide":
+        value = this.DIVIDE_VALUES[Math.floor(Math.random() * this.DIVIDE_VALUES.length)];
+        display = `÷${value}`;
+        break;
+    }
+
+    return { type, value, display };
+  }
+
+  private generateRandomOperation(): MathoraOperation {
+    const type = ["add", "subtract", "multiply", "divide"][Math.floor(Math.random() * 4)] as
+      | "add"
+      | "subtract"
+      | "multiply"
+      | "divide";
+
+    let value: number;
+    let display: string;
+
+    switch (type) {
+      case "add":
+        value = this.ADD_VALUES[Math.floor(Math.random() * this.ADD_VALUES.length)];
+        display = `+${value}`;
+        break;
+      case "subtract":
+        value = this.SUBTRACT_VALUES[Math.floor(Math.random() * this.SUBTRACT_VALUES.length)];
+        display = `-${value}`;
+        break;
+      case "multiply":
+        value = this.MULTIPLY_VALUES[Math.floor(Math.random() * this.MULTIPLY_VALUES.length)];
+        display = `×${value}`;
+        break;
+      case "divide":
+        value = this.DIVIDE_VALUES[Math.floor(Math.random() * this.DIVIDE_VALUES.length)];
+        display = `÷${value}`;
+        break;
+    }
+
+    return { type, value, display };
+  }
+
+  private operationExists(ops: MathoraOperation[], op: MathoraOperation): boolean {
+    return ops.some((o) => o.type === op.type && o.value === op.value);
+  }
+
+  private applyOperation(value: number, op: MathoraOperation): number {
+    switch (op.type) {
+      case "add":
+        return value + op.value;
+      case "subtract":
+        return value - op.value;
+      case "multiply":
+        return value * op.value;
+      case "divide":
+        return value / op.value;
+    }
+  }
+
+  private generateFallbackPuzzle(config: {
+    moves: number;
+    operationCount: number;
+    targetRange: { min: number; max: number };
+    startRange: { min: number; max: number };
+  }): MathoraPuzzle {
+    // Simple fallback: 10 * 10 + 50 = 150 (3 moves)
+    const startNumber = 10;
+    const targetNumber = 150;
+    const solutionOps: MathoraOperation[] = [
+      { type: "multiply", value: 10, display: "×10" },
+      { type: "add", value: 50, display: "+50" },
+    ];
+
+    if (config.moves >= 3) {
+      solutionOps.push({ type: "add", value: 0, display: "+0" });
+    }
+
+    const allOperations: MathoraOperation[] = [
+      { type: "add", value: 50, display: "+50" },
+      { type: "add", value: 25, display: "+25" },
+      { type: "add", value: 75, display: "+75" },
+      { type: "multiply", value: 6, display: "×6" },
+      { type: "add", value: 20, display: "+20" },
+      { type: "multiply", value: 10, display: "×10" },
+      { type: "multiply", value: 2, display: "×2" },
+      { type: "multiply", value: 3, display: "×3" },
+      { type: "multiply", value: 4, display: "×4" },
+      { type: "multiply", value: 5, display: "×5" },
+      { type: "subtract", value: 5, display: "-5" },
+      { type: "divide", value: 2, display: "÷2" },
+    ];
+
+    return {
+      puzzleData: {
+        startNumber,
+        targetNumber,
+        moves: config.moves,
+        operations: allOperations.slice(0, config.operationCount),
+      },
+      solution: {
+        steps: solutionOps,
+      },
+    };
+  }
+
+  private shuffleArray<T>(array: T[]): void {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+}
+
+export const generateMathora = (
+  difficulty: "easy" | "medium" | "hard" | "expert",
+) => {
+  const generator = new MathoraGenerator();
+  return generator.generate(difficulty);
+};

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -29,6 +29,8 @@ extension GameTypeExtension on GameType {
         return 'Word Ladder';
       case GameType.connections:
         return 'Connections';
+      case GameType.mathora:
+        return 'Mathora';
     }
   }
 
@@ -58,6 +60,8 @@ extension GameTypeExtension on GameType {
         return '🪜';
       case GameType.connections:
         return '🔗';
+      case GameType.mathora:
+        return '🧮';
     }
   }
 
@@ -1496,5 +1500,155 @@ class ConnectionsPuzzle {
       case 4: return 'purple';
       default: return 'gray';
     }
+  }
+}
+
+// ======================================
+// MATHORA PUZZLE MODEL
+// ======================================
+
+class MathoraOperation {
+  final String type; // 'add', 'subtract', 'multiply', 'divide'
+  final int value;
+  final String display;
+
+  MathoraOperation({
+    required this.type,
+    required this.value,
+    required this.display,
+  });
+
+  factory MathoraOperation.fromJson(Map<String, dynamic> json) {
+    return MathoraOperation(
+      type: json['type'] as String,
+      value: json['value'] as int,
+      display: json['display'] as String,
+    );
+  }
+
+  /// Apply this operation to a value
+  int apply(int currentValue) {
+    switch (type) {
+      case 'add':
+        return currentValue + value;
+      case 'subtract':
+        return currentValue - value;
+      case 'multiply':
+        return currentValue * value;
+      case 'divide':
+        if (currentValue % value != 0) {
+          return currentValue; // Don't allow non-integer division
+        }
+        return currentValue ~/ value;
+      default:
+        return currentValue;
+    }
+  }
+}
+
+class MathoraPuzzle {
+  final int startNumber;
+  final int targetNumber;
+  final int maxMoves;
+  final List<MathoraOperation> operations;
+  final List<MathoraOperation> solutionSteps;
+
+  // Game state
+  int currentValue;
+  List<MathoraOperation> appliedOperations = [];
+  int movesLeft;
+
+  MathoraPuzzle({
+    required this.startNumber,
+    required this.targetNumber,
+    required this.maxMoves,
+    required this.operations,
+    required this.solutionSteps,
+  }) : currentValue = startNumber,
+       movesLeft = maxMoves;
+
+  factory MathoraPuzzle.fromJson(Map<String, dynamic> puzzleData, Map<String, dynamic>? solution) {
+    final operationsList = (puzzleData['operations'] as List)
+        .map((op) => MathoraOperation.fromJson(op as Map<String, dynamic>))
+        .toList();
+
+    List<MathoraOperation> solutionSteps = [];
+    if (solution != null && solution['steps'] != null) {
+      solutionSteps = (solution['steps'] as List)
+          .map((op) => MathoraOperation.fromJson(op as Map<String, dynamic>))
+          .toList();
+    }
+
+    return MathoraPuzzle(
+      startNumber: puzzleData['startNumber'] as int,
+      targetNumber: puzzleData['targetNumber'] as int,
+      maxMoves: puzzleData['moves'] as int,
+      operations: operationsList,
+      solutionSteps: solutionSteps,
+    );
+  }
+
+  /// Apply an operation
+  bool applyOperation(MathoraOperation operation) {
+    if (movesLeft <= 0) return false;
+
+    // Check if operation would result in invalid value
+    final newValue = operation.apply(currentValue);
+    if (operation.type == 'divide' && currentValue % operation.value != 0) {
+      return false; // Can't divide evenly
+    }
+    if (newValue <= 0) {
+      return false; // Don't allow zero or negative
+    }
+
+    currentValue = newValue;
+    appliedOperations.add(operation);
+    movesLeft--;
+    return true;
+  }
+
+  /// Undo the last operation
+  void undoLastOperation() {
+    if (appliedOperations.isEmpty) return;
+
+    appliedOperations.removeLast();
+    movesLeft++;
+
+    // Recalculate current value from scratch
+    currentValue = startNumber;
+    for (final op in appliedOperations) {
+      currentValue = op.apply(currentValue);
+    }
+  }
+
+  /// Check if puzzle is solved
+  bool get isSolved => currentValue == targetNumber;
+
+  /// Check if game is over (no moves left or solved)
+  bool get isGameOver => movesLeft <= 0 || isSolved;
+
+  /// Check if we've failed (no moves left and not solved)
+  bool get isFailed => movesLeft <= 0 && !isSolved;
+
+  /// Reset the puzzle
+  void reset() {
+    currentValue = startNumber;
+    appliedOperations.clear();
+    movesLeft = maxMoves;
+  }
+
+  /// Get progress as a string showing applied operations
+  String get progressString {
+    if (appliedOperations.isEmpty) return startNumber.toString();
+
+    StringBuffer sb = StringBuffer();
+    sb.write(startNumber);
+    int value = startNumber;
+    for (final op in appliedOperations) {
+      sb.write(' ${op.display} ');
+      value = op.apply(value);
+      sb.write('= $value');
+    }
+    return sb.toString();
   }
 }

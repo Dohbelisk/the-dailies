@@ -25,6 +25,7 @@ import '../widgets/pipes_grid.dart';
 import '../widgets/lights_out_grid.dart';
 import '../widgets/word_ladder_grid.dart';
 import '../widgets/connections_grid.dart';
+import '../widgets/mathora_grid.dart';
 import '../widgets/number_pad.dart';
 import '../widgets/keyboard_input.dart';
 import '../widgets/game_timer.dart';
@@ -251,6 +252,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         break;
       case GameType.connections:
         isComplete = await gameProvider.checkConnectionsComplete();
+        break;
+      case GameType.mathora:
+        isComplete = await gameProvider.checkMathoraComplete();
         break;
     }
 
@@ -646,6 +650,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return _buildWordLadderContent(context);
       case GameType.connections:
         return _buildConnectionsContent(context);
+      case GameType.mathora:
+        return _buildMathoraContent(context);
     }
   }
 
@@ -1624,6 +1630,40 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             },
             onReset: () {
               gameProvider.resetConnectionsPuzzle();
+              _audioService.playTap();
+            },
+          ),
+        ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
+      },
+    );
+  }
+
+  Widget _buildMathoraContent(BuildContext context) {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, _) {
+        if (gameProvider.mathoraPuzzle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: MathoraGrid(
+            puzzle: gameProvider.mathoraPuzzle!,
+            onOperationTap: (operation) {
+              final result = gameProvider.applyMathoraOperation(operation);
+              _audioService.playTap();
+              if (result.isSolved) {
+                _checkCompletion();
+              } else if (!result.success) {
+                _audioService.playError();
+              }
+            },
+            onUndo: () {
+              gameProvider.undoMathoraOperation();
+              _audioService.playTap();
+            },
+            onReset: () {
+              gameProvider.resetMathoraPuzzle();
               _audioService.playTap();
             },
           ),
