@@ -4678,22 +4678,30 @@ export class MathoraGenerator {
   }): MathoraPuzzle | null {
     // Generate starting number
     const startNumber =
-      Math.floor(Math.random() * (config.startRange.max - config.startRange.min + 1)) +
-      config.startRange.min;
+      Math.floor(
+        Math.random() * (config.startRange.max - config.startRange.min + 1),
+      ) + config.startRange.min;
 
     // Generate solution operations (working forward)
     const solutionOps: MathoraOperation[] = [];
     let currentValue = startNumber;
 
     for (let i = 0; i < config.moves; i++) {
-      const op = this.generateValidOperation(currentValue, i === config.moves - 1, config.targetRange);
+      const op = this.generateValidOperation(
+        currentValue,
+        i === config.moves - 1,
+        config.targetRange,
+      );
       if (!op) return null;
       solutionOps.push(op);
       currentValue = this.applyOperation(currentValue, op);
     }
 
     // Check if target is in valid range
-    if (currentValue < config.targetRange.min || currentValue > config.targetRange.max) {
+    if (
+      currentValue < config.targetRange.min ||
+      currentValue > config.targetRange.max
+    ) {
       return null;
     }
 
@@ -4781,31 +4789,41 @@ export class MathoraGenerator {
     return possibleOps[Math.floor(Math.random() * possibleOps.length)];
   }
 
-  private generateDistractorOperation(solutionOps: MathoraOperation[]): MathoraOperation | null {
-    const type = ["add", "subtract", "multiply", "divide"][Math.floor(Math.random() * 4)] as
-      | "add"
-      | "subtract"
-      | "multiply"
-      | "divide";
+  private generateDistractorOperation(
+    _solutionOps: MathoraOperation[],
+  ): MathoraOperation | null {
+    const type = ["add", "subtract", "multiply", "divide"][
+      Math.floor(Math.random() * 4)
+    ] as "add" | "subtract" | "multiply" | "divide";
 
     let value: number;
     let display: string;
 
     switch (type) {
       case "add":
-        value = this.ADD_VALUES[Math.floor(Math.random() * this.ADD_VALUES.length)];
+        value =
+          this.ADD_VALUES[Math.floor(Math.random() * this.ADD_VALUES.length)];
         display = `+${value}`;
         break;
       case "subtract":
-        value = this.SUBTRACT_VALUES[Math.floor(Math.random() * this.SUBTRACT_VALUES.length)];
+        value =
+          this.SUBTRACT_VALUES[
+            Math.floor(Math.random() * this.SUBTRACT_VALUES.length)
+          ];
         display = `-${value}`;
         break;
       case "multiply":
-        value = this.MULTIPLY_VALUES[Math.floor(Math.random() * this.MULTIPLY_VALUES.length)];
+        value =
+          this.MULTIPLY_VALUES[
+            Math.floor(Math.random() * this.MULTIPLY_VALUES.length)
+          ];
         display = `×${value}`;
         break;
       case "divide":
-        value = this.DIVIDE_VALUES[Math.floor(Math.random() * this.DIVIDE_VALUES.length)];
+        value =
+          this.DIVIDE_VALUES[
+            Math.floor(Math.random() * this.DIVIDE_VALUES.length)
+          ];
         display = `÷${value}`;
         break;
     }
@@ -4814,30 +4832,38 @@ export class MathoraGenerator {
   }
 
   private generateRandomOperation(): MathoraOperation {
-    const type = ["add", "subtract", "multiply", "divide"][Math.floor(Math.random() * 4)] as
-      | "add"
-      | "subtract"
-      | "multiply"
-      | "divide";
+    const type = ["add", "subtract", "multiply", "divide"][
+      Math.floor(Math.random() * 4)
+    ] as "add" | "subtract" | "multiply" | "divide";
 
     let value: number;
     let display: string;
 
     switch (type) {
       case "add":
-        value = this.ADD_VALUES[Math.floor(Math.random() * this.ADD_VALUES.length)];
+        value =
+          this.ADD_VALUES[Math.floor(Math.random() * this.ADD_VALUES.length)];
         display = `+${value}`;
         break;
       case "subtract":
-        value = this.SUBTRACT_VALUES[Math.floor(Math.random() * this.SUBTRACT_VALUES.length)];
+        value =
+          this.SUBTRACT_VALUES[
+            Math.floor(Math.random() * this.SUBTRACT_VALUES.length)
+          ];
         display = `-${value}`;
         break;
       case "multiply":
-        value = this.MULTIPLY_VALUES[Math.floor(Math.random() * this.MULTIPLY_VALUES.length)];
+        value =
+          this.MULTIPLY_VALUES[
+            Math.floor(Math.random() * this.MULTIPLY_VALUES.length)
+          ];
         display = `×${value}`;
         break;
       case "divide":
-        value = this.DIVIDE_VALUES[Math.floor(Math.random() * this.DIVIDE_VALUES.length)];
+        value =
+          this.DIVIDE_VALUES[
+            Math.floor(Math.random() * this.DIVIDE_VALUES.length)
+          ];
         display = `÷${value}`;
         break;
     }
@@ -4845,7 +4871,10 @@ export class MathoraGenerator {
     return { type, value, display };
   }
 
-  private operationExists(ops: MathoraOperation[], op: MathoraOperation): boolean {
+  private operationExists(
+    ops: MathoraOperation[],
+    op: MathoraOperation,
+  ): boolean {
     return ops.some((o) => o.type === op.type && o.value === op.value);
   }
 
