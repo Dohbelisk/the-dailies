@@ -9,6 +9,7 @@ import '../services/auth_service.dart';
 import '../services/consent_service.dart';
 import '../services/game_state_service.dart';
 import '../services/favorites_service.dart';
+import '../services/remote_config_service.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/puzzle_card.dart';
 import '../widgets/animated_background.dart';
@@ -184,86 +185,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Top bar
+                        // Top bar - Date and token
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    dateFormat.format(today),
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onBackground.withOpacity(0.6),
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  TokenBalanceWidget(
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const ArchiveScreen(),
-                                      ),
-                                    ).then((_) => setState(() {})),
-                                  ),
-                                ],
-                              ).animate(controller: _headerController)
-                                .fadeIn(duration: 600.ms)
-                                .slideX(begin: -0.2, end: 0),
-                            ),
-                            Row(
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                IconButton(
-                                  icon: const Icon(Icons.people_outline_rounded),
-                                  onPressed: _handleFriendsPressed,
-                                  tooltip: 'Friends',
-                                ).animate(controller: _headerController)
-                                  .fadeIn(delay: 100.ms, duration: 400.ms)
-                                  .scale(begin: const Offset(0.5, 0.5)),
-                                IconButton(
-                                  icon: const Icon(Icons.emoji_events_outlined),
-                                  onPressed: _handleChallengesPressed,
-                                  tooltip: 'Challenges',
-                                ).animate(controller: _headerController)
-                                  .fadeIn(delay: 150.ms, duration: 400.ms)
-                                  .scale(begin: const Offset(0.5, 0.5)),
-                                IconButton(
-                                  icon: const Icon(Icons.history_rounded),
-                                  onPressed: () => Navigator.push(
+                                Text(
+                                  dateFormat.format(today),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                TokenBalanceWidget(
+                                  onTap: () => Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => const ArchiveScreen(),
                                     ),
                                   ).then((_) => setState(() {})),
-                                  tooltip: 'Archive',
-                                ).animate(controller: _headerController)
-                                  .fadeIn(delay: 200.ms, duration: 400.ms)
-                                  .scale(begin: const Offset(0.5, 0.5)),
+                                ),
+                              ],
+                            ).animate(controller: _headerController)
+                              .fadeIn(duration: 600.ms)
+                              .slideX(begin: -0.2, end: 0),
+                            // Settings and theme only on top row
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
                                 IconButton(
                                   icon: Icon(
                                     themeProvider.isDarkMode
                                         ? Icons.light_mode_rounded
                                         : Icons.dark_mode_rounded,
+                                    size: 22,
                                   ),
                                   onPressed: () => themeProvider.toggleTheme(),
                                 ).animate(controller: _headerController)
-                                  .fadeIn(delay: 250.ms, duration: 400.ms)
+                                  .fadeIn(delay: 100.ms, duration: 400.ms)
                                   .scale(begin: const Offset(0.5, 0.5)),
                                 IconButton(
-                                  icon: const Icon(Icons.bar_chart_rounded),
-                                  onPressed: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const StatsScreen(),
-                                    ),
-                                  ),
-                                ).animate(controller: _headerController)
-                                  .fadeIn(delay: 300.ms, duration: 400.ms)
-                                  .scale(begin: const Offset(0.5, 0.5)),
-                                IconButton(
-                                  icon: const Icon(Icons.settings_rounded),
+                                  icon: const Icon(Icons.settings_rounded, size: 22),
                                   onPressed: () => Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -271,10 +236,61 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     ),
                                   ),
                                 ).animate(controller: _headerController)
-                                  .fadeIn(delay: 350.ms, duration: 400.ms)
+                                  .fadeIn(delay: 150.ms, duration: 400.ms)
                                   .scale(begin: const Offset(0.5, 0.5)),
                               ],
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Secondary action row
+                        Row(
+                          children: [
+                            _buildActionChip(
+                              icon: Icons.people_outline_rounded,
+                              label: 'Friends',
+                              onTap: _handleFriendsPressed,
+                              theme: theme,
+                            ).animate(controller: _headerController)
+                              .fadeIn(delay: 200.ms, duration: 400.ms)
+                              .slideX(begin: -0.1, end: 0),
+                            const SizedBox(width: 8),
+                            _buildActionChip(
+                              icon: Icons.emoji_events_outlined,
+                              label: 'Challenges',
+                              onTap: _handleChallengesPressed,
+                              theme: theme,
+                            ).animate(controller: _headerController)
+                              .fadeIn(delay: 250.ms, duration: 400.ms)
+                              .slideX(begin: -0.1, end: 0),
+                            const SizedBox(width: 8),
+                            _buildActionChip(
+                              icon: Icons.history_rounded,
+                              label: 'Archive',
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ArchiveScreen(),
+                                ),
+                              ).then((_) => setState(() {})),
+                              theme: theme,
+                            ).animate(controller: _headerController)
+                              .fadeIn(delay: 300.ms, duration: 400.ms)
+                              .slideX(begin: -0.1, end: 0),
+                            const SizedBox(width: 8),
+                            _buildActionChip(
+                              icon: Icons.bar_chart_rounded,
+                              label: 'Stats',
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const StatsScreen(),
+                                ),
+                              ),
+                              theme: theme,
+                            ).animate(controller: _headerController)
+                              .fadeIn(delay: 350.ms, duration: 400.ms)
+                              .slideX(begin: -0.1, end: 0),
                           ],
                         ),
                         const SizedBox(height: 32),
@@ -357,7 +373,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         );
                       }
 
-                      final rawPuzzles = snapshot.data ?? [];
+                      var rawPuzzles = snapshot.data ?? [];
+                      // Filter out inactive puzzles unless feature flag is enabled
+                      final showInactive = RemoteConfigService().isFeatureEnabled('display_inactive_games');
+                      if (!showInactive) {
+                        rawPuzzles = rawPuzzles.where((p) => p.isActive).toList();
+                      }
                       // Sort puzzles with favorites first
                       final puzzles = FavoritesService.sortByFavorites(rawPuzzles, _favorites);
 
@@ -366,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           crossAxisCount: 2,
                           mainAxisSpacing: 12,
                           crossAxisSpacing: 12,
-                          childAspectRatio: 1.3,
+                          childAspectRatio: 1.1,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
@@ -403,6 +424,41 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required ThemeData theme,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: theme.colorScheme.primary.withOpacity(0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: theme.colorScheme.primary),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

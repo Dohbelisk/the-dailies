@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/game_models.dart';
 import '../services/game_state_service.dart';
+import '../services/dictionary_service.dart';
 
 class GameProvider extends ChangeNotifier {
   DateTime? _currentPuzzleDate;
@@ -407,6 +408,8 @@ class GameProvider extends ChangeNotifier {
         break;
       case GameType.wordForge:
         _wordForgePuzzle = WordForgePuzzle.fromJson(puzzleDataWithSolution);
+        // Initialize valid words from dictionary
+        await _initializeWordForgeDictionary();
         break;
       case GameType.nonogram:
         _nonogramPuzzle = NonogramPuzzle.fromJson(puzzleDataWithSolution);
@@ -431,7 +434,7 @@ class GameProvider extends ChangeNotifier {
         break;
       case GameType.mathora:
         _mathoraPuzzle = MathoraPuzzle.fromJson(
-          puzzleData,
+          puzzleDataWithSolution,
           puzzle.solution as Map<String, dynamic>?,
         );
         break;
@@ -1011,6 +1014,123 @@ class GameProvider extends ChangeNotifier {
 
   int getWordForgeMaxScore() {
     return _wordForgePuzzle?.maxScore ?? 0;
+  }
+
+  /// Initialize Word Forge puzzle with valid words from dictionary
+  Future<void> _initializeWordForgeDictionary() async {
+    if (_wordForgePuzzle == null) return;
+
+    final dictionary = DictionaryService();
+    await dictionary.load();
+
+    if (!dictionary.isLoaded) {
+      print('Warning: Dictionary not loaded, Word Forge may not work correctly');
+      return;
+    }
+
+    final validWords = dictionary.findValidWords(
+      _wordForgePuzzle!.letters,
+      _wordForgePuzzle!.centerLetter,
+    );
+    final pangrams = dictionary.findPangrams(
+      _wordForgePuzzle!.letters,
+      _wordForgePuzzle!.centerLetter,
+    );
+
+    _wordForgePuzzle!.initializeFromDictionary(validWords, pangrams);
+    print('Word Forge initialized: ${validWords.length} valid words, ${pangrams.length} pangrams');
+  }
+
+  /// Get two-letter hints grid (FREE hint)
+  Map<String, int> getWordForgeTwoLetterHints() {
+    if (_wordForgePuzzle == null) return {};
+
+    final dictionary = DictionaryService();
+    if (!dictionary.isLoaded) return {};
+
+    return dictionary.getTwoLetterHints(
+      _wordForgePuzzle!.letters,
+      _wordForgePuzzle!.centerLetter,
+      _wordForgePuzzle!.foundWords,
+    );
+  }
+
+  /// Get a pangram hint (first letter and length) - costs a hint
+  /// Returns null if no unfound pangrams exist
+  Map<String, dynamic>? getWordForgePangramHint() {
+    if (_wordForgePuzzle == null) return null;
+    if (_wordForgePuzzle!.hasUsedPangramHint) return null;
+
+    // Check if user has found all pangrams
+    final unfoundPangrams = _wordForgePuzzle!.pangrams
+        .where((p) => !_wordForgePuzzle!.foundWords.contains(p))
+        .toList();
+
+    if (unfoundPangrams.isEmpty) return null;
+
+    // Pick a random unfound pangram
+    unfoundPangrams.shuffle();
+    final pangram = unfoundPangrams.first;
+
+    return {
+      'firstLetter': pangram[0],
+      'length': pangram.length,
+    };
+  }
+
+  /// Use the pangram hint - marks it as used and increments hint count
+  void useWordForgePangramHint() {
+    if (_wordForgePuzzle == null) return;
+    _wordForgePuzzle!.hasUsedPangramHint = true;
+    _hintsUsed++;
+    notifyListeners();
+  }
+
+  /// Get a random word hint (first letter and length) - costs a hint
+  Map<String, dynamic>? getWordForgeWordHint() {
+    if (_wordForgePuzzle == null) return null;
+
+    final unfoundWords = _wordForgePuzzle!.validWords
+        .where((w) => !_wordForgePuzzle!.foundWords.contains(w))
+        .toList();
+
+    if (unfoundWords.isEmpty) return null;
+
+    // Pick a random unfound word
+    unfoundWords.shuffle();
+    final word = unfoundWords.first;
+
+    return {
+      'firstLetter': word[0],
+      'length': word.length,
+      'word': word, // For reveal feature
+    };
+  }
+
+  /// Use a word hint (reveal) - costs a hint and reveals the word
+  void useWordForgeWordReveal(String word) {
+    if (_wordForgePuzzle == null) return;
+    final upperWord = word.toUpperCase();
+    if (_wordForgePuzzle!.validWords.contains(upperWord)) {
+      _wordForgePuzzle!.foundWords.add(upperWord);
+      _hintsUsed++;
+      notifyListeners();
+    }
+  }
+
+  /// Check if user has found any pangrams
+  bool hasFoundPangram() {
+    if (_wordForgePuzzle == null) return false;
+    return _wordForgePuzzle!.foundWords
+        .any((w) => _wordForgePuzzle!.pangrams.contains(w));
+  }
+
+  /// Get count of unfound pangrams
+  int getUnfoundPangramCount() {
+    if (_wordForgePuzzle == null) return 0;
+    return _wordForgePuzzle!.pangrams
+        .where((p) => !_wordForgePuzzle!.foundWords.contains(p))
+        .length;
   }
 
   // Nonogram methods

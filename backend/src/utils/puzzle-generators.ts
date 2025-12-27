@@ -3079,20 +3079,41 @@ export class WordForgeGenerator {
       maxScore: number;
     };
   } {
-    // Try to find a good letter set with enough words
+    // Try to find a good letter set with enough words AND at least one pangram
     let bestResult = this.tryGeneratePuzzle();
     let attempts = 0;
-    const maxAttempts = 50;
+    const maxAttempts = 100;
 
     // Target word counts based on difficulty
     const minWords = { easy: 15, medium: 25, hard: 35, expert: 50 }[difficulty];
 
-    while (bestResult.validWords.length < minWords && attempts < maxAttempts) {
+    // MUST have at least one pangram (7-letter word using all letters)
+    while (
+      (bestResult.pangrams.length === 0 ||
+        bestResult.validWords.length < minWords) &&
+      attempts < maxAttempts
+    ) {
       const newResult = this.tryGeneratePuzzle();
-      if (newResult.validWords.length > bestResult.validWords.length) {
+      // Prefer results with pangrams
+      if (newResult.pangrams.length > 0) {
+        if (
+          bestResult.pangrams.length === 0 ||
+          newResult.validWords.length > bestResult.validWords.length
+        ) {
+          bestResult = newResult;
+        }
+      } else if (
+        bestResult.pangrams.length === 0 &&
+        newResult.validWords.length > bestResult.validWords.length
+      ) {
         bestResult = newResult;
       }
       attempts++;
+    }
+
+    // If still no pangram after max attempts, try using known pangram-friendly letter sets
+    if (bestResult.pangrams.length === 0) {
+      bestResult = this.generateWithKnownPangram();
     }
 
     // Calculate score
@@ -3167,6 +3188,65 @@ export class WordForgeGenerator {
     }
 
     return { letters, centerLetter, validWords, pangrams };
+  }
+
+  // Pre-defined pangram puzzles with guaranteed 7-letter words
+  private static readonly PANGRAM_SETS = [
+    {
+      letters: ["G", "A", "R", "D", "E", "N", "I"],
+      centerLetter: "G",
+      pangrams: ["READING", "GRADING"],
+      validWords: ["GAIN", "GRIN", "GRIND", "GRAIN", "GRAND", "GRADE", "RANGE", "ANGER", "DANGER", "GARDEN", "READING", "GRADING", "RIDGE", "AGING", "RAGED", "RING", "DRAG", "DARING", "RAGING"],
+    },
+    {
+      letters: ["T", "R", "A", "I", "N", "E", "D"],
+      centerLetter: "T",
+      pangrams: ["TRAINED"],
+      validWords: ["TRAIN", "TRADE", "TREAD", "TREAT", "TRIED", "TIRED", "RATE", "TEAR", "TIDE", "DATE", "TEND", "RENT", "DENT", "NEAT", "EDIT", "DIET", "RIDE", "RAIN", "DRAIN", "RANTED", "TRAINED", "RATED", "TRADED"],
+    },
+    {
+      letters: ["S", "T", "A", "R", "I", "N", "G"],
+      centerLetter: "S",
+      pangrams: ["RATINGS", "STARING"],
+      validWords: ["STAR", "STAIRS", "STIR", "SING", "STING", "STRING", "RING", "RAIN", "GRAIN", "TRAIN", "STRAIN", "RATS", "ARTS", "GRANT", "GRANTS", "GIANT", "GIANTS", "SAINT", "SAINTS", "STARING", "RATINGS", "GRAINS", "TRAINS"],
+    },
+    {
+      letters: ["P", "L", "A", "Y", "I", "N", "G"],
+      centerLetter: "P",
+      pangrams: ["PLAYING"],
+      validWords: ["PLAY", "PLAN", "PAIN", "PAIL", "PLAIN", "PLYING", "PLAYING", "APPLY", "PAYING", "PING", "NAIL", "GAIN", "ALIGN", "LYING", "INLAY", "LAYING"],
+    },
+    {
+      letters: ["C", "R", "E", "A", "T", "I", "N"],
+      centerLetter: "C",
+      pangrams: ["CERTAIN"],
+      validWords: ["CARE", "CART", "RACE", "TRACE", "CRANE", "CREATE", "REACT", "NECTAR", "TRANCE", "CERTAIN", "CITE", "NICE", "RICE", "CRATE", "RETAIN", "ACNE", "CANE", "ANTIC"],
+    },
+    {
+      letters: ["W", "O", "R", "K", "I", "N", "G"],
+      centerLetter: "W",
+      pangrams: ["WORKING"],
+      validWords: ["WORK", "WORN", "WINK", "WING", "KNOW", "GROW", "GOWN", "ROWING", "KNOWING", "WORKING", "GROWN", "WRONG", "OWING", "GROWING", "WRING"],
+    },
+  ];
+
+  // Fallback: Use pre-defined pangram sets
+  private generateWithKnownPangram(): {
+    letters: string[];
+    centerLetter: string;
+    validWords: string[];
+    pangrams: string[];
+  } {
+    // Pick a random pre-defined set
+    const set = WordForgeGenerator.PANGRAM_SETS[
+      Math.floor(Math.random() * WordForgeGenerator.PANGRAM_SETS.length)
+    ];
+    return {
+      letters: [...set.letters],
+      centerLetter: set.centerLetter,
+      validWords: [...set.validWords],
+      pangrams: [...set.pangrams],
+    };
   }
 
   private calculateMaxScore(words: string[], pangrams: string[]): number {

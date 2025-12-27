@@ -654,6 +654,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.hub_rounded;
         label = 'Connections';
         break;
+      case GameType.mathora:
+        icon = Icons.calculate_outlined;
+        label = 'Mathora';
+        break;
     }
 
     if (small) {

@@ -339,7 +339,7 @@ export class GenerateController {
       puzzleData,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Word Search - ${dto.theme || "Mixed"}`,
-      isActive: true,
+      isActive: false, // Word Search is currently removed from circulation
     });
   }
 
@@ -811,7 +811,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Word Search - ${themeData.theme}`,
-          isActive: true,
+          isActive: false, // Word Search is currently removed from circulation
         });
         createdPuzzles.push(wordSearch);
       }

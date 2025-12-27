@@ -518,12 +518,26 @@ GET  /api/dictionary/status                # Get dictionary status
 ```json
 {
   "letters": ["A", "C", "E", "L", "N", "R", "T"],  // 7 unique letters
-  "centerLetter": "A",                              // Must be in every word
-  "validWords": ["CRANE", "LANCE", "ANTLER", ...],  // Validated against dictionary
-  "pangrams": ["CENTRAL"]                           // Words using all 7 letters
+  "centerLetter": "A"                              // Must be in every word
 }
 ```
-*Note: Word validation uses the Dictionary module (~370k words). Run `npm run seed:dictionary` to populate.*
+**Client-side Dictionary Validation:**
+- The Flutter app contains a local dictionary (`assets/data/words.txt`, ~85k words)
+- Valid words are computed client-side based on the 7 letters + center letter
+- Pangrams (words using all 7 letters) are identified automatically
+- Scoring: NYT Spelling Bee style with levels (Beginner → Queen Bee)
+- Completion at "Genius" level (70% of max score)
+
+**Hint System:**
+- Two-letter grid (FREE): Shows word counts by first two letters
+- Pangram hint (costs 1 hint): Reveals first letter + length of unfound pangram
+- Word reveal (costs 1 hint): Reveals a random unfound word
+
+**DictionaryService** (`lib/services/dictionary_service.dart`):
+- `load()` - Loads dictionary from assets
+- `findValidWords(letters, centerLetter)` - Returns valid words for puzzle
+- `findPangrams(letters, centerLetter)` - Returns pangrams
+- `getTwoLetterHints(letters, centerLetter, foundWords)` - Returns hint grid
 
 ### Nonogram
 ```json
@@ -942,16 +956,84 @@ Configuration in `render.yaml`:
 
 ---
 
+## Game Vetting Checklist
+
+Before launch, each game type must be thoroughly vetted. Use this checklist to verify each game works correctly.
+
+### Feature Flag: Display Inactive Games
+
+The `display_inactive_games` feature flag controls whether inactive games appear on the home screen:
+- **Enabled**: All games shown (for testing/development)
+- **Disabled**: Only active games shown (production default)
+
+To toggle: Debug Menu → Feature Flags → `display_inactive_games`
+
+### Games Removed from Circulation
+
+Games that are generated but marked inactive (not shown to users by default):
+- **Word Search** - Removed for quality improvements
+
+### Vetting Checklist Template
+
+For each game type, verify both sections:
+
+#### Code Review (Claude verifies)
+- [ ] API endpoint returns valid puzzle structure
+- [ ] Solution data is included and matches puzzle format
+- [ ] Grid widget exists with proper rendering logic
+- [ ] Model has validation methods (isComplete, isValid, etc.)
+- [ ] GameProvider has game-specific state and methods
+- [ ] No compile errors in related files
+
+#### Device Testing (User verifies)
+- [ ] Puzzle loads and displays correctly
+- [ ] Grid/UI renders without visual bugs
+- [ ] Tap/touch input works on cells
+- [ ] Number entry or game-specific input works
+- [ ] Validation feedback shows (errors highlighted)
+- [ ] Undo/reset functions work
+- [ ] Hints work (if applicable)
+- [ ] Completion detected when solved
+- [ ] Completion dialog appears with score
+- [ ] Timer runs during gameplay
+- [ ] Game state persists on app restart
+- [ ] Dark mode displays correctly
+
+---
+
+### Game Vetting Status
+
+| # | Game Type | Code Review | Device Test | Status |
+|---|-----------|-------------|-------------|--------|
+| 1 | Sudoku | ✅ | ✅ | Ready |
+| 2 | Killer Sudoku | ✅ | ✅ | Ready |
+| 3 | Crossword | ✅ | ✅ | Ready |
+| 4 | Word Search | ⏳ | ⏳ | Inactive |
+| 5 | Word Forge | ⏳ | ⏳ | Pending |
+| 6 | Nonogram | ⏳ | ⏳ | Pending |
+| 7 | Number Target | ⏳ | ⏳ | Pending |
+| 8 | Ball Sort | ⏳ | ⏳ | Pending |
+| 9 | Pipes | ⏳ | ⏳ | Pending |
+| 10 | Lights Out | ⏳ | ⏳ | Pending |
+| 11 | Word Ladder | ⏳ | ⏳ | Pending |
+| 12 | Connections | ⏳ | ⏳ | Pending |
+| 13 | Mathora | ⏳ | ⏳ | Pending |
+
+**Legend:** ⏳ Pending | ✅ Passed | ❌ Failed
+
+---
+
 ## Remaining Tasks
 
-1. [ ] Test IAP on physical devices
-2. [ ] Replace test ad IDs with production IDs
-3. [ ] Add leaderboard UI to admin portal
-4. [ ] Add user management to admin portal
-5. [ ] Implement push notifications for challenges
-6. [ ] Add analytics dashboard
-7. [ ] Performance testing with large datasets
-8. [ ] Add feature flag management UI to admin portal
-9. [ ] Add app config management UI to admin portal
-10. [ ] Seed initial feature flags (debug_menu_enabled, etc.)
-11. [ ] Add visual editors for remaining puzzle types (Killer Sudoku, Crossword, etc.)
+1. [ ] Complete game vetting for all 13 game types
+2. [ ] Test IAP on physical devices
+3. [ ] Replace test ad IDs with production IDs
+4. [ ] Add leaderboard UI to admin portal
+5. [ ] Add user management to admin portal
+6. [ ] Implement push notifications for challenges
+7. [ ] Add analytics dashboard
+8. [ ] Performance testing with large datasets
+9. [ ] Add feature flag management UI to admin portal
+10. [ ] Add app config management UI to admin portal
+11. [ ] Seed initial feature flags (debug_menu_enabled, display_inactive_games)
+12. [ ] Add visual editors for remaining puzzle types (Killer Sudoku, Crossword, etc.)

@@ -133,6 +133,7 @@ class RemoteConfigService extends ChangeNotifier {
         'feature_debug_menu': '',  // Disabled by default
         'feature_challenges': '1.0.0',  // Enabled for all versions
         'feature_friends': '1.0.0',  // Enabled for all versions
+        'feature_display_inactive_games': '',  // Disabled by default - shows inactive games when enabled
       });
 
       // Configure settings
@@ -332,6 +333,7 @@ class RemoteConfigService extends ChangeNotifier {
       'feature_debug_menu',
       'feature_challenges',
       'feature_friends',
+      'feature_display_inactive_games',
     };
     keys.addAll(_flagOverrides.keys);
     return keys;

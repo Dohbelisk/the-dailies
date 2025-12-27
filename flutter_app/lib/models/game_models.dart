@@ -99,6 +99,7 @@ class DailyPuzzle {
   final bool isCompleted;
   final int? completionTime;
   final int? score;
+  final bool isActive;
 
   DailyPuzzle({
     required this.id,
@@ -111,6 +112,7 @@ class DailyPuzzle {
     this.isCompleted = false,
     this.completionTime,
     this.score,
+    this.isActive = true,
   });
 
   factory DailyPuzzle.fromJson(Map<String, dynamic> json) {
@@ -131,6 +133,7 @@ class DailyPuzzle {
       isCompleted: json['isCompleted'] ?? false,
       completionTime: json['completionTime'],
       score: json['score'],
+      isActive: json['isActive'] ?? true,
     );
   }
 
@@ -146,6 +149,7 @@ class DailyPuzzle {
       'isCompleted': isCompleted,
       'completionTime': completionTime,
       'score': score,
+      'isActive': isActive,
     };
   }
 
@@ -317,13 +321,69 @@ class KillerSudokuPuzzle extends SudokuPuzzle {
   factory KillerSudokuPuzzle.fromJson(Map<String, dynamic> json) {
     final basePuzzle = SudokuPuzzle.fromJson(json);
     final cagesData = json['cages'] as List;
-    
+
     return KillerSudokuPuzzle(
       grid: basePuzzle.grid,
       initialGrid: basePuzzle.initialGrid,
       solution: basePuzzle.solution,
       cages: cagesData.map((c) => KillerCage.fromJson(c)).toList(),
     );
+  }
+
+  @override
+  bool isValidPlacement(int row, int col, int value) {
+    // First check standard Sudoku rules
+    if (!super.isValidPlacement(row, col, value)) {
+      return false;
+    }
+
+    // Find the cage this cell belongs to
+    KillerCage? cage;
+    for (final c in cages) {
+      for (final cell in c.cells) {
+        if (cell[0] == row && cell[1] == col) {
+          cage = c;
+          break;
+        }
+      }
+      if (cage != null) break;
+    }
+
+    if (cage == null) return true; // No cage found, allow placement
+
+    // Check for duplicate values in the same cage
+    for (final cell in cage.cells) {
+      if (cell[0] == row && cell[1] == col) continue; // Skip current cell
+      final cellValue = grid[cell[0]][cell[1]];
+      if (cellValue == value) {
+        return false; // Duplicate in cage
+      }
+    }
+
+    // Calculate current sum of filled cells in the cage
+    int currentSum = 0;
+    int filledCount = 0;
+    for (final cell in cage.cells) {
+      final cellValue = (cell[0] == row && cell[1] == col)
+          ? value
+          : grid[cell[0]][cell[1]];
+      if (cellValue != null) {
+        currentSum += cellValue;
+        filledCount++;
+      }
+    }
+
+    // If sum already exceeds target, invalid
+    if (currentSum > cage.sum) {
+      return false;
+    }
+
+    // If all cells are filled, sum must equal target exactly
+    if (filledCount == cage.cells.length && currentSum != cage.sum) {
+      return false;
+    }
+
+    return true;
   }
 
   List<int>? getCageForCell(int row, int col) {
@@ -576,34 +636,122 @@ class UserStats {
 class WordForgePuzzle {
   final List<String> letters; // 7 letters
   final String centerLetter; // Must be in every word
-  final Set<String> validWords; // All valid words
-  final Set<String> pangrams; // Words using all 7 letters
+  Set<String> validWords; // All valid words (populated from dictionary)
+  Set<String> pangrams; // Words using all 7 letters
   final Set<String> foundWords; // Words the user has found
-  final int maxScore;
+  int _maxScore; // Calculated from validWords
+
+  // Hint tracking
+  bool hasUsedPangramHint = false;
+  Map<String, int>? _twoLetterHints; // Cached two-letter hints
+
+  // Public getter for maxScore
+  int get maxScore => _maxScore;
 
   WordForgePuzzle({
     required this.letters,
     required this.centerLetter,
-    required this.validWords,
-    required this.pangrams,
+    Set<String>? validWords,
+    Set<String>? pangrams,
     Set<String>? foundWords,
-    required this.maxScore,
-  }) : foundWords = foundWords ?? {};
+    int maxScore = 0,
+  })  : validWords = validWords ?? {},
+        pangrams = pangrams ?? {},
+        foundWords = foundWords ?? {},
+        _maxScore = maxScore;
 
   factory WordForgePuzzle.fromJson(Map<String, dynamic> json) {
     final puzzleData = json;
     final solution = json['solution'] ?? json;
 
+    // Only need letters and centerLetter from JSON
+    // validWords will be populated from dictionary
     return WordForgePuzzle(
       letters: List<String>.from(puzzleData['letters'] ?? []),
       centerLetter: puzzleData['centerLetter'] ?? '',
-      validWords: Set<String>.from(puzzleData['validWords'] ?? solution['allWords'] ?? []),
-      pangrams: Set<String>.from(puzzleData['pangrams'] ?? solution['pangrams'] ?? []),
-      maxScore: solution['maxScore'] ?? 0,
+      // These will be populated by initializeFromDictionary()
+      validWords: {},
+      pangrams: {},
+      maxScore: 0,
     );
   }
 
-  bool get isComplete => foundWords.length == validWords.length;
+  /// Initialize valid words and pangrams from dictionary
+  void initializeFromDictionary(List<String> dictionaryWords, List<String> dictionaryPangrams) {
+    validWords = dictionaryWords.map((w) => w.toUpperCase()).toSet();
+    pangrams = dictionaryPangrams.map((w) => w.toUpperCase()).toSet();
+    _maxScore = _calculateMaxScore();
+    _twoLetterHints = null; // Clear cached hints
+  }
+
+  int _calculateMaxScore() {
+    int score = 0;
+    for (final word in validWords) {
+      if (word.length == 4) {
+        score += 1;
+      } else {
+        score += word.length;
+      }
+      if (pangrams.contains(word)) {
+        score += 7; // Pangram bonus
+      }
+    }
+    return score;
+  }
+
+  // Spelling Bee style levels - complete at "Genius" (70%)
+  static const List<Map<String, dynamic>> levels = [
+    {'name': 'Beginner', 'percent': 0},
+    {'name': 'Good Start', 'percent': 2},
+    {'name': 'Moving Up', 'percent': 5},
+    {'name': 'Good', 'percent': 8},
+    {'name': 'Solid', 'percent': 15},
+    {'name': 'Nice', 'percent': 25},
+    {'name': 'Great', 'percent': 40},
+    {'name': 'Amazing', 'percent': 50},
+    {'name': 'Genius', 'percent': 70},
+    {'name': 'Queen Bee', 'percent': 100},
+  ];
+
+  // Target score is "Genius" level (70% of max)
+  int get targetScore => (maxScore * 0.7).ceil();
+
+  // Complete when reaching Genius level
+  bool get isComplete => currentScore >= targetScore;
+
+  // Progress as percentage (0-100)
+  double get progressPercent => maxScore > 0 ? (currentScore / maxScore * 100).clamp(0, 100) : 0;
+
+  // Current level name
+  String get currentLevel {
+    final percent = progressPercent;
+    String level = 'Beginner';
+    for (final l in levels) {
+      if (percent >= l['percent']) {
+        level = l['name'];
+      }
+    }
+    return level;
+  }
+
+  // Next level info
+  Map<String, dynamic>? get nextLevel {
+    final percent = progressPercent;
+    for (final l in levels) {
+      if (percent < l['percent']) {
+        return l;
+      }
+    }
+    return null;
+  }
+
+  // Points needed for next level
+  int get pointsToNextLevel {
+    final next = nextLevel;
+    if (next == null) return 0;
+    final targetPoints = (maxScore * next['percent'] / 100).ceil();
+    return targetPoints - currentScore;
+  }
 
   int get currentScore {
     int score = 0;

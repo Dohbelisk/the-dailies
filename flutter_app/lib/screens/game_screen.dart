@@ -1309,6 +1309,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       }
                     });
                   },
+                  onShowHints: () => _showWordForgeHints(context, gameProvider),
                 ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
                 if (_wordForgeMessage != null) ...[
                   const SizedBox(height: 16),
@@ -1324,6 +1325,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'Found Words (${puzzle.foundWords.length}/${puzzle.validWords.length})',
@@ -1336,6 +1338,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     ],
                   ),
                 ),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -1371,6 +1374,62 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ],
       ),
     ).animate().fadeIn(duration: 200.ms).scale(begin: const Offset(0.9, 0.9));
+  }
+
+  // Stored pangram hint for display after use
+  Map<String, dynamic>? _storedPangramHint;
+
+  void _showWordForgeHints(BuildContext context, GameProvider gameProvider) {
+    // Get hints data
+    final twoLetterHints = gameProvider.getWordForgeTwoLetterHints();
+    final hasUnfoundPangrams = gameProvider.getUnfoundPangramCount() > 0;
+    final pangramHintUsed = gameProvider.wordForgePuzzle?.hasUsedPangramHint ?? false;
+    final wordHint = gameProvider.getWordForgeWordHint();
+
+    // Get or update stored pangram hint
+    if (pangramHintUsed && _storedPangramHint == null) {
+      // Hint was used but we don't have the data - try to get it again
+      _storedPangramHint = gameProvider.getWordForgePangramHint();
+    } else if (!pangramHintUsed) {
+      // Haven't used hint yet, get fresh one
+      _storedPangramHint = gameProvider.getWordForgePangramHint();
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return WordForgeHintsSheet(
+              twoLetterHints: twoLetterHints,
+              hasUnfoundPangrams: hasUnfoundPangrams,
+              pangramHintUsed: pangramHintUsed,
+              pangramHint: _storedPangramHint,
+              wordHint: wordHint,
+              onUsePangramHint: () {
+                // Store the hint before using it
+                _storedPangramHint = gameProvider.getWordForgePangramHint();
+                gameProvider.useWordForgePangramHint();
+                _audioService.playHint();
+                // Update the sheet to show the revealed hint
+                setSheetState(() {});
+                setState(() {});
+              },
+              onRevealWord: (word) {
+                gameProvider.useWordForgeWordReveal(word);
+                _audioService.playHint();
+                setState(() {});
+              },
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildNonogramContent(BuildContext context) {

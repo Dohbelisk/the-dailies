@@ -112,38 +112,44 @@ class CrosswordGrid extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Cell number
+            // Cell number - tiny and tucked in top-left corner
             if (cellNumber != null)
               Positioned(
-                top: 2,
-                left: 3,
+                top: 0,
+                left: 1,
                 child: Text(
                   '$cellNumber',
                   style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 5,
+                    fontWeight: FontWeight.w500,
                     color: isSelected
-                        ? theme.colorScheme.onPrimary.withOpacity(0.8)
-                        : theme.colorScheme.onSurface.withOpacity(0.6),
+                        ? theme.colorScheme.onPrimary.withOpacity(0.6)
+                        : theme.colorScheme.onSurface.withOpacity(0.4),
                   ),
                 ),
               ),
 
-            // Letter
-            Center(
-              child: Text(
-                hasValue ? userValue!.toUpperCase() : '',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: hasValue && !isCorrect && _showErrors
-                      ? theme.colorScheme.error
-                      : isSelected
-                          ? theme.colorScheme.onPrimary
-                          : theme.colorScheme.onSurface,
+            // Letter - use FittedBox to scale to cell size, consistent sizing
+            if (hasValue)
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: Text(
+                      userValue!.toUpperCase(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: !isCorrect && _showErrors
+                            ? theme.colorScheme.error
+                            : isSelected
+                                ? theme.colorScheme.onPrimary
+                                : theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
