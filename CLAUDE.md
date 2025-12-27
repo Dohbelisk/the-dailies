@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-The Dailies is a multi-platform daily puzzle game featuring **12 puzzle types**: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, and Connections. The project consists of three main components:
+The Dailies is a multi-platform daily puzzle game featuring **13 puzzle types**: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections, and Mathora. The project consists of three main components:
 
 - **Flutter Mobile App** (`flutter_app/`) - Cross-platform mobile application (iOS, Android, Web)
 - **NestJS Backend API** (`backend/`) - RESTful API with MongoDB and JWT authentication
@@ -296,7 +296,7 @@ FeatureFlag {
 | `TermsOfServiceScreen` / `PrivacyPolicyScreen` | Legal |
 
 **Widgets:**
-- `SudokuGrid`, `KillerSudokuGrid`, `CrosswordGrid`, `WordSearchGrid`, `WordForgeGrid`, `NonogramGrid`, `NumberTargetGrid`, `BallSortGrid`, `PipesGrid`, `LightsOutGrid`, `WordLadderGrid`, `ConnectionsGrid`
+- `SudokuGrid`, `KillerSudokuGrid`, `CrosswordGrid`, `WordSearchGrid`, `WordForgeGrid`, `NonogramGrid`, `NumberTargetGrid`, `BallSortGrid`, `PipesGrid`, `LightsOutGrid`, `WordLadderGrid`, `ConnectionsGrid`, `MathoraGrid`
 - `NumberPad`, `KeyboardInput`
 - `GameTimer`, `PuzzleCard`, `TokenBalanceWidget`
 - `CompletionDialog`, `FeedbackDialog`, `ConsentDialog`
@@ -315,6 +315,7 @@ FeatureFlag {
 - Lights Out: toggle grid cells and neighbors
 - Word Ladder: single letter changes between words
 - Connections: group 16 words into 4 categories
+- Mathora: apply math operations to reach target number within move limit
 
 **Scoring Algorithm:**
 - Base score: 1000 points
@@ -605,6 +606,24 @@ GET  /api/dictionary/status                # Get dictionary status
 }
 ```
 
+### Mathora
+```json
+{
+  "startNumber": 8,                    // Starting value
+  "targetNumber": 200,                 // Target to reach
+  "moves": 3,                          // Maximum moves allowed
+  "operations": [                      // Grid of available operations
+    { "type": "add", "value": 50, "display": "+50" },
+    { "type": "multiply", "value": 10, "display": "×10" },
+    { "type": "subtract", "value": 5, "display": "-5" },
+    { "type": "divide", "value": 2, "display": "÷2" },
+    ...
+  ]
+}
+// Solution: array of operations that solve the puzzle
+// Example: 8 × 10 = 80 → 80 + 100 = 180 → 180 + 20 = 200
+```
+
 ---
 
 ## Monetization System
@@ -788,13 +807,19 @@ enum VersionStatus {
 - Groups words into themed categories
 - Assigns difficulty levels 1-4
 
+**MathoraGenerator:**
+- Generates starting number and target number
+- Creates operations grid (+, -, ×, ÷) with difficulty-based move limits
+- Guarantees solvable puzzles with known solution path
+- Easy: 3 moves, Medium: 4 moves, Hard: 5 moves, Expert: 6 moves
+
 **Target Times (seconds):**
-| Difficulty | Sudoku | Killer | Crossword | Word Search | Word Forge | Nonogram | Number Target |
-|------------|--------|--------|-----------|-------------|------------|----------|---------------|
-| Easy       | 300    | 450    | 360       | 180         | 300        | 180      | 120           |
-| Medium     | 600    | 900    | 600       | 300         | 600        | 360      | 180           |
-| Hard       | 900    | 1200   | 900       | 420         | 900        | 600      | 300           |
-| Expert     | 1200   | 1800   | 1200      | 600         | 1200       | 900      | 420           |
+| Difficulty | Sudoku | Killer | Crossword | Word Search | Word Forge | Nonogram | Number Target | Mathora |
+|------------|--------|--------|-----------|-------------|------------|----------|---------------|---------|
+| Easy       | 300    | 450    | 360       | 180         | 300        | 180      | 120           | 60      |
+| Medium     | 600    | 900    | 600       | 300         | 600        | 360      | 180           | 90      |
+| Hard       | 900    | 1200   | 900       | 420         | 900        | 600      | 300           | 120     |
+| Expert     | 1200   | 1800   | 1200      | 600         | 1200       | 900      | 420           | 180     |
 
 ---
 
