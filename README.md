@@ -1,13 +1,13 @@
 # 🧩 The Dailies
 
-A comprehensive daily puzzle game featuring **12 puzzle types**: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, and Connections. Built with Flutter for mobile, NestJS for the backend API, and React for the admin portal.
+A comprehensive daily puzzle game featuring **13 puzzle types**: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections, and Mathora. Built with Flutter for mobile, NestJS for the backend API, and React for the admin portal.
 
 ![The Dailies](https://via.placeholder.com/800x400/6366F1/FFFFFF?text=The+Dailies)
 
 ## 🎮 Features
 
 ### Mobile App (Flutter)
-- **12 Game Types**: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections
+- **13 Game Types**: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections, Mathora
 - **Daily Challenges**: New puzzles every day
 - **Friend Challenges**: Head-to-head multiplayer puzzles
 - **Favorites**: Pin your favorite games to the top
@@ -294,11 +294,11 @@ static const String baseUrl = 'http://YOUR_SERVER_IP:3000/api';
 
 - [ ] Push notifications for daily puzzles
 - [x] Multiplayer/competitive mode (Friend Challenges)
-- [x] Puzzle generator algorithms (All 12 types)
+- [x] Puzzle generator algorithms (All 13 types)
 - [ ] Social sharing
 - [ ] Leaderboards UI
 - [ ] Achievement system
-- [x] More puzzle types (12 total: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections)
+- [x] More puzzle types (13 total: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections, Mathora)
 
 ## 📄 License
 
