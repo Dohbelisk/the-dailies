@@ -1009,15 +1009,15 @@ For each game type, verify both sections:
 | 2 | Killer Sudoku | ✅ | ✅ | Ready |
 | 3 | Crossword | ✅ | ✅ | Ready |
 | 4 | Word Search | ⏳ | ⏳ | Inactive |
-| 5 | Word Forge | ⏳ | ⏳ | Pending |
-| 6 | Nonogram | ⏳ | ⏳ | Pending |
-| 7 | Number Target | ⏳ | ⏳ | Pending |
-| 8 | Ball Sort | ⏳ | ⏳ | Pending |
-| 9 | Pipes | ⏳ | ⏳ | Pending |
-| 10 | Lights Out | ⏳ | ⏳ | Pending |
-| 11 | Word Ladder | ⏳ | ⏳ | Pending |
-| 12 | Connections | ⏳ | ⏳ | Pending |
-| 13 | Mathora | ⏳ | ⏳ | Pending |
+| 5 | Word Forge | ✅ | ⏳ | Pending Device Test |
+| 6 | Nonogram | ✅ | ⏳ | Pending Device Test |
+| 7 | Number Target | ✅ | ⏳ | Pending Device Test |
+| 8 | Ball Sort | ✅ | ⏳ | Pending Device Test |
+| 9 | Pipes | ✅ | ⏳ | Pending Device Test |
+| 10 | Lights Out | ✅ | ⏳ | Pending Device Test |
+| 11 | Word Ladder | ✅ | ⏳ | Pending Device Test |
+| 12 | Connections | ✅ | ⏳ | Pending Device Test |
+| 13 | Mathora | ✅ | ⏳ | Pending Device Test |
 
 **Legend:** ⏳ Pending | ✅ Passed | ❌ Failed
 

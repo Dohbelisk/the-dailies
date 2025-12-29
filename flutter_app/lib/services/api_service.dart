@@ -498,10 +498,14 @@ class ApiService {
           'rows': 5,
           'cols': 5,
           'endpoints': [
-            {'color': 'red', 'positions': [[0, 0], [4, 4]]},
-            {'color': 'blue', 'positions': [[0, 4], [4, 0]]},
-            {'color': 'green', 'positions': [[2, 0], [2, 4]]},
+            {'color': 'red', 'row': 0, 'col': 0},
+            {'color': 'red', 'row': 4, 'col': 4},
+            {'color': 'blue', 'row': 0, 'col': 4},
+            {'color': 'blue', 'row': 4, 'col': 0},
+            {'color': 'green', 'row': 2, 'col': 0},
+            {'color': 'green', 'row': 2, 'col': 4},
           ],
+          'bridges': [],
         },
         solution: {
           'paths': {
@@ -540,7 +544,7 @@ class ApiService {
         targetTime: 300,
         puzzleData: {
           'startWord': 'COLD',
-          'endWord': 'WARM',
+          'targetWord': 'WARM',
           'wordLength': 4,
         },
         solution: {
@@ -573,6 +577,36 @@ class ApiService {
             {'name': 'Colors', 'words': ['RED', 'BLUE', 'GREEN', 'YELLOW']},
             {'name': 'Pets', 'words': ['DOG', 'CAT', 'BIRD', 'FISH']},
             {'name': 'Transport', 'words': ['CAR', 'BIKE', 'TRAIN', 'PLANE']},
+          ],
+        },
+      ),
+      DailyPuzzle(
+        id: 'mathora-${today.toIso8601String().split('T')[0]}',
+        gameType: GameType.mathora,
+        difficulty: Difficulty.medium,
+        date: today,
+        targetTime: 90,
+        puzzleData: {
+          'startNumber': 8,
+          'targetNumber': 200,
+          'moves': 3,
+          'operations': [
+            {'type': 'add', 'value': 50, 'display': '+50'},
+            {'type': 'multiply', 'value': 10, 'display': '×10'},
+            {'type': 'subtract', 'value': 5, 'display': '-5'},
+            {'type': 'divide', 'value': 2, 'display': '÷2'},
+            {'type': 'add', 'value': 100, 'display': '+100'},
+            {'type': 'add', 'value': 20, 'display': '+20'},
+            {'type': 'multiply', 'value': 5, 'display': '×5'},
+            {'type': 'subtract', 'value': 10, 'display': '-10'},
+            {'type': 'divide', 'value': 4, 'display': '÷4'},
+          ],
+        },
+        solution: {
+          'steps': [
+            {'type': 'multiply', 'value': 10, 'display': '×10'},
+            {'type': 'add', 'value': 100, 'display': '+100'},
+            {'type': 'add', 'value': 20, 'display': '+20'},
           ],
         },
       ),

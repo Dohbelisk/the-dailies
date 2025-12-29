@@ -9,6 +9,7 @@ import {
   X,
   Wand2,
   MessageSquare,
+  Book,
 } from 'lucide-react'
 
 const navItems = [
@@ -16,6 +17,7 @@ const navItems = [
   { to: '/puzzles', icon: Puzzle, label: 'Puzzles' },
   { to: '/puzzles/generate', icon: Wand2, label: 'Generate' },
   { to: '/feedback', icon: MessageSquare, label: 'Feedback' },
+  { to: '/dictionary', icon: Book, label: 'Dictionary' },
 ]
 
 export default function Layout() {

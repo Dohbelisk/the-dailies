@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
 import '../models/game_models.dart';
+import 'keyboard_input.dart';
 
 class WordLadderGrid extends StatelessWidget {
   final WordLadderPuzzle puzzle;
   final String currentInput;
-  final Function(String) onInputChanged;
+  final Function(String) onLetterTap;
+  final VoidCallback onDeleteTap;
   final VoidCallback onSubmit;
   final VoidCallback onUndo;
   final VoidCallback onReset;
+  final String? message;
+  final bool? messageSuccess;
 
   const WordLadderGrid({
     super.key,
     required this.puzzle,
     required this.currentInput,
-    required this.onInputChanged,
+    required this.onLetterTap,
+    required this.onDeleteTap,
     required this.onSubmit,
     required this.onUndo,
     required this.onReset,
+    this.message,
+    this.messageSuccess,
   });
 
   @override
@@ -55,7 +62,7 @@ class WordLadderGrid extends StatelessWidget {
               Row(
                 children: [
                   FilledButton.tonal(
-                    onPressed: puzzle.currentPath.length <= 1 ? null : onUndo,
+                    onPressed: (puzzle.pathFromStart.length <= 1 && puzzle.pathFromTarget.length <= 1) ? null : onUndo,
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -67,7 +74,7 @@ class WordLadderGrid extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   IconButton.outlined(
-                    onPressed: puzzle.currentPath.length <= 1 ? null : onReset,
+                    onPressed: (puzzle.pathFromStart.length <= 1 && puzzle.pathFromTarget.length <= 1) ? null : onReset,
                     icon: const Icon(Icons.refresh, size: 20),
                     tooltip: 'Reset puzzle',
                   ),
@@ -98,18 +105,28 @@ class WordLadderGrid extends StatelessWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Target word at top
-          _buildWordCard(
-            context,
-            puzzle.targetWord,
-            isTarget: true,
-            isStart: false,
-            isCurrent: puzzle.currentPath.last == puzzle.targetWord,
-          ),
-          const SizedBox(height: 8),
+          // Target path (building down from target)
+          // Show in reverse order so target is at top
+          for (int i = 0; i < puzzle.pathFromTarget.length; i++) ...[
+            _buildWordCard(
+              context,
+              puzzle.pathFromTarget[i],
+              isTarget: i == 0,
+              isStart: false,
+              isCurrent: i == puzzle.pathFromTarget.length - 1 && puzzle.pathFromTarget.length > 1,
+            ),
+            if (i < puzzle.pathFromTarget.length - 1) ...[
+              Icon(
+                Icons.arrow_downward,
+                size: 20,
+                color: theme.colorScheme.tertiary,
+              ),
+            ],
+          ],
 
-          // Dots indicating steps needed
-          if (puzzle.currentPath.last != puzzle.targetWord) ...[
+          // Gap between paths (if not complete)
+          if (!puzzle.isComplete) ...[
+            const SizedBox(height: 8),
             for (int i = 0; i < 3; i++)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
@@ -118,21 +135,28 @@ class WordLadderGrid extends StatelessWidget {
                   height: 6,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: theme.colorScheme.outline.withOpacity(0.3),
+                    color: theme.colorScheme.outline.withAlpha(77),
                   ),
                 ),
               ),
             const SizedBox(height: 8),
+          ] else ...[
+            Icon(
+              Icons.arrow_downward,
+              size: 20,
+              color: theme.colorScheme.primary,
+            ),
           ],
 
-          // Current path (reversed so most recent is at top)
-          for (int i = puzzle.currentPath.length - 1; i >= 0; i--) ...[
+          // Start path (building up from start)
+          // Show in reverse order so most recent is at top (closest to target)
+          for (int i = puzzle.pathFromStart.length - 1; i >= 0; i--) ...[
             _buildWordCard(
               context,
-              puzzle.currentPath[i],
+              puzzle.pathFromStart[i],
               isTarget: false,
               isStart: i == 0,
-              isCurrent: i == puzzle.currentPath.length - 1,
+              isCurrent: i == puzzle.pathFromStart.length - 1 && puzzle.pathFromStart.length > 1,
             ),
             if (i > 0) ...[
               Icon(
@@ -201,7 +225,7 @@ class WordLadderGrid extends StatelessWidget {
                   word[i],
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: textColor,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -215,58 +239,97 @@ class WordLadderGrid extends StatelessWidget {
   Widget _buildInputArea(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Enter next word (change one letter)',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Message display
+        if (message != null && message!.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: messageSuccess == true
+                  ? theme.colorScheme.primaryContainer
+                  : theme.colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              message!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: messageSuccess == true
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.onErrorContainer,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
+          const SizedBox(height: 8),
+        ],
+        // Current input display
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
             children: [
-              Expanded(
-                child: TextField(
-                  onChanged: onInputChanged,
-                  textCapitalization: TextCapitalization.characters,
-                  maxLength: puzzle.wordLength,
-                  decoration: InputDecoration(
-                    hintText: 'Enter ${puzzle.wordLength}-letter word',
-                    counterText: '',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    letterSpacing: 4,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
+              Text(
+                'Enter next word (change one letter)',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(width: 12),
-              FilledButton(
-                onPressed: currentInput.length == puzzle.wordLength
-                    ? onSubmit
-                    : null,
-                child: const Text('Add'),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Letter boxes for input
+                  for (int i = 0; i < puzzle.wordLength; i++) ...[
+                    if (i > 0) const SizedBox(width: 6),
+                    Container(
+                      width: 44,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: i < currentInput.length
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outline.withAlpha(128),
+                          width: i < currentInput.length ? 2 : 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          i < currentInput.length ? currentInput[i] : '',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(width: 16),
+                  // Add button
+                  FilledButton(
+                    onPressed: currentInput.length == puzzle.wordLength
+                        ? onSubmit
+                        : null,
+                    child: const Text('Add'),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        // Keyboard
+        KeyboardInput(
+          onLetterTap: onLetterTap,
+          onDeleteTap: onDeleteTap,
+        ),
+      ],
     );
   }
 }

@@ -6,7 +6,9 @@ class ConnectionsGrid extends StatelessWidget {
   final Function(String word) onWordTap;
   final VoidCallback onSubmit;
   final VoidCallback onClear;
-  final VoidCallback onReset;
+  final VoidCallback onShuffle;
+  final String? message;
+  final bool? messageSuccess;
 
   const ConnectionsGrid({
     super.key,
@@ -14,7 +16,9 @@ class ConnectionsGrid extends StatelessWidget {
     required this.onWordTap,
     required this.onSubmit,
     required this.onClear,
-    required this.onReset,
+    required this.onShuffle,
+    this.message,
+    this.messageSuccess,
   });
 
   static const Map<int, Color> _difficultyColors = {
@@ -75,14 +79,6 @@ class ConnectionsGrid extends StatelessWidget {
                   ),
                 ],
               ),
-              IconButton.outlined(
-                onPressed: (puzzle.foundCategories.isEmpty &&
-                        puzzle.mistakesRemaining == 4)
-                    ? null
-                    : onReset,
-                icon: const Icon(Icons.refresh, size: 20),
-                tooltip: 'Reset puzzle',
-              ),
             ],
           ),
         ),
@@ -95,9 +91,46 @@ class ConnectionsGrid extends StatelessWidget {
           const SizedBox(height: 8),
         ],
 
-        // Remaining words grid
+        // Remaining words grid with message overlay
         Expanded(
-          child: _buildWordsGrid(context),
+          child: Stack(
+            children: [
+              _buildWordsGrid(context),
+              // Message overlay at bottom of grid
+              if (message != null && message!.isNotEmpty)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: messageSuccess == true
+                          ? theme.colorScheme.primaryContainer
+                          : theme.colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(40),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      message!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: messageSuccess == true
+                            ? theme.colorScheme.onPrimaryContainer
+                            : theme.colorScheme.onErrorContainer,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
 
         // Action buttons
@@ -105,10 +138,20 @@ class ConnectionsGrid extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
+              // Shuffle button
+              IconButton.outlined(
+                onPressed: puzzle.remainingWords.length > 1 && !puzzle.isGameOver
+                    ? onShuffle
+                    : null,
+                icon: const Icon(Icons.shuffle, size: 20),
+                tooltip: 'Shuffle words',
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
-                  onPressed:
-                      puzzle.selectedWords.isEmpty ? null : onClear,
+                  onPressed: puzzle.selectedWords.isEmpty || puzzle.isGameOver
+                      ? null
+                      : onClear,
                   child: const Text('Clear'),
                 ),
               ),
@@ -116,10 +159,11 @@ class ConnectionsGrid extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: FilledButton(
-                  onPressed:
-                      puzzle.selectedWords.length == 4 ? onSubmit : null,
+                  onPressed: puzzle.selectedWords.length == 4 && !puzzle.isGameOver
+                      ? onSubmit
+                      : null,
                   child: Text(
-                    'Submit (${puzzle.selectedWords.length}/4)',
+                    puzzle.isGameOver ? 'Game Over' : 'Submit (${puzzle.selectedWords.length}/4)',
                   ),
                 ),
               ),
@@ -170,6 +214,10 @@ class ConnectionsGrid extends StatelessWidget {
     final remainingWords = puzzle.remainingWords;
 
     if (remainingWords.isEmpty) {
+      // Don't show celebration if game was lost
+      if (puzzle.wasLost) {
+        return const SizedBox.shrink();
+      }
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -194,7 +242,8 @@ class ConnectionsGrid extends StatelessWidget {
         final cols = 4;
         final rows = (remainingWords.length / cols).ceil();
         final cellWidth = (constraints.maxWidth - 24) / cols;
-        final cellHeight = 50.0;
+        // Make tiles more square - use width as base, cap at reasonable height
+        final cellHeight = (cellWidth - 8).clamp(60.0, 80.0);
 
         return Center(
           child: Wrap(
@@ -218,9 +267,10 @@ class ConnectionsGrid extends StatelessWidget {
   ) {
     final theme = Theme.of(context);
     final isSelected = puzzle.selectedWords.contains(word);
+    final isGameOver = puzzle.mistakesRemaining <= 0;
 
     return GestureDetector(
-      onTap: () => onWordTap(word),
+      onTap: isGameOver ? null : () => onWordTap(word),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         width: width,

@@ -18,7 +18,9 @@
     "test:cov": "jest --coverage",
     "seed": "ts-node src/seeds/seed.ts",
     "seed:range": "ts-node src/seeds/seed-date-range.ts",
-    "seed:dictionary": "ts-node src/seeds/seed-dictionary.ts"
+    "seed:dictionary": "ts-node src/seeds/seed-dictionary.ts",
+    "seed:dictionary-clues": "ts-node src/seeds/seed-dictionary-clues.ts",
+    "seed:spelling-bee": "ts-node src/seeds/seed-spelling-bee-dictionary.ts"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",

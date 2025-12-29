@@ -632,11 +632,33 @@ class UserStats {
   }
 }
 
+// Word Forge word entry with clue
+class WordForgeWord {
+  final String word;
+  final String clue;
+  final bool isPangram;
+
+  WordForgeWord({
+    required this.word,
+    required this.clue,
+    required this.isPangram,
+  });
+
+  factory WordForgeWord.fromJson(Map<String, dynamic> json) {
+    return WordForgeWord(
+      word: (json['word'] as String).toUpperCase(),
+      clue: json['clue'] as String? ?? '',
+      isPangram: json['isPangram'] as bool? ?? false,
+    );
+  }
+}
+
 // Word Forge specific models
 class WordForgePuzzle {
   final List<String> letters; // 7 letters
   final String centerLetter; // Must be in every word
-  Set<String> validWords; // All valid words (populated from dictionary)
+  final List<WordForgeWord> words; // All valid words with clues (from backend)
+  Set<String> validWords; // Set of valid words for quick lookup
   Set<String> pangrams; // Words using all 7 letters
   final Set<String> foundWords; // Words the user has found
   int _maxScore; // Calculated from validWords
@@ -644,6 +666,7 @@ class WordForgePuzzle {
   // Hint tracking
   bool hasUsedPangramHint = false;
   Map<String, int>? _twoLetterHints; // Cached two-letter hints
+  Set<String> revealedWords = {}; // Words revealed via hints (shown with clues)
 
   // Public getter for maxScore
   int get maxScore => _maxScore;
@@ -651,6 +674,7 @@ class WordForgePuzzle {
   WordForgePuzzle({
     required this.letters,
     required this.centerLetter,
+    required this.words,
     Set<String>? validWords,
     Set<String>? pangrams,
     Set<String>? foundWords,
@@ -662,21 +686,41 @@ class WordForgePuzzle {
 
   factory WordForgePuzzle.fromJson(Map<String, dynamic> json) {
     final puzzleData = json;
-    final solution = json['solution'] ?? json;
+    final solution = json['solution'] ?? {};
 
-    // Only need letters and centerLetter from JSON
-    // validWords will be populated from dictionary
-    return WordForgePuzzle(
+    // Parse words from backend (new format) or use empty list (legacy)
+    List<WordForgeWord> wordsList = [];
+    if (puzzleData['words'] != null) {
+      wordsList = (puzzleData['words'] as List)
+          .map((w) => WordForgeWord.fromJson(w as Map<String, dynamic>))
+          .toList();
+    }
+
+    // Build validWords and pangrams sets from the words list
+    final validWordsSet = wordsList.map((w) => w.word).toSet();
+    final pangramsSet = wordsList.where((w) => w.isPangram).map((w) => w.word).toSet();
+
+    // Get maxScore from solution if available
+    int maxScore = solution['maxScore'] as int? ?? 0;
+
+    final puzzle = WordForgePuzzle(
       letters: List<String>.from(puzzleData['letters'] ?? []),
       centerLetter: puzzleData['centerLetter'] ?? '',
-      // These will be populated by initializeFromDictionary()
-      validWords: {},
-      pangrams: {},
-      maxScore: 0,
+      words: wordsList,
+      validWords: validWordsSet,
+      pangrams: pangramsSet,
+      maxScore: maxScore,
     );
+
+    // If maxScore not provided, calculate it
+    if (maxScore == 0 && wordsList.isNotEmpty) {
+      puzzle._maxScore = puzzle._calculateMaxScore();
+    }
+
+    return puzzle;
   }
 
-  /// Initialize valid words and pangrams from dictionary
+  /// Initialize valid words and pangrams from dictionary (legacy support)
   void initializeFromDictionary(List<String> dictionaryWords, List<String> dictionaryPangrams) {
     validWords = dictionaryWords.map((w) => w.toUpperCase()).toSet();
     pangrams = dictionaryPangrams.map((w) => w.toUpperCase()).toSet();
@@ -697,6 +741,39 @@ class WordForgePuzzle {
       }
     }
     return score;
+  }
+
+  /// Get clue for a word
+  String? getClueForWord(String word) {
+    final upperWord = word.toUpperCase();
+    try {
+      return words.firstWhere((w) => w.word == upperWord).clue;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get unfound words starting with a two-letter prefix
+  List<WordForgeWord> getUnfoundWordsWithPrefix(String prefix) {
+    final upperPrefix = prefix.toUpperCase();
+    return words.where((w) =>
+      w.word.startsWith(upperPrefix) &&
+      !foundWords.contains(w.word) &&
+      !revealedWords.contains(w.word)
+    ).toList();
+  }
+
+  /// Reveal a random word with the given prefix (costs a hint)
+  /// Returns the revealed word with clue, or null if none available
+  WordForgeWord? revealWordWithPrefix(String prefix) {
+    final available = getUnfoundWordsWithPrefix(prefix);
+    if (available.isEmpty) return null;
+
+    // Shuffle and pick one
+    available.shuffle();
+    final revealed = available.first;
+    revealedWords.add(revealed.word);
+    return revealed;
   }
 
   // Spelling Bee style levels - complete at "Genius" (70%)
@@ -1030,13 +1107,15 @@ class NumberTargetPuzzle {
 class BallSortMove {
   final int from;
   final int to;
+  final int ballCount; // Number of balls moved (for multi-ball moves)
 
-  BallSortMove({required this.from, required this.to});
+  BallSortMove({required this.from, required this.to, this.ballCount = 1});
 
   factory BallSortMove.fromJson(Map<String, dynamic> json) {
     return BallSortMove(
       from: json['from'] as int,
       to: json['to'] as int,
+      ballCount: json['ballCount'] as int? ?? 1,
     );
   }
 
@@ -1100,6 +1179,24 @@ class BallSortPuzzle {
     return tube.isEmpty ? null : tube.last;
   }
 
+  /// Count consecutive same-color balls from the top of a tube
+  int getConsecutiveTopBalls(int tubeIndex) {
+    if (tubeIndex < 0 || tubeIndex >= currentState.length) return 0;
+    final tube = currentState[tubeIndex];
+    if (tube.isEmpty) return 0;
+
+    final topColor = tube.last;
+    int count = 0;
+    for (int i = tube.length - 1; i >= 0; i--) {
+      if (tube[i] == topColor) {
+        count++;
+      } else {
+        break;
+      }
+    }
+    return count;
+  }
+
   bool canMoveTo(int fromIndex, int toIndex) {
     if (fromIndex == toIndex) return false;
     if (fromIndex < 0 || fromIndex >= currentState.length) return false;
@@ -1111,28 +1208,40 @@ class BallSortPuzzle {
     // Can't move from empty tube
     if (fromTube.isEmpty) return false;
 
-    // Can't move to full tube
-    if (toTube.length >= tubeCapacity) return false;
+    final availableSpace = tubeCapacity - toTube.length;
 
-    final ballToMove = fromTube.last;
+    // Need at least 1 space (we'll move as many as fit)
+    if (availableSpace <= 0) return false;
 
-    // Can move to empty tube (unless source is all same color - pointless move)
+    // Can move to empty tube
     if (toTube.isEmpty) {
-      // Allow moving to empty even if source is all same color
-      // (User might want to rearrange)
       return true;
     }
 
     // Can move if destination top ball matches
-    return toTube.last == ballToMove;
+    return toTube.last == fromTube.last;
   }
 
   bool moveBall(int fromIndex, int toIndex) {
     if (!canMoveTo(fromIndex, toIndex)) return false;
 
-    final ball = currentState[fromIndex].removeLast();
-    currentState[toIndex].add(ball);
-    moveHistory.add(BallSortMove(from: fromIndex, to: toIndex));
+    final fromTube = currentState[fromIndex];
+    final toTube = currentState[toIndex];
+
+    // Count how many consecutive balls we can move
+    final consecutiveBalls = getConsecutiveTopBalls(fromIndex);
+    final availableSpace = tubeCapacity - toTube.length;
+
+    // Move as many balls as possible (limited by space and consecutive count)
+    final ballsToMove = consecutiveBalls < availableSpace ? consecutiveBalls : availableSpace;
+
+    // Move the balls
+    for (int i = 0; i < ballsToMove; i++) {
+      final ball = fromTube.removeLast();
+      toTube.add(ball);
+    }
+
+    moveHistory.add(BallSortMove(from: fromIndex, to: toIndex, ballCount: ballsToMove));
     moveCount++;
     return true;
   }
@@ -1141,8 +1250,11 @@ class BallSortPuzzle {
     if (moveHistory.isEmpty) return false;
 
     final lastMove = moveHistory.removeLast();
-    final ball = currentState[lastMove.to].removeLast();
-    currentState[lastMove.from].add(ball);
+    // Move all balls back
+    for (int i = 0; i < lastMove.ballCount; i++) {
+      final ball = currentState[lastMove.to].removeLast();
+      currentState[lastMove.from].add(ball);
+    }
     moveCount--;
     return true;
   }
@@ -1228,7 +1340,12 @@ class PipesPuzzle {
     if (solutionData['paths'] != null) {
       (solutionData['paths'] as Map<String, dynamic>).forEach((color, path) {
         solutionPaths[color] = (path as List).map<List<int>>((cell) {
-          return (cell as List).map<int>((c) => c as int).toList();
+          // Handle both formats: {"row": x, "col": y} or [x, y]
+          if (cell is Map) {
+            return [cell['row'] as int, cell['col'] as int];
+          } else {
+            return (cell as List).map<int>((c) => c as int).toList();
+          }
         }).toList();
       });
     }
@@ -1358,7 +1475,12 @@ class LightsOutPuzzle {
 
     final solutionMoves = solutionData['moves'] != null
         ? (solutionData['moves'] as List).map<List<int>>((move) {
-            return (move as List).map<int>((c) => c as int).toList();
+            // Handle both Map format {"row": x, "col": y} and List format [row, col]
+            if (move is Map) {
+              return [move['row'] as int, move['col'] as int];
+            } else {
+              return (move as List).map<int>((c) => c as int).toList();
+            }
           }).toList()
         : <List<int>>[];
 
@@ -1426,8 +1548,9 @@ class WordLadderPuzzle {
   final List<String> solutionPath; // Optimal path from start to target
   final int minSteps;
 
-  // User state
-  List<String> currentPath; // User's current path
+  // User state - bidirectional paths
+  List<String> pathFromStart; // Path building from start word
+  List<String> pathFromTarget; // Path building from target word
 
   WordLadderPuzzle({
     required this.startWord,
@@ -1435,8 +1558,10 @@ class WordLadderPuzzle {
     required this.wordLength,
     required this.solutionPath,
     required this.minSteps,
-    List<String>? currentPath,
-  }) : currentPath = currentPath ?? [startWord];
+    List<String>? pathFromStart,
+    List<String>? pathFromTarget,
+  }) : pathFromStart = pathFromStart ?? [startWord],
+       pathFromTarget = pathFromTarget ?? [targetWord];
 
   factory WordLadderPuzzle.fromJson(Map<String, dynamic> json) {
     final puzzleData = json;
@@ -1464,41 +1589,105 @@ class WordLadderPuzzle {
     return differences == 1;
   }
 
-  /// Check if a word can be added to the current path
-  bool canAddWord(String word) {
-    if (word.length != wordLength) return false;
-    if (currentPath.isEmpty) return true;
-    return differsByOneLetter(currentPath.last, word);
-  }
-
-  /// Add a word to the path
-  bool addWord(String word) {
+  /// Check which path(s) a word can be added to
+  /// Returns: 'start', 'target', 'both', or 'none'
+  String canAddWordTo(String word) {
+    if (word.length != wordLength) return 'none';
     final upperWord = word.toUpperCase();
-    if (!canAddWord(upperWord)) return false;
-    currentPath.add(upperWord);
-    return true;
+
+    final canAddToStart = differsByOneLetter(pathFromStart.last, upperWord);
+    final canAddToTarget = differsByOneLetter(pathFromTarget.last, upperWord);
+
+    if (canAddToStart && canAddToTarget) return 'both';
+    if (canAddToStart) return 'start';
+    if (canAddToTarget) return 'target';
+    return 'none';
   }
 
-  /// Remove the last word from the path (undo)
+  /// Check if a word can be added to either path
+  bool canAddWord(String word) {
+    return canAddWordTo(word) != 'none';
+  }
+
+  /// Add a word to the appropriate path
+  /// Returns which path it was added to: 'start', 'target', or 'none'
+  String addWord(String word) {
+    final upperWord = word.toUpperCase();
+    final addTo = canAddWordTo(upperWord);
+
+    if (addTo == 'none') return 'none';
+
+    // Prefer adding to start path, or to the shorter path if both valid
+    if (addTo == 'start' || (addTo == 'both' && pathFromStart.length <= pathFromTarget.length)) {
+      pathFromStart.add(upperWord);
+      return 'start';
+    } else {
+      pathFromTarget.add(upperWord);
+      return 'target';
+    }
+  }
+
+  /// Remove the last word from a path (undo)
+  /// Removes from whichever path was modified last (the longer non-initial path)
   bool undoLastWord() {
-    if (currentPath.length <= 1) return false; // Can't remove start word
-    currentPath.removeLast();
+    // Can't remove if both paths only have their initial word
+    if (pathFromStart.length <= 1 && pathFromTarget.length <= 1) return false;
+
+    // Remove from the path that has more words added
+    if (pathFromStart.length > pathFromTarget.length) {
+      pathFromStart.removeLast();
+    } else if (pathFromTarget.length > 1) {
+      pathFromTarget.removeLast();
+    } else {
+      pathFromStart.removeLast();
+    }
     return true;
   }
 
-  /// Check if puzzle is complete
+  /// Check if puzzle is complete (paths meet)
   bool get isComplete {
-    if (currentPath.isEmpty) return false;
-    return currentPath.last.toUpperCase() == targetWord.toUpperCase();
+    // Complete when the ends of both paths differ by one letter or are the same
+    final startEnd = pathFromStart.last.toUpperCase();
+    final targetEnd = pathFromTarget.last.toUpperCase();
+    return startEnd == targetEnd || differsByOneLetter(startEnd, targetEnd);
   }
 
-  /// Get current step count
-  int get currentSteps => currentPath.length - 1;
+  /// Get current step count (total words added minus the 2 starting words)
+  int get currentSteps => pathFromStart.length + pathFromTarget.length - 2;
+
+  /// Get the combined path for display (merged from both directions)
+  List<String> get displayPath {
+    if (!isComplete) {
+      // Not complete - show both paths separately
+      // This shouldn't really be called for display in incomplete state
+      return [...pathFromStart];
+    }
+    // Merge paths: start path + reversed target path (excluding duplicate)
+    final result = [...pathFromStart];
+    // Check if paths share the meeting word
+    if (pathFromStart.last.toUpperCase() == pathFromTarget.last.toUpperCase()) {
+      // Same word - don't duplicate
+      for (int i = pathFromTarget.length - 2; i >= 0; i--) {
+        result.add(pathFromTarget[i]);
+      }
+    } else {
+      // Different words that differ by one letter
+      for (int i = pathFromTarget.length - 1; i >= 0; i--) {
+        result.add(pathFromTarget[i]);
+      }
+    }
+    return result;
+  }
 
   /// Reset to start
   void reset() {
-    currentPath = [startWord];
+    pathFromStart = [startWord];
+    pathFromTarget = [targetWord];
   }
+
+  // Legacy getter for compatibility
+  List<String> get currentPath => pathFromStart;
+  set currentPath(List<String> value) => pathFromStart = value;
 }
 
 // Connections specific models
@@ -1530,6 +1719,7 @@ class ConnectionsPuzzle {
   Set<String> selectedWords; // Currently selected words
   List<ConnectionsCategory> foundCategories; // Successfully found categories
   int mistakesRemaining;
+  bool wasLost; // Track if game ended in a loss
   static const int maxMistakes = 4;
 
   ConnectionsPuzzle({
@@ -1538,6 +1728,7 @@ class ConnectionsPuzzle {
     Set<String>? selectedWords,
     List<ConnectionsCategory>? foundCategories,
     this.mistakesRemaining = maxMistakes,
+    this.wasLost = false,
   })  : selectedWords = selectedWords ?? {},
         foundCategories = foundCategories ?? [];
 
@@ -1627,9 +1818,17 @@ class ConnectionsPuzzle {
   /// Check if puzzle is complete (all categories found)
   bool get isComplete => foundCategories.length == 4;
 
+  /// Check if player won (completed without losing)
+  bool get wasWon => isComplete && !wasLost;
+
   /// Clear selection
   void clearSelection() {
     selectedWords.clear();
+  }
+
+  /// Shuffle the remaining words
+  void shuffleWords() {
+    words.shuffle();
   }
 
   /// Reset the puzzle
@@ -1637,6 +1836,7 @@ class ConnectionsPuzzle {
     selectedWords.clear();
     foundCategories.clear();
     mistakesRemaining = maxMistakes;
+    wasLost = false;
   }
 
   /// Get color for a difficulty level

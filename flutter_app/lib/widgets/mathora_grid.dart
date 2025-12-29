@@ -291,15 +291,15 @@ class _OperationButton extends StatelessWidget {
   Color _getOperationColor() {
     switch (operation.type) {
       case 'add':
-        return Colors.blue.shade600;
+        return Colors.blue.shade400;
       case 'subtract':
-        return Colors.orange.shade600;
+        return Colors.orange.shade400;
       case 'multiply':
-        return Colors.purple.shade600;
+        return Colors.purple.shade300; // Brighter purple for better contrast
       case 'divide':
-        return Colors.teal.shade600;
+        return Colors.teal.shade400;
       default:
-        return Colors.grey.shade600;
+        return Colors.grey.shade400;
     }
   }
 

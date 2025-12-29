@@ -87,6 +87,20 @@ export const feedbackApi = {
     api.delete(`/feedback/${id}`),
 }
 
+// Dictionary
+export const dictionaryApi = {
+  getAll: (params?: Record<string, any>) =>
+    api.get('/dictionary', { params }),
+  getByWord: (word: string) =>
+    api.get(`/dictionary/word/${word}`),
+  updateClue: (word: string, clue: string) =>
+    api.patch(`/dictionary/word/${word}`, { clue }),
+  delete: (word: string) =>
+    api.delete(`/dictionary/word/${word}`),
+  getStatus: () =>
+    api.get('/dictionary/status'),
+}
+
 // Validation
 export interface Cage {
   sum: number

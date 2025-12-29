@@ -13,6 +13,9 @@ export class Dictionary {
 
   @Prop({ type: [String], index: true })
   letters: string[]; // Sorted unique letters for quick lookup
+
+  @Prop({ required: false, default: "" })
+  clue: string; // Short clue/definition for Word Forge hints
 }
 
 export const DictionarySchema = SchemaFactory.createForClass(Dictionary);

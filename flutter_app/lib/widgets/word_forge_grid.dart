@@ -389,11 +389,16 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-/// Two-letter hints grid (FREE - Spelling Bee style)
+/// Two-letter hints grid (FREE to view, tappable to reveal - costs 1 hint)
 class WordForgeTwoLetterGrid extends StatelessWidget {
   final Map<String, int> hints;
+  final Function(String prefix)? onPrefixTap;
 
-  const WordForgeTwoLetterGrid({super.key, required this.hints});
+  const WordForgeTwoLetterGrid({
+    super.key,
+    required this.hints,
+    this.onPrefixTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -435,16 +440,27 @@ class WordForgeTwoLetterGrid extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 4,
                 children: grouped[firstLetter]!.map((entry) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${entry.key}: ${entry.value}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontFamily: 'SpaceMono',
+                  return GestureDetector(
+                    onTap: onPrefixTap != null ? () => onPrefixTap!(entry.key) : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: onPrefixTap != null
+                            ? theme.colorScheme.primaryContainer
+                            : theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                        border: onPrefixTap != null
+                            ? Border.all(color: theme.colorScheme.primary.withOpacity(0.3))
+                            : null,
+                      ),
+                      child: Text(
+                        '${entry.key}: ${entry.value}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'SpaceMono',
+                          color: onPrefixTap != null
+                              ? theme.colorScheme.onPrimaryContainer
+                              : null,
+                        ),
                       ),
                     ),
                   );
@@ -459,13 +475,15 @@ class WordForgeTwoLetterGrid extends StatelessWidget {
 }
 
 /// Hints bottom sheet content
-class WordForgeHintsSheet extends StatelessWidget {
+class WordForgeHintsSheet extends StatefulWidget {
   final Map<String, int> twoLetterHints;
   final bool hasUnfoundPangrams;
   final bool pangramHintUsed;
   final Map<String, dynamic>? pangramHint;
   final VoidCallback onUsePangramHint;
   final Function(String word) onRevealWord;
+  final Function(String prefix)? onRevealWithPrefix;
+  final List<WordForgeWord> revealedWords;
   final Map<String, dynamic>? wordHint;
 
   const WordForgeHintsSheet({
@@ -476,23 +494,37 @@ class WordForgeHintsSheet extends StatelessWidget {
     required this.pangramHint,
     required this.onUsePangramHint,
     required this.onRevealWord,
+    this.onRevealWithPrefix,
+    this.revealedWords = const [],
     this.wordHint,
   });
+
+  @override
+  State<WordForgeHintsSheet> createState() => _WordForgeHintsSheetState();
+}
+
+class _WordForgeHintsSheetState extends State<WordForgeHintsSheet> {
+  void _handlePrefixTap(String prefix) {
+    if (widget.onRevealWithPrefix != null) {
+      // The callback should return the revealed word
+      widget.onRevealWithPrefix!(prefix);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.6,
+      initialChildSize: 0.7,
       minChildSize: 0.3,
       maxChildSize: 0.9,
       expand: false,
       builder: (context, scrollController) {
         return Container(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
+            controller: scrollController,
             children: [
               // Handle
               Center(
@@ -514,7 +546,85 @@ class WordForgeHintsSheet extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Two-letter grid (FREE)
+              // Revealed words section (if any)
+              if (widget.revealedWords.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.purple.shade300,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.lightbulb,
+                            color: Colors.purple.shade700,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Clues',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.purple.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ...widget.revealedWords.map((word) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: word.isPangram
+                                    ? Colors.amber.shade200
+                                    : Colors.purple.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                                border: word.isPangram
+                                    ? Border.all(color: Colors.amber.shade400)
+                                    : null,
+                              ),
+                              child: Text(
+                                // Show prefix + length hint instead of full word
+                                '${word.word.substring(0, 2)}... (${word.word.length} letters)',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: word.isPangram
+                                      ? Colors.amber.shade900
+                                      : Colors.purple.shade900,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                word.clue.isNotEmpty ? word.clue : 'No clue available',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontStyle: word.clue.isEmpty ? FontStyle.italic : null,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Two-letter grid (FREE to view, tap to reveal)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -550,7 +660,7 @@ class WordForgeHintsSheet extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            'FREE',
+                            'VIEW FREE',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: Colors.green.shade800,
                               fontWeight: FontWeight.bold,
@@ -561,20 +671,25 @@ class WordForgeHintsSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Shows how many words start with each two-letter combination',
+                      widget.onRevealWithPrefix != null
+                          ? 'Tap a combo to get a clue (costs 1 hint)'
+                          : 'Shows how many words start with each two-letter combination',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    WordForgeTwoLetterGrid(hints: twoLetterHints),
+                    WordForgeTwoLetterGrid(
+                      hints: widget.twoLetterHints,
+                      onPrefixTap: widget.onRevealWithPrefix != null ? _handlePrefixTap : null,
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
 
               // Pangram hint (only if hasn't found one yet)
-              if (hasUnfoundPangrams)
+              if (widget.hasUnfoundPangrams)
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -603,7 +718,7 @@ class WordForgeHintsSheet extends StatelessWidget {
                             ),
                           ),
                           const Spacer(),
-                          if (!pangramHintUsed)
+                          if (!widget.pangramHintUsed)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
@@ -621,9 +736,9 @@ class WordForgeHintsSheet extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      if (pangramHintUsed && pangramHint != null)
+                      if (widget.pangramHintUsed && widget.pangramHint != null)
                         Text(
-                          'Pangram starts with "${pangramHint!['firstLetter']}" and is ${pangramHint!['length']} letters long',
+                          'Pangram starts with "${widget.pangramHint!['firstLetter']}" and is ${widget.pangramHint!['length']} letters long',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -640,7 +755,7 @@ class WordForgeHintsSheet extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             FilledButton.tonal(
-                              onPressed: onUsePangramHint,
+                              onPressed: widget.onUsePangramHint,
                               child: const Text('Reveal Pangram Hint'),
                             ),
                           ],
@@ -648,10 +763,10 @@ class WordForgeHintsSheet extends StatelessWidget {
                     ],
                   ),
                 ),
-              if (hasUnfoundPangrams) const SizedBox(height: 16),
+              if (widget.hasUnfoundPangrams) const SizedBox(height: 16),
 
-              // Word reveal hint
-              if (wordHint != null)
+              // Word reveal hint (legacy - only show if no prefix reveal available)
+              if (widget.wordHint != null && widget.onRevealWithPrefix == null)
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -706,7 +821,7 @@ class WordForgeHintsSheet extends StatelessWidget {
                       const SizedBox(height: 8),
                       FilledButton.tonal(
                         onPressed: () {
-                          onRevealWord(wordHint!['word']);
+                          widget.onRevealWord(widget.wordHint!['word']);
                           Navigator.pop(context);
                         },
                         style: FilledButton.styleFrom(

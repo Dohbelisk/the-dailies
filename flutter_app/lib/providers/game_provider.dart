@@ -179,7 +179,8 @@ class GameProvider extends ChangeNotifier {
     }
 
     if (_wordLadderPuzzle != null) {
-      state['wordLadderCurrentPath'] = _wordLadderPuzzle!.currentPath.toList();
+      state['wordLadderPathFromStart'] = _wordLadderPuzzle!.pathFromStart.toList();
+      state['wordLadderPathFromTarget'] = _wordLadderPuzzle!.pathFromTarget.toList();
       state['wordLadderInput'] = _wordLadderInput;
     }
 
@@ -321,8 +322,13 @@ class GameProvider extends ChangeNotifier {
       _lightsOutPuzzle!.moveCount = state['lightsOutMoveCount'] ?? 0;
     }
 
-    if (_wordLadderPuzzle != null && state['wordLadderCurrentPath'] != null) {
-      _wordLadderPuzzle!.currentPath = List<String>.from(state['wordLadderCurrentPath'] as List);
+    if (_wordLadderPuzzle != null) {
+      if (state['wordLadderPathFromStart'] != null) {
+        _wordLadderPuzzle!.pathFromStart = List<String>.from(state['wordLadderPathFromStart'] as List);
+      }
+      if (state['wordLadderPathFromTarget'] != null) {
+        _wordLadderPuzzle!.pathFromTarget = List<String>.from(state['wordLadderPathFromTarget'] as List);
+      }
       _wordLadderInput = state['wordLadderInput'] ?? '';
     }
 
@@ -1016,10 +1022,17 @@ class GameProvider extends ChangeNotifier {
     return _wordForgePuzzle?.maxScore ?? 0;
   }
 
-  /// Initialize Word Forge puzzle with valid words from dictionary
+  /// Initialize Word Forge puzzle with valid words from dictionary (legacy fallback)
   Future<void> _initializeWordForgeDictionary() async {
     if (_wordForgePuzzle == null) return;
 
+    // Skip if puzzle already has words from backend
+    if (_wordForgePuzzle!.words.isNotEmpty) {
+      print('Word Forge initialized from backend: ${_wordForgePuzzle!.words.length} valid words, ${_wordForgePuzzle!.pangrams.length} pangrams');
+      return;
+    }
+
+    // Legacy fallback: load from local dictionary
     final dictionary = DictionaryService();
     await dictionary.load();
 
@@ -1038,13 +1051,27 @@ class GameProvider extends ChangeNotifier {
     );
 
     _wordForgePuzzle!.initializeFromDictionary(validWords, pangrams);
-    print('Word Forge initialized: ${validWords.length} valid words, ${pangrams.length} pangrams');
+    print('Word Forge initialized from local dictionary: ${validWords.length} valid words, ${pangrams.length} pangrams');
   }
 
   /// Get two-letter hints grid (FREE hint)
   Map<String, int> getWordForgeTwoLetterHints() {
     if (_wordForgePuzzle == null) return {};
 
+    // Use puzzle's words list (from backend)
+    if (_wordForgePuzzle!.words.isNotEmpty) {
+      final hints = <String, int>{};
+      for (final wordEntry in _wordForgePuzzle!.words) {
+        final word = wordEntry.word;
+        if (word.length >= 2 && !_wordForgePuzzle!.foundWords.contains(word)) {
+          final prefix = word.substring(0, 2);
+          hints[prefix] = (hints[prefix] ?? 0) + 1;
+        }
+      }
+      return hints;
+    }
+
+    // Legacy fallback: use dictionary service
     final dictionary = DictionaryService();
     if (!dictionary.isLoaded) return {};
 
@@ -1053,6 +1080,27 @@ class GameProvider extends ChangeNotifier {
       _wordForgePuzzle!.centerLetter,
       _wordForgePuzzle!.foundWords,
     );
+  }
+
+  /// Reveal a word with the given two-letter prefix (costs a hint)
+  /// Returns the revealed word with clue, or null if none available
+  WordForgeWord? revealWordForgeWordWithPrefix(String prefix) {
+    if (_wordForgePuzzle == null) return null;
+
+    final revealed = _wordForgePuzzle!.revealWordWithPrefix(prefix);
+    if (revealed != null) {
+      _hintsUsed++;
+      notifyListeners();
+    }
+    return revealed;
+  }
+
+  /// Get all revealed words (for display in hint panel)
+  List<WordForgeWord> getRevealedWordForgeWords() {
+    if (_wordForgePuzzle == null) return [];
+    return _wordForgePuzzle!.words
+        .where((w) => _wordForgePuzzle!.revealedWords.contains(w.word))
+        .toList();
   }
 
   /// Get a pangram hint (first letter and length) - costs a hint
@@ -1216,24 +1264,111 @@ class GameProvider extends ChangeNotifier {
   }
 
   // Number Target methods
-  void addToNumberTargetExpression(String token) {
+  Set<int> _usedNumberIndices = {};
+
+  Set<int> get usedNumberIndices => _usedNumberIndices;
+
+  bool _isOperator(String token) {
+    return token == '+' || token == '-' || token == '×' || token == '÷';
+  }
+
+  String? _getLastToken() {
+    if (_currentExpression.isEmpty) return null;
+    // Parse from end to find last token
+    final expr = _currentExpression;
+    int i = expr.length - 1;
+
+    // Check if last char is operator or parenthesis
+    final lastChar = expr[i];
+    if (_isOperator(lastChar) || lastChar == '(' || lastChar == ')') {
+      return lastChar;
+    }
+
+    // Otherwise it's a number - find its start
+    while (i > 0 && RegExp(r'\d').hasMatch(expr[i - 1])) {
+      i--;
+    }
+    return expr.substring(i);
+  }
+
+  void addToNumberTargetExpression(String token, {int? numberIndex}) {
+    // Validate the token can be added
+    final lastToken = _getLastToken();
+
+    if (_isOperator(token)) {
+      // Can't start with an operator (except could allow '-' for negative, but let's keep it simple)
+      if (_currentExpression.isEmpty) return;
+      // Can't have operator after operator
+      if (lastToken != null && _isOperator(lastToken)) return;
+      // Can't have operator after opening parenthesis
+      if (lastToken == '(') return;
+    }
+
+    // If it's a number, check if it's already used
+    if (numberIndex != null) {
+      if (_usedNumberIndices.contains(numberIndex)) return;
+      // Can't add number right after another number (need operator between)
+      if (lastToken != null && RegExp(r'^\d+$').hasMatch(lastToken)) return;
+      // Can't add number right after closing parenthesis
+      if (lastToken == ')') return;
+
+      _usedNumberIndices.add(numberIndex);
+    }
+
+    // Opening parenthesis rules
+    if (token == '(') {
+      // Can't add after a number or closing paren without operator
+      if (lastToken != null &&
+          (RegExp(r'^\d+$').hasMatch(lastToken) || lastToken == ')')) return;
+    }
+
+    // Closing parenthesis rules
+    if (token == ')') {
+      // Can't close after operator or opening paren
+      if (lastToken != null && (_isOperator(lastToken) || lastToken == '('))
+        return;
+      // Must have matching open paren
+      final openCount = '('.allMatches(_currentExpression).length;
+      final closeCount = ')'.allMatches(_currentExpression).length;
+      if (closeCount >= openCount) return;
+    }
+
     _currentExpression += token;
     notifyListeners();
   }
 
   void clearNumberTargetExpression() {
     _currentExpression = '';
+    _usedNumberIndices.clear();
     notifyListeners();
   }
 
   void backspaceNumberTargetExpression() {
-    if (_currentExpression.isNotEmpty) {
-      // Remove last character or last number (if multi-digit)
-      // Simple approach: just remove last character
-      _currentExpression =
-          _currentExpression.substring(0, _currentExpression.length - 1);
-      notifyListeners();
+    if (_currentExpression.isEmpty) return;
+
+    final lastToken = _getLastToken();
+    if (lastToken == null) return;
+
+    // Remove the last token
+    _currentExpression = _currentExpression.substring(
+        0, _currentExpression.length - lastToken.length);
+
+    // If it was a number, find which index it was and mark as unused
+    if (RegExp(r'^\d+$').hasMatch(lastToken)) {
+      final number = int.parse(lastToken);
+      // Find the index of this number in the puzzle numbers
+      if (_numberTargetPuzzle != null) {
+        for (int i = 0; i < _numberTargetPuzzle!.numbers.length; i++) {
+          if (_numberTargetPuzzle!.numbers[i] == number &&
+              _usedNumberIndices.contains(i)) {
+            _usedNumberIndices.remove(i);
+            break;
+          }
+        }
+      }
     }
+
+    notifyListeners();
   }
 
   /// Evaluate the current expression and check if it equals the target.
@@ -1358,6 +1493,25 @@ class GameProvider extends ChangeNotifier {
 
     if (path.isEmpty) return;
 
+    // Check if path has already reached the destination endpoint - don't extend further
+    final endpoints = _pipesPuzzle!.getEndpointsForColor(color);
+    if (endpoints.length == 2 && path.length >= 2) {
+      final lastCell = path.last;
+      final startEndpoint = endpoints.firstWhere(
+        (e) => e.row == path.first[0] && e.col == path.first[1],
+        orElse: () => endpoints.first,
+      );
+      final destEndpoint = endpoints.firstWhere(
+        (e) => e != startEndpoint,
+        orElse: () => endpoints.last,
+      );
+
+      // If we've reached the destination endpoint, don't allow extending
+      if (lastCell[0] == destEndpoint.row && lastCell[1] == destEndpoint.col) {
+        return;
+      }
+    }
+
     // Check if this is an adjacent cell
     final lastCell = path.last;
     final rowDiff = (row - lastCell[0]).abs();
@@ -1439,6 +1593,21 @@ class GameProvider extends ChangeNotifier {
   void setWordLadderInput(String input) {
     _wordLadderInput = input.toUpperCase();
     notifyListeners();
+  }
+
+  void addWordLadderLetter(String letter) {
+    if (_wordLadderPuzzle == null) return;
+    if (_wordLadderInput.length < _wordLadderPuzzle!.wordLength) {
+      _wordLadderInput += letter.toUpperCase();
+      notifyListeners();
+    }
+  }
+
+  void deleteWordLadderLetter() {
+    if (_wordLadderInput.isNotEmpty) {
+      _wordLadderInput = _wordLadderInput.substring(0, _wordLadderInput.length - 1);
+      notifyListeners();
+    }
   }
 
   void clearWordLadderInput() {
@@ -1556,10 +1725,60 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void shuffleConnectionsWords() {
+    if (_connectionsPuzzle == null) return;
+    _connectionsPuzzle!.shuffleWords();
+    notifyListeners();
+  }
+
+  /// Auto-reveal remaining categories one by one (for game over)
+  Future<void> autoRevealConnectionsCategories() async {
+    if (_connectionsPuzzle == null) return;
+
+    // Mark as lost
+    _connectionsPuzzle!.wasLost = true;
+
+    // Get unfound categories sorted by difficulty
+    final unfoundCategories = _connectionsPuzzle!.categories
+        .where((c) => !_connectionsPuzzle!.foundCategories.contains(c))
+        .toList()
+      ..sort((a, b) => a.difficulty.compareTo(b.difficulty));
+
+    // Reveal each category with animation
+    for (final category in unfoundCategories) {
+      // First, highlight the words one by one
+      _connectionsPuzzle!.selectedWords.clear();
+      notifyListeners();
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Select each word with a small delay
+      for (final word in category.words) {
+        _connectionsPuzzle!.selectedWords.add(word);
+        notifyListeners();
+        await Future.delayed(const Duration(milliseconds: 250));
+      }
+
+      // Pause to show all 4 selected
+      await Future.delayed(const Duration(milliseconds: 600));
+
+      // Clear selection and reveal the category
+      _connectionsPuzzle!.selectedWords.clear();
+      _connectionsPuzzle!.foundCategories.add(category);
+      // Sort by difficulty after adding
+      _connectionsPuzzle!.foundCategories.sort((a, b) => a.difficulty.compareTo(b.difficulty));
+      notifyListeners();
+
+      // Pause before next category
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
   Future<bool> checkConnectionsComplete() async {
     if (_connectionsPuzzle == null) return false;
 
-    if (_connectionsPuzzle!.isComplete) {
+    // Only count as complete if player won (not lost)
+    if (_connectionsPuzzle!.wasWon) {
       _isPlaying = false;
       await _markAsCompleted();
       notifyListeners();

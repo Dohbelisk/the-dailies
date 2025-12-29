@@ -1380,11 +1380,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Map<String, dynamic>? _storedPangramHint;
 
   void _showWordForgeHints(BuildContext context, GameProvider gameProvider) {
+    // Check if puzzle has backend words (new format with clues)
+    final hasBackendWords = gameProvider.wordForgePuzzle?.words.isNotEmpty ?? false;
+
     // Get hints data
     final twoLetterHints = gameProvider.getWordForgeTwoLetterHints();
     final hasUnfoundPangrams = gameProvider.getUnfoundPangramCount() > 0;
     final pangramHintUsed = gameProvider.wordForgePuzzle?.hasUsedPangramHint ?? false;
     final wordHint = gameProvider.getWordForgeWordHint();
+    final revealedWords = gameProvider.getRevealedWordForgeWords();
 
     // Get or update stored pangram hint
     if (pangramHintUsed && _storedPangramHint == null) {
@@ -1405,12 +1409,44 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            // Get fresh data for the sheet
+            final currentTwoLetterHints = gameProvider.getWordForgeTwoLetterHints();
+            final currentRevealedWords = gameProvider.getRevealedWordForgeWords();
+
             return WordForgeHintsSheet(
-              twoLetterHints: twoLetterHints,
+              twoLetterHints: currentTwoLetterHints,
               hasUnfoundPangrams: hasUnfoundPangrams,
-              pangramHintUsed: pangramHintUsed,
+              pangramHintUsed: gameProvider.wordForgePuzzle?.hasUsedPangramHint ?? false,
               pangramHint: _storedPangramHint,
               wordHint: wordHint,
+              revealedWords: currentRevealedWords,
+              onRevealWithPrefix: hasBackendWords ? (prefix) {
+                final revealed = gameProvider.revealWordForgeWordWithPrefix(prefix);
+                if (revealed != null) {
+                  _audioService.playHint();
+                  // Show a snackbar with the revealed word and clue
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${revealed.word} - ${revealed.clue}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      backgroundColor: revealed.isPangram ? Colors.amber.shade700 : null,
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
+                  // Update the sheet to show new revealed word
+                  setSheetState(() {});
+                  setState(() {});
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No more words with that prefix!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } : null,
               onUsePangramHint: () {
                 // Store the hint before using it
                 _storedPangramHint = gameProvider.getWordForgePangramHint();
@@ -1477,8 +1513,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               currentExpression: gameProvider.currentExpression,
               resultMessage: _numberTargetMessage,
               lastResultSuccess: _numberTargetSuccess,
-              onTokenTap: (token) {
-                gameProvider.addToNumberTargetExpression(token);
+              usedNumberIndices: gameProvider.usedNumberIndices,
+              onTokenTap: (token, {int? numberIndex}) {
+                gameProvider.addToNumberTargetExpression(token, numberIndex: numberIndex);
                 _audioService.playTap();
               },
               onClear: () {
@@ -1617,8 +1654,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           child: WordLadderGrid(
             puzzle: gameProvider.wordLadderPuzzle!,
             currentInput: gameProvider.wordLadderInput,
-            onInputChanged: (value) {
-              gameProvider.setWordLadderInput(value);
+            message: _wordLadderMessage,
+            messageSuccess: _wordLadderSuccess,
+            onLetterTap: (letter) {
+              gameProvider.addWordLadderLetter(letter);
+              _audioService.playTap();
+              // Clear message when typing
+              if (_wordLadderMessage != null) {
+                setState(() {
+                  _wordLadderMessage = null;
+                  _wordLadderSuccess = null;
+                });
+              }
+            },
+            onDeleteTap: () {
+              gameProvider.deleteWordLadderLetter();
+              _audioService.playTap();
             },
             onSubmit: () {
               final result = gameProvider.submitWordLadderWord();
@@ -1664,11 +1715,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           padding: const EdgeInsets.all(16),
           child: ConnectionsGrid(
             puzzle: gameProvider.connectionsPuzzle!,
+            message: _connectionsMessage,
+            messageSuccess: _connectionsSuccess,
             onWordTap: (word) {
               gameProvider.toggleConnectionsWord(word);
               _audioService.playTap();
+              // Clear message when selecting
+              if (_connectionsMessage != null) {
+                setState(() {
+                  _connectionsMessage = null;
+                  _connectionsSuccess = null;
+                });
+              }
             },
-            onSubmit: () {
+            onSubmit: () async {
               final result = gameProvider.submitConnectionsSelection();
               setState(() {
                 _connectionsMessage = result.message;
@@ -1681,19 +1741,54 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 }
               } else {
                 _audioService.playError();
+                // If game over, auto-reveal remaining categories then show dialog
+                if (result.isGameOver) {
+                  await gameProvider.autoRevealConnectionsCategories();
+                  // Wait 2 seconds then show game over dialog
+                  await Future.delayed(const Duration(seconds: 2));
+                  if (mounted) {
+                    _showConnectionsGameOverDialog();
+                  }
+                }
               }
             },
             onClear: () {
               gameProvider.clearConnectionsSelection();
               _audioService.playTap();
             },
-            onReset: () {
-              gameProvider.resetConnectionsPuzzle();
+            onShuffle: () {
+              gameProvider.shuffleConnectionsWords();
               _audioService.playTap();
             },
           ),
         ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
       },
+    );
+  }
+
+  void _showConnectionsGameOverDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.sentiment_dissatisfied, color: Theme.of(context).colorScheme.error),
+            const SizedBox(width: 12),
+            const Text('Game Over'),
+          ],
+        ),
+        content: const Text('You ran out of mistakes! Better luck next time.'),
+        actions: [
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close dialog
+              Navigator.of(context).pop(); // Go back to home
+            },
+            child: const Text('Back to Home'),
+          ),
+        ],
+      ),
     );
   }
 
