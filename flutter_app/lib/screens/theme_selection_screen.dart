@@ -24,7 +24,7 @@ class _ThemeSelectionScreenState extends State<ThemeSelectionScreen> {
     final surfaceColor = isDark ? const Color(0xFF1A1B2E) : const Color(0xFFFAFAFA);
     final textColor = isDark ? const Color(0xFFF5F5F5) : const Color(0xFF1A1A1A);
     final primaryColor = isDark ? const Color(0xFFE8B86D) : const Color(0xFF2D3A4A);
-    final subtleTextColor = textColor.withOpacity(0.6);
+    final subtleTextColor = textColor.withValues(alpha: 0.6);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -104,8 +104,8 @@ class _ThemeSelectionScreenState extends State<ThemeSelectionScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
                     foregroundColor: isDark ? const Color(0xFF0F1020) : const Color(0xFFFAFAFA),
-                    disabledBackgroundColor: primaryColor.withOpacity(0.3),
-                    disabledForegroundColor: textColor.withOpacity(0.3),
+                    disabledBackgroundColor: primaryColor.withValues(alpha: 0.3),
+                    disabledForegroundColor: textColor.withValues(alpha: 0.3),
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -177,7 +177,7 @@ class _ThemeOption extends StatelessWidget {
           color: surfaceColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? primaryColor : textColor.withOpacity(0.1),
+            color: isSelected ? primaryColor : textColor.withValues(alpha: 0.1),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -187,13 +187,13 @@ class _ThemeOption extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? primaryColor.withOpacity(0.1)
-                    : textColor.withOpacity(0.05),
+                    ? primaryColor.withValues(alpha: 0.1)
+                    : textColor.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
-                color: isSelected ? primaryColor : textColor.withOpacity(0.6),
+                color: isSelected ? primaryColor : textColor.withValues(alpha: 0.6),
                 size: 24,
               ),
             ),
@@ -215,7 +215,7 @@ class _ThemeOption extends StatelessWidget {
                     subtitle,
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 13,
-                      color: textColor.withOpacity(0.6),
+                      color: textColor.withValues(alpha: 0.6),
                     ),
                   ),
                 ],

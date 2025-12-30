@@ -195,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 Text(
                                   dateFormat.format(today),
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                     letterSpacing: 1.2,
                                   ),
                                 ),
@@ -317,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Text(
                           'Challenge yourself with new puzzles every day',
                           style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onBackground.withOpacity(0.6),
+                            color: theme.colorScheme.onBackground.withValues(alpha: 0.6),
                           ),
                         ).animate(controller: _headerController)
                           .fadeIn(delay: 300.ms, duration: 600.ms),
@@ -439,10 +439,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withOpacity(0.1),
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: theme.colorScheme.primary.withOpacity(0.2),
+            color: theme.colorScheme.primary.withValues(alpha: 0.2),
           ),
         ),
         child: Row(

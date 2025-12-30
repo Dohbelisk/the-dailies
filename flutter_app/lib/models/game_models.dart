@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora }
 
 extension GameTypeExtension on GameType {
@@ -665,7 +663,6 @@ class WordForgePuzzle {
 
   // Hint tracking
   bool hasUsedPangramHint = false;
-  Map<String, int>? _twoLetterHints; // Cached two-letter hints
   Set<String> revealedWords = {}; // Words revealed via hints (shown with clues)
 
   // Public getter for maxScore
@@ -725,7 +722,6 @@ class WordForgePuzzle {
     validWords = dictionaryWords.map((w) => w.toUpperCase()).toSet();
     pangrams = dictionaryPangrams.map((w) => w.toUpperCase()).toSet();
     _maxScore = _calculateMaxScore();
-    _twoLetterHints = null; // Clear cached hints
   }
 
   int _calculateMaxScore() {
@@ -1391,11 +1387,8 @@ class PipesPuzzle {
       }
     }
 
-    // Bridges can have 2 paths, so we count them specially
+    // Check if all cells are filled
     int totalCells = rows * cols;
-    int bridgeCount = bridges.length;
-
-    // Each bridge allows one extra path through it
     return filledCells.length >= totalCells;
   }
 

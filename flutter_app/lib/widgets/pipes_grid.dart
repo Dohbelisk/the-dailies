@@ -120,7 +120,7 @@ class PipesGrid extends StatelessWidget {
             color: theme.colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.3),
+              color: theme.colorScheme.outline.withValues(alpha: 0.3),
             ),
           ),
           child: CustomPaint(
@@ -163,7 +163,7 @@ class _PipesGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // Draw grid lines
     final gridPaint = Paint()
-      ..color = theme.colorScheme.outline.withOpacity(0.2)
+      ..color = theme.colorScheme.outline.withValues(alpha: 0.2)
       ..strokeWidth = 1;
 
     for (int i = 0; i <= puzzle.rows; i++) {
@@ -188,7 +188,7 @@ class _PipesGridPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(centerX, centerY),
         cellSize * 0.15,
-        Paint()..color = theme.colorScheme.outline.withOpacity(0.5),
+        Paint()..color = theme.colorScheme.outline.withValues(alpha: 0.5),
       );
     }
 
@@ -234,7 +234,7 @@ class _PipesGridPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(centerX - cellSize * 0.08, centerY - cellSize * 0.08),
         cellSize * 0.12,
-        Paint()..color = Colors.white.withOpacity(0.4),
+        Paint()..color = Colors.white.withValues(alpha: 0.4),
       );
     }
   }

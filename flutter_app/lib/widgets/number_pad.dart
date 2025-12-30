@@ -78,10 +78,10 @@ class _NumberPadState extends State<NumberPad> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: theme.colorScheme.secondaryContainer.withOpacity(0.5),
+                color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: theme.colorScheme.secondary.withOpacity(0.3),
+                  color: theme.colorScheme.secondary.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -99,7 +99,7 @@ class _NumberPadState extends State<NumberPad> {
                           : _calcNumbers.join(' + '),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: _calcNumbers.isEmpty
-                            ? theme.colorScheme.onSecondaryContainer.withOpacity(0.5)
+                            ? theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.5)
                             : theme.colorScheme.onSecondaryContainer,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -220,13 +220,13 @@ class _NumberPadState extends State<NumberPad> {
 
     final accentColor = _calculatorMode ? theme.colorScheme.secondary : theme.colorScheme.primary;
     final buttonColor = isDisabled
-        ? theme.colorScheme.onSurface.withOpacity(0.1)
+        ? theme.colorScheme.onSurface.withValues(alpha: 0.1)
         : theme.colorScheme.surface;
     final borderColor = isDisabled
-        ? theme.colorScheme.onSurface.withOpacity(0.1)
-        : accentColor.withOpacity(0.3);
+        ? theme.colorScheme.onSurface.withValues(alpha: 0.1)
+        : accentColor.withValues(alpha: 0.3);
     final textColor = isDisabled
-        ? theme.colorScheme.onSurface.withOpacity(0.3)
+        ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
         : accentColor;
 
     return Material(
@@ -256,7 +256,7 @@ class _NumberPadState extends State<NumberPad> {
                 ? null
                 : [
                     BoxShadow(
-                      color: accentColor.withOpacity(0.1),
+                      color: accentColor.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -297,13 +297,13 @@ class _NumberPadState extends State<NumberPad> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: isActive || color != null
-                ? buttonColor.withOpacity(0.2)
+                ? buttonColor.withValues(alpha: 0.2)
                 : theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isActive || color != null
                   ? buttonColor
-                  : theme.colorScheme.onSurface.withOpacity(0.2),
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -315,7 +315,7 @@ class _NumberPadState extends State<NumberPad> {
                 size: 24,
                 color: isActive || color != null
                     ? buttonColor
-                    : theme.colorScheme.onSurface.withOpacity(0.7),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               const SizedBox(height: 4),
               Text(
@@ -325,7 +325,7 @@ class _NumberPadState extends State<NumberPad> {
                   fontWeight: isActive || color != null ? FontWeight.bold : FontWeight.normal,
                   color: isActive || color != null
                       ? buttonColor
-                      : theme.colorScheme.onSurface.withOpacity(0.7),
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ],

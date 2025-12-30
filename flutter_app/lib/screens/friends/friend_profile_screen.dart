@@ -142,7 +142,7 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
                         // Profile Avatar
                         CircleAvatar(
                           radius: 56,
-                          backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+                          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
                           child: Text(
                             widget.friend.user.username.isNotEmpty
                                 ? widget.friend.user.username[0].toUpperCase()
@@ -165,7 +165,7 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
                         Text(
                           'Friends since ${dateFormat.format(widget.friend.friendsSince)}',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onBackground.withOpacity(0.6),
+                            color: theme.colorScheme.onBackground.withValues(alpha: 0.6),
                           ),
                         ).animate()
                           .fadeIn(delay: 200.ms, duration: 600.ms),
@@ -322,7 +322,7 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
             Text(
               label,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],

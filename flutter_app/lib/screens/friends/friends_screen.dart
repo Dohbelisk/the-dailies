@@ -91,7 +91,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                       // Tabs
                       Container(
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surface.withOpacity(0.5),
+                          color: theme.colorScheme.surface.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: TabBar(
@@ -101,7 +101,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                             borderRadius: BorderRadius.circular(16),
                           ),
                           labelColor: theme.colorScheme.onPrimary,
-                          unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
+                          unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           dividerColor: Colors.transparent,
                           tabs: const [
                             Tab(text: 'Friends'),
@@ -178,7 +178,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                 Icon(
                   Icons.people_outline_rounded,
                   size: 64,
-                  color: Theme.of(context).colorScheme.onBackground.withOpacity(0.3),
+                  color: Theme.of(context).colorScheme.onBackground.withValues(alpha: 0.3),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -189,7 +189,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                 Text(
                   'Add friends to challenge them!',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onBackground.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -231,7 +231,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
                 child: Text(
                   friend.user.username.isNotEmpty
                       ? friend.user.username[0].toUpperCase()
@@ -254,7 +254,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                     Text(
                       'Friends since ${dateFormat.format(friend.friendsSince)}',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -262,7 +262,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
               ),
               Icon(
                 Icons.chevron_right_rounded,
-                color: theme.colorScheme.onSurface.withOpacity(0.3),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               ),
             ],
           ),
@@ -316,7 +316,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                 Icon(
                   Icons.inbox_outlined,
                   size: 64,
-                  color: Theme.of(context).colorScheme.onBackground.withOpacity(0.3),
+                  color: Theme.of(context).colorScheme.onBackground.withValues(alpha: 0.3),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -352,7 +352,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
               child: Text(
                 request.sender.username.isNotEmpty
                     ? request.sender.username[0].toUpperCase()
@@ -375,7 +375,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                   Text(
                     dateFormat.format(request.createdAt),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],

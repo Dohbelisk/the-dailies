@@ -183,7 +183,7 @@ class ConnectionsGrid extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color, width: 2),
       ),
@@ -193,7 +193,7 @@ class ConnectionsGrid extends StatelessWidget {
             category.name.toUpperCase(),
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: color.withOpacity(0.8),
+              color: color.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: 4),
@@ -239,8 +239,7 @@ class ConnectionsGrid extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cols = 4;
-        final rows = (remainingWords.length / cols).ceil();
+        const cols = 4;
         final cellWidth = (constraints.maxWidth - 24) / cols;
         // Make tiles more square - use width as base, cap at reasonable height
         final cellHeight = (cellWidth - 8).clamp(60.0, 80.0);
@@ -283,13 +282,13 @@ class ConnectionsGrid extends StatelessWidget {
           border: Border.all(
             color: isSelected
                 ? theme.colorScheme.primary
-                : theme.colorScheme.outline.withOpacity(0.3),
+                : theme.colorScheme.outline.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: theme.colorScheme.primary.withOpacity(0.2),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
                     blurRadius: 8,
                     spreadRadius: 1,
                   ),

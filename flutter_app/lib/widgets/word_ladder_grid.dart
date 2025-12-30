@@ -225,7 +225,7 @@ class WordLadderGrid extends StatelessWidget {
                   word[i],
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
+                    color: textColor,
                   ),
                 ),
               ),

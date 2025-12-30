@@ -40,7 +40,7 @@ class WordForgeGrid extends StatelessWidget {
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.3),
+              color: theme.colorScheme.outline.withValues(alpha: 0.3),
             ),
           ),
           child: Center(
@@ -450,7 +450,7 @@ class WordForgeTwoLetterGrid extends StatelessWidget {
                             : theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                         border: onPrefixTap != null
-                            ? Border.all(color: theme.colorScheme.primary.withOpacity(0.3))
+                            ? Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3))
                             : null,
                       ),
                       child: Text(
@@ -532,7 +532,7 @@ class _WordForgeHintsSheetState extends State<WordForgeHintsSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -628,10 +628,10 @@ class _WordForgeHintsSheetState extends State<WordForgeHintsSheet> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.3),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Column(
@@ -770,10 +770,10 @@ class _WordForgeHintsSheetState extends State<WordForgeHintsSheet> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.errorContainer.withOpacity(0.3),
+                    color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: theme.colorScheme.error.withOpacity(0.3),
+                      color: theme.colorScheme.error.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Column(
@@ -889,7 +889,7 @@ class WordForgeWordList extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(

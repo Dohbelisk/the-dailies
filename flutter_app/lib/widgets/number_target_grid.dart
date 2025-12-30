@@ -38,7 +38,7 @@ class NumberTargetGrid extends StatelessWidget {
             gradient: LinearGradient(
               colors: [
                 theme.colorScheme.primary,
-                theme.colorScheme.primary.withOpacity(0.8),
+                theme.colorScheme.primary.withValues(alpha: 0.8),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -46,7 +46,7 @@ class NumberTargetGrid extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: theme.colorScheme.primary.withOpacity(0.3),
+                color: theme.colorScheme.primary.withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -57,7 +57,7 @@ class NumberTargetGrid extends StatelessWidget {
               Text(
                 'TARGET',
                 style: theme.textTheme.labelLarge?.copyWith(
-                  color: theme.colorScheme.onPrimary.withOpacity(0.7),
+                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.7),
                   letterSpacing: 2,
                 ),
               ),
@@ -86,7 +86,7 @@ class NumberTargetGrid extends StatelessWidget {
                   ? Colors.green
                   : lastResultSuccess == false
                       ? theme.colorScheme.error
-                      : theme.colorScheme.outline.withOpacity(0.3),
+                      : theme.colorScheme.outline.withValues(alpha: 0.3),
               width: lastResultSuccess != null ? 2 : 1,
             ),
           ),
@@ -248,7 +248,7 @@ class _NumberButton extends StatelessWidget {
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: isDisabled
-                  ? theme.colorScheme.onSurface.withOpacity(0.38)
+                  ? theme.colorScheme.onSurface.withValues(alpha: 0.38)
                   : theme.colorScheme.onPrimaryContainer,
             ),
           ),

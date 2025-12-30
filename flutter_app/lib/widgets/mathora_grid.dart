@@ -101,10 +101,10 @@ class MathoraGrid extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.15),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.5),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.5),
                     width: 2,
                   ),
                 ),
@@ -215,7 +215,7 @@ class MathoraGrid extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.2),
+              color: Colors.green.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.green, width: 2),
             ),
@@ -239,7 +239,7 @@ class MathoraGrid extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.2),
+              color: Colors.red.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.red, width: 2),
             ),
@@ -319,7 +319,7 @@ class _OperationButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: color.withOpacity(0.5),
+              color: color.withValues(alpha: 0.5),
               width: 2,
             ),
           ),
@@ -330,7 +330,7 @@ class _OperationButton extends StatelessWidget {
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: onTap == null
-                  ? theme.colorScheme.onSurface.withOpacity(0.3)
+                  ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
                   : color,
             ),
           ),

@@ -115,7 +115,7 @@ class KillerSudokuGrid extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -164,18 +164,18 @@ class KillerSudokuGrid extends StatelessWidget {
     if (cageInfo != null && cageColorIndices.isNotEmpty) {
       final colorIdx = cageColorIndices[cageInfo[0]];
       cageColor = isDark
-          ? _cageColorsDark[colorIdx].withOpacity(0.4)
+          ? _cageColorsDark[colorIdx].withValues(alpha: 0.4)
           : _cageColors[colorIdx];
     }
 
     Color? backgroundColor;
     if (isSelected) {
-      backgroundColor = theme.colorScheme.primary.withOpacity(0.4);
+      backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.4);
     } else if (isHighlighted) {
       // Blend highlight with cage color
       backgroundColor = cageColor != null
           ? Color.lerp(cageColor, theme.colorScheme.primary, 0.15)
-          : theme.colorScheme.primary.withOpacity(0.1);
+          : theme.colorScheme.primary.withValues(alpha: 0.1);
     } else {
       backgroundColor = cageColor;
     }
@@ -208,7 +208,7 @@ class KillerSudokuGrid extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.secondary.withOpacity(0.2),
+                    color: theme.colorScheme.secondary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: Text(
@@ -233,7 +233,7 @@ class KillerSudokuGrid extends StatelessWidget {
                         color: isError
                             ? theme.colorScheme.error
                             : isInitial
-                                ? theme.colorScheme.onSurface.withOpacity(0.85)
+                                ? theme.colorScheme.onSurface.withValues(alpha: 0.85)
                                 : theme.colorScheme.primary,
                       ),
                     )
@@ -253,7 +253,7 @@ class KillerSudokuGrid extends StatelessWidget {
       fontSize: 7,
       height: 1.0,
       fontWeight: FontWeight.w500,
-      color: theme.colorScheme.onSurface.withOpacity(0.7),
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
     );
 
     // Build a compact 3x3 grid of notes, centered in the cell
@@ -342,10 +342,10 @@ class _KillerSudokuGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final cellSize = size.width / 9;
     final thinPaint = Paint()
-      ..color = theme.colorScheme.onSurface.withOpacity(0.15)
+      ..color = theme.colorScheme.onSurface.withValues(alpha: 0.15)
       ..strokeWidth = 0.5;
     final thickPaint = Paint()
-      ..color = theme.colorScheme.onSurface.withOpacity(0.4)
+      ..color = theme.colorScheme.onSurface.withValues(alpha: 0.4)
       ..strokeWidth = 2;
 
     // Draw thin grid lines
@@ -383,12 +383,6 @@ class _KillerSudokuGridPainter extends CustomPainter {
   }
 
   void _drawCageBorders(Canvas canvas, Size size, double cellSize) {
-    final cagePaint = Paint()
-      ..color = theme.colorScheme.secondary
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
     // Build a map of which cage each cell belongs to
     final cageMap = List.generate(9, (_) => List<int>.filled(9, -1));
     for (int i = 0; i < puzzle.cages.length; i++) {
@@ -399,7 +393,7 @@ class _KillerSudokuGridPainter extends CustomPainter {
 
     // Draw dotted borders between cells of different cages
     final dashPaint = Paint()
-      ..color = theme.colorScheme.secondary.withOpacity(0.5)
+      ..color = theme.colorScheme.secondary.withValues(alpha: 0.5)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 

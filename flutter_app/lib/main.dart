@@ -251,7 +251,7 @@ class _TheDailiesAppState extends State<TheDailiesApp> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: colorScheme.onSurface.withOpacity(0.1),
+            color: colorScheme.onSurface.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -290,8 +290,6 @@ class _VersionCheckWrapper extends StatefulWidget {
 }
 
 class _VersionCheckWrapperState extends State<_VersionCheckWrapper> {
-  bool _versionCheckComplete = false;
-
   @override
   void initState() {
     super.initState();
@@ -341,21 +339,9 @@ class _VersionCheckWrapperState extends State<_VersionCheckWrapper> {
           builder: (_) => UpdateAvailableDialog(
             config: config,
             currentVersion: widget.configService.currentVersion,
-            onDismiss: () {
-              setState(() {
-                _versionCheckComplete = true;
-              });
-            },
           ),
         );
       }
-    }
-
-    // Mark as complete
-    if (mounted) {
-      setState(() {
-        _versionCheckComplete = true;
-      });
     }
   }
 

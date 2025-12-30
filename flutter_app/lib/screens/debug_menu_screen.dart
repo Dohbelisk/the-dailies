@@ -190,19 +190,19 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
 
     if (status.hasOverride) {
       statusColor = theme.colorScheme.tertiary;
-      statusBgColor = theme.colorScheme.tertiaryContainer.withOpacity(0.3);
+      statusBgColor = theme.colorScheme.tertiaryContainer.withValues(alpha: 0.3);
       statusIcon = status.enabled ? Icons.check : Icons.close;
     } else if (status.isVersionLocked) {
       statusColor = Colors.orange;
-      statusBgColor = Colors.orange.withOpacity(0.1);
+      statusBgColor = Colors.orange.withValues(alpha: 0.1);
       statusIcon = Icons.lock;
     } else if (status.enabled) {
       statusColor = Colors.green;
-      statusBgColor = Colors.green.withOpacity(0.1);
+      statusBgColor = Colors.green.withValues(alpha: 0.1);
       statusIcon = Icons.check;
     } else {
       statusColor = Colors.red;
-      statusBgColor = Colors.red.withOpacity(0.1);
+      statusBgColor = Colors.red.withValues(alpha: 0.1);
       statusIcon = Icons.close;
     }
 
@@ -239,7 +239,7 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
                   Text(
                     'Min version: ${status.minVersion}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
               ],
@@ -303,7 +303,7 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.2),
+                color: statusColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: statusColor,

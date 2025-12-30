@@ -176,9 +176,9 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -202,7 +202,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                 ),
               ),
               if (onTap != null)
-                Icon(Icons.chevron_right, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                Icon(Icons.chevron_right, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
             ],
           ),
         ),
@@ -291,7 +291,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
               Text(
                 'You have ${_tokenService.availableTokens} token${_tokenService.availableTokens != 1 ? 's' : ''}.',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -387,7 +387,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                       Text(
                         '${DateTime.now().difference(_selectedDate).inDays} days ago',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -399,7 +399,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                     color: _selectedDate.isAfter(
                       DateTime.now().subtract(const Duration(days: 2)),
                     )
-                        ? theme.colorScheme.onSurface.withOpacity(0.3)
+                        ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
                         : null,
                   ),
                   onPressed: () => _changeDate(1),
@@ -414,10 +414,10 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.3),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -484,7 +484,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             Icon(
               Icons.calendar_today_outlined,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -527,7 +527,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
+                    color: Colors.black.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(

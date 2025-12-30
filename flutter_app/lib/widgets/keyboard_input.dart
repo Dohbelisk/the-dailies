@@ -51,10 +51,10 @@ class KeyboardInput extends StatelessWidget {
                 width: 56,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.error.withOpacity(0.1),
+                  color: theme.colorScheme.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: theme.colorScheme.error.withOpacity(0.3),
+                    color: theme.colorScheme.error.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Icon(
@@ -85,11 +85,11 @@ class KeyboardInput extends StatelessWidget {
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),

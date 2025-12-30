@@ -131,7 +131,7 @@ class _BackgroundPainter extends CustomPainter {
       paint.color = (isDark
               ? const Color(0xFF6366F1)
               : const Color(0xFF2D3A4A))
-          .withOpacity(opacity);
+          .withValues(alpha: opacity);
 
       switch (shape.type) {
         case 0:
@@ -166,7 +166,7 @@ class _BackgroundPainter extends CustomPainter {
       ..color = (isDark
               ? Colors.white
               : const Color(0xFF2D3A4A))
-          .withOpacity(isDark ? 0.03 : 0.04)
+          .withValues(alpha: isDark ? 0.03 : 0.04)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
 

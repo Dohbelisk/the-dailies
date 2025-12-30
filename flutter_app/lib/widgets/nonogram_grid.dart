@@ -325,7 +325,7 @@ class _NonogramGridState extends State<NonogramGrid> {
       child = Icon(
         Icons.close,
         size: size * 0.6,
-        color: theme.colorScheme.error.withOpacity(0.7),
+        color: theme.colorScheme.error.withValues(alpha: 0.7),
       );
     } else {
       // Unmarked
@@ -339,7 +339,7 @@ class _NonogramGridState extends State<NonogramGrid> {
       decoration: BoxDecoration(
         color: bgColor,
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.3),
+          color: theme.colorScheme.outline.withValues(alpha: 0.3),
           width: 0.5,
         ),
       ),

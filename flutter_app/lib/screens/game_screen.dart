@@ -7,7 +7,6 @@ import 'package:confetti/confetti.dart';
 import '../models/game_models.dart';
 import '../providers/game_provider.dart';
 import '../services/game_service.dart';
-import '../services/admob_service.dart';
 import '../services/hint_service.dart';
 import '../services/audio_service.dart';
 import '../services/challenge_service.dart';
@@ -53,7 +52,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late ConfettiController _confettiController;
   Timer? _timer;
   bool _isPaused = false;
-  final AdMobService _adMobService = AdMobService();
   final HintService _hintService = HintService();
   final AudioService _audioService = AudioService();
 
@@ -520,7 +518,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           Icon(
             Icons.pause_circle_filled_rounded,
             size: 80,
-            color: theme.colorScheme.primary.withOpacity(0.5),
+            color: theme.colorScheme.primary.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 24),
           Text('Paused', style: theme.textTheme.headlineLarge),
@@ -752,7 +750,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -946,12 +944,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     
     return Row(
       children: [
-        Icon(icon, size: 20, color: color ?? theme.colorScheme.onSurface.withOpacity(0.6)),
+        Icon(icon, size: 20, color: color ?? theme.colorScheme.onSurface.withValues(alpha: 0.6)),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6))),
+            Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
             Text(value, style: theme.textTheme.titleMedium?.copyWith(color: color, fontWeight: FontWeight.bold)),
           ],
         ),
@@ -1062,7 +1060,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.1),
+        color: theme.colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -1095,7 +1093,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           controller: _cluesTabController,
           tabs: const [Tab(text: 'ACROSS'), Tab(text: 'DOWN')],
           labelColor: theme.colorScheme.primary,
-          unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
+          unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           indicatorColor: theme.colorScheme.primary,
         ),
         Expanded(
@@ -1131,7 +1129,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return ListTile(
           dense: true,
           selected: isSelected,
-          selectedTileColor: theme.colorScheme.primary.withOpacity(0.1),
+          selectedTileColor: theme.colorScheme.primary.withValues(alpha: 0.1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           leading: Text(
             '${clue.number}',
@@ -1228,13 +1226,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: word.found
-                ? theme.colorScheme.primary.withOpacity(0.2)
+                ? theme.colorScheme.primary.withValues(alpha: 0.2)
                 : theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: word.found
                   ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface.withOpacity(0.2),
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.2),
             ),
           ),
           child: Text(
@@ -1384,11 +1382,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final hasBackendWords = gameProvider.wordForgePuzzle?.words.isNotEmpty ?? false;
 
     // Get hints data
-    final twoLetterHints = gameProvider.getWordForgeTwoLetterHints();
     final hasUnfoundPangrams = gameProvider.getUnfoundPangramCount() > 0;
     final pangramHintUsed = gameProvider.wordForgePuzzle?.hasUsedPangramHint ?? false;
     final wordHint = gameProvider.getWordForgeWordHint();
-    final revealedWords = gameProvider.getRevealedWordForgeWords();
 
     // Get or update stored pangram hint
     if (pangramHintUsed && _storedPangramHint == null) {

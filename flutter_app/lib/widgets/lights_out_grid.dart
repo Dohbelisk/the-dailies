@@ -80,7 +80,6 @@ class LightsOutGrid extends StatelessWidget {
   }
 
   Widget _buildGrid(BuildContext context, BoxConstraints constraints) {
-    final theme = Theme.of(context);
     final maxSize = constraints.maxWidth.clamp(0, constraints.maxHeight);
     final cellSize = (maxSize / puzzle.cols).clamp(40.0, 80.0);
     final gridWidth = cellSize * puzzle.cols;
@@ -130,13 +129,13 @@ class LightsOutGrid extends StatelessWidget {
           border: Border.all(
             color: isOn
                 ? const Color(0xFFF9A825)
-                : theme.colorScheme.outline.withOpacity(0.3),
+                : theme.colorScheme.outline.withValues(alpha: 0.3),
             width: 2,
           ),
           boxShadow: isOn
               ? [
                   BoxShadow(
-                    color: const Color(0xFFFDD835).withOpacity(0.5),
+                    color: const Color(0xFFFDD835).withValues(alpha: 0.5),
                     blurRadius: 12,
                     spreadRadius: 2,
                   ),
@@ -148,7 +147,7 @@ class LightsOutGrid extends StatelessWidget {
             isOn ? Icons.lightbulb : Icons.lightbulb_outline,
             color: isOn
                 ? const Color(0xFFF57F17)
-                : theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
+                : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
             size: size * 0.5,
           ),
         ),
