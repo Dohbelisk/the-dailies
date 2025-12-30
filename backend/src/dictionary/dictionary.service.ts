@@ -209,7 +209,14 @@ export class DictionaryService {
     startsWith?: string;
     hasClue?: boolean;
   }) {
-    const { page = 1, limit = 50, search, length, startsWith, hasClue } = params;
+    const {
+      page = 1,
+      limit = 50,
+      search,
+      length,
+      startsWith,
+      hasClue,
+    } = params;
     const skip = (page - 1) * limit;
 
     // Build query
@@ -268,10 +275,7 @@ export class DictionaryService {
   /**
    * Update a word's clue
    */
-  async updateClue(
-    word: string,
-    clue: string,
-  ): Promise<Dictionary | null> {
+  async updateClue(word: string, clue: string): Promise<Dictionary | null> {
     return this.dictionaryModel.findOneAndUpdate(
       { word: word.toUpperCase() },
       { $set: { clue } },

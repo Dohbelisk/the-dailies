@@ -6,7 +6,8 @@ import { Connection } from "mongoose";
 import * as fs from "fs";
 
 // Path to the curated spelling bee dictionary
-const DICTIONARY_PATH = "/Users/steedles/Downloads/Clearables/spelling_bee_dictionary.txt";
+const DICTIONARY_PATH =
+  "/Users/steedles/Downloads/Clearables/spelling_bee_dictionary.txt";
 
 async function loadWordList(): Promise<string[]> {
   console.log("Loading word list from file...");

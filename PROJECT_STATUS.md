@@ -1,22 +1,23 @@
 # The Dailies - Project Status
 
-**Last Updated:** 2025-12-21
-**Overall Completion:** ~98%
+**Last Updated:** 2025-12-30
+**Overall Completion:** ~99%
 
 ---
 
 ## Executive Summary
 
-The Dailies is a freemium daily puzzle game with **12 game types** (Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections). The project consists of three components:
+The Dailies is a freemium daily puzzle game with **13 game types** (Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections, Mathora). The project consists of three components:
 
 | Component | Status | Completion |
 |-----------|--------|------------|
-| Flutter App | Functional | 97% |
-| NestJS Backend | Functional | 98% |
+| Flutter App | Production Ready | 99% |
+| NestJS Backend | Production Ready | 99% |
 | React Admin Portal | Functional | 95% |
 
 **What Works Now:**
-- All 12 puzzle game types fully playable
+- All 13 puzzle game types implemented (12 active, 1 inactive)
+- **12 games fully device-tested and ready** (Word Search inactive for improvements)
 - User authentication (login/register)
 - Friends system (add, accept, remove)
 - **Friend challenges (async)** - Challenge friends to same puzzle
@@ -27,16 +28,25 @@ The Dailies is a freemium daily puzzle game with **12 game types** (Sudoku, Kill
 - Rewarded video ads for hints/tokens
 - One-time premium purchase (IAP integration)
 - Admin portal for puzzle management with **visual Sudoku editor**
-- Puzzle auto-generation for all 12 types
+- Puzzle auto-generation for all 13 types
 - Puzzle validation endpoints (validate/solve)
 - Advanced filtering (type, difficulty, status, date range)
 - Statistics tracking
 - GDPR consent and privacy policy
+- Feature flags and version checking system
+- Debug menu for development/testing
+- Dictionary management for Word Forge (~370k words)
 
-**What's Missing:**
-- Production ad unit IDs
+**What's Missing (Before Production):**
+- Production ad unit IDs (currently using test IDs)
 - Configure IAP product in App Store Connect / Google Play Console
+- Test IAP on physical devices
+
+**Post-Launch Enhancements:**
 - Visual editors for remaining puzzle types (Killer Sudoku, Crossword, etc.)
+- Admin portal: leaderboard UI, user management, feature flag UI
+- Word Search quality improvements (currently inactive)
+- Push notifications for challenges
 
 ---
 

@@ -1008,32 +1008,49 @@ For each game type, verify both sections:
 | 1 | Sudoku | ✅ | ✅ | Ready |
 | 2 | Killer Sudoku | ✅ | ✅ | Ready |
 | 3 | Crossword | ✅ | ✅ | Ready |
-| 4 | Word Search | ⏳ | ⏳ | Inactive |
-| 5 | Word Forge | ✅ | ⏳ | Pending Device Test |
-| 6 | Nonogram | ✅ | ⏳ | Pending Device Test |
-| 7 | Number Target | ✅ | ⏳ | Pending Device Test |
-| 8 | Ball Sort | ✅ | ⏳ | Pending Device Test |
-| 9 | Pipes | ✅ | ⏳ | Pending Device Test |
-| 10 | Lights Out | ✅ | ⏳ | Pending Device Test |
-| 11 | Word Ladder | ✅ | ⏳ | Pending Device Test |
-| 12 | Connections | ✅ | ⏳ | Pending Device Test |
-| 13 | Mathora | ✅ | ⏳ | Pending Device Test |
+| 4 | Word Search | ⏳ | ⏳ | Inactive (quality improvements needed) |
+| 5 | Word Forge | ✅ | ✅ | Ready |
+| 6 | Nonogram | ✅ | ✅ | Ready |
+| 7 | Number Target | ✅ | ✅ | Ready |
+| 8 | Ball Sort | ✅ | ✅ | Ready |
+| 9 | Pipes | ✅ | ✅ | Ready |
+| 10 | Lights Out | ✅ | ✅ | Ready |
+| 11 | Word Ladder | ✅ | ✅ | Ready |
+| 12 | Connections | ✅ | ✅ | Ready |
+| 13 | Mathora | ✅ | ✅ | Ready |
 
 **Legend:** ⏳ Pending | ✅ Passed | ❌ Failed
+
+**Testing Notes (Dec 2025):**
+- All 12 active games fully tested on device
+- Word Search remains inactive pending quality improvements
+- Word Ladder optimal path display shows server-calculated value (bidirectional solving may differ)
 
 ---
 
 ## Remaining Tasks
 
-1. [ ] Complete game vetting for all 13 game types
-2. [ ] Test IAP on physical devices
+### Critical (Before Production)
+1. [x] Complete game vetting for all 13 game types (12/13 ready, Word Search inactive)
+2. [ ] Test IAP on physical devices (Apple/Google)
 3. [ ] Replace test ad IDs with production IDs
-4. [ ] Add leaderboard UI to admin portal
-5. [ ] Add user management to admin portal
-6. [ ] Implement push notifications for challenges
-7. [ ] Add analytics dashboard
-8. [ ] Performance testing with large datasets
-9. [ ] Add feature flag management UI to admin portal
-10. [ ] Add app config management UI to admin portal
-11. [ ] Seed initial feature flags (debug_menu_enabled, display_inactive_games)
-12. [ ] Add visual editors for remaining puzzle types (Killer Sudoku, Crossword, etc.)
+4. [ ] Configure IAP products in App Store Connect / Google Play Console
+
+### High Priority (Post-Launch)
+5. [ ] Add leaderboard UI to admin portal
+6. [ ] Add user management to admin portal
+7. [ ] Add feature flag management UI to admin portal
+8. [ ] Add app config management UI to admin portal
+
+### Medium Priority
+9. [ ] Implement push notifications for challenges
+10. [ ] Add analytics dashboard
+11. [ ] Performance testing with large datasets
+12. [ ] Seed initial feature flags (debug_menu_enabled, display_inactive_games)
+
+### Low Priority / Future
+13. [ ] Add visual editors for remaining puzzle types (Killer Sudoku, Crossword, etc.)
+14. [ ] Word Search quality improvements (reactivate game)
+15. [ ] Word Ladder optimal path calculation for bidirectional solving
+16. [ ] Add reset/undo for Nonogram
+17. [ ] Generate real clues for dictionary words (Word Forge enhancement)

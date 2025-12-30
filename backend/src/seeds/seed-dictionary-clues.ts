@@ -13,7 +13,7 @@ const dictionarySchema = new mongoose.Schema(
     letters: { type: [String], index: true },
     clue: { type: String, default: "" },
   },
-  { collection: "dictionary" }
+  { collection: "dictionary" },
 );
 
 // Create compound index
@@ -52,7 +52,9 @@ async function seedDictionary() {
 
     // Get existing word count
     const existingCount = await Dictionary.countDocuments();
-    console.log(`Existing dictionary entries: ${existingCount.toLocaleString()}`);
+    console.log(
+      `Existing dictionary entries: ${existingCount.toLocaleString()}`,
+    );
 
     // Prepare bulk operations
     console.log("Preparing bulk upsert operations...");
@@ -82,7 +84,9 @@ async function seedDictionary() {
     let upserted = 0;
     let modified = 0;
 
-    console.log(`Processing ${bulkOps.length.toLocaleString()} words in batches of ${BATCH_SIZE}...`);
+    console.log(
+      `Processing ${bulkOps.length.toLocaleString()} words in batches of ${BATCH_SIZE}...`,
+    );
 
     for (let i = 0; i < bulkOps.length; i += BATCH_SIZE) {
       const batch = bulkOps.slice(i, i + BATCH_SIZE);
@@ -95,8 +99,8 @@ async function seedDictionary() {
       const percent = ((processed / bulkOps.length) * 100).toFixed(1);
       console.log(
         `  Batch ${Math.floor(i / BATCH_SIZE) + 1}: ` +
-        `${processed.toLocaleString()}/${bulkOps.length.toLocaleString()} (${percent}%) - ` +
-        `${result.upsertedCount} new, ${result.modifiedCount} updated`
+          `${processed.toLocaleString()}/${bulkOps.length.toLocaleString()} (${percent}%) - ` +
+          `${result.upsertedCount} new, ${result.modifiedCount} updated`,
       );
     }
 

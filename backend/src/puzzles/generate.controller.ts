@@ -361,14 +361,16 @@ export class GenerateController {
 
     let letters: string[] = [];
     let centerLetter: string = "";
-    let wordsWithClues: { word: string; clue: string; isPangram: boolean }[] = [];
+    let wordsWithClues: { word: string; clue: string; isPangram: boolean }[] =
+      [];
     let attempts = 0;
 
     while (attempts < maxAttempts) {
       attempts++;
 
       // Step 2: Pick a random pangram
-      const randomPangram = allPangrams[Math.floor(Math.random() * allPangrams.length)];
+      const randomPangram =
+        allPangrams[Math.floor(Math.random() * allPangrams.length)];
 
       // Step 3: Extract the 7 unique letters from the pangram
       letters = [...new Set(randomPangram.split(""))].sort();
@@ -388,20 +390,29 @@ export class GenerateController {
       );
 
       // Step 6: Check if word count is acceptable (max 75)
-      if (wordsWithClues.length <= maxWordCount && wordsWithClues.length >= 20) {
-        console.log(`Word Forge: Found valid config after ${attempts} attempts - ${wordsWithClues.length} words from pangram "${randomPangram}"`);
+      if (
+        wordsWithClues.length <= maxWordCount &&
+        wordsWithClues.length >= 20
+      ) {
+        console.log(
+          `Word Forge: Found valid config after ${attempts} attempts - ${wordsWithClues.length} words from pangram "${randomPangram}"`,
+        );
         break;
       }
 
       // Log attempt for debugging
       if (attempts % 10 === 0) {
-        console.log(`Word Forge attempt ${attempts}: ${wordsWithClues.length} words from "${randomPangram}" (max: ${maxWordCount})`);
+        console.log(
+          `Word Forge attempt ${attempts}: ${wordsWithClues.length} words from "${randomPangram}" (max: ${maxWordCount})`,
+        );
       }
     }
 
     // If we couldn't find a good config, use the last one anyway
     if (wordsWithClues.length > maxWordCount) {
-      console.warn(`Word Forge: Using config with ${wordsWithClues.length} words after ${maxAttempts} attempts`);
+      console.warn(
+        `Word Forge: Using config with ${wordsWithClues.length} words after ${maxAttempts} attempts`,
+      );
     }
 
     // Calculate max score (4-letter = 1pt, 5+ = length, pangram bonus = +7)

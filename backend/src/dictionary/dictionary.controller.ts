@@ -100,7 +100,9 @@ export class DictionaryController {
 
   @Get()
   @UseGuards(JwtAuthGuard, AdminGuard)
-  @ApiOperation({ summary: "List dictionary words with pagination and filters" })
+  @ApiOperation({
+    summary: "List dictionary words with pagination and filters",
+  })
   @ApiQuery({ name: "page", required: false, type: Number })
   @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiQuery({ name: "search", required: false, type: String })
@@ -121,7 +123,8 @@ export class DictionaryController {
       search,
       length: length ? parseInt(length, 10) : undefined,
       startsWith: startsWith?.toUpperCase(),
-      hasClue: hasClue === "true" ? true : hasClue === "false" ? false : undefined,
+      hasClue:
+        hasClue === "true" ? true : hasClue === "false" ? false : undefined,
     });
   }
 
@@ -135,10 +138,7 @@ export class DictionaryController {
   @Patch("word/:word")
   @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiOperation({ summary: "Update a word's clue" })
-  async updateClue(
-    @Param("word") word: string,
-    @Body() dto: UpdateClueDto,
-  ) {
+  async updateClue(@Param("word") word: string, @Body() dto: UpdateClueDto) {
     return this.dictionaryService.updateClue(word.toUpperCase(), dto.clue);
   }
 
