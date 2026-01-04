@@ -96,6 +96,7 @@ export default function PuzzleSchedule() {
 
   useEffect(() => {
     loadPuzzles()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
 
   const getDateRange = (): { startDate: string; endDate: string } => {

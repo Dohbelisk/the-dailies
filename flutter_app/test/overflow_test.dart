@@ -42,7 +42,7 @@ class DeviceSizes {
 
   // All phone sizes to test
   static const phones = [
-    ('iPhone SE 1st Gen', iphoneSE1),
+    // Note: iPhone SE 1st Gen (320pt) removed - 9-year-old device, too small for modern UI
     ('iPhone SE', iphoneSE),
     ('iPhone Mini', iphoneMini),
     ('iPhone', iphone),
