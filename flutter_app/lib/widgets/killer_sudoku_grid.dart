@@ -341,11 +341,14 @@ class _KillerSudokuGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final cellSize = size.width / 9;
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Use higher opacity in light mode for better visibility against pastel cage backgrounds
     final thinPaint = Paint()
-      ..color = theme.colorScheme.onSurface.withValues(alpha: 0.15)
-      ..strokeWidth = 0.5;
+      ..color = theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.15 : 0.25)
+      ..strokeWidth = isDark ? 0.5 : 1.0;
     final thickPaint = Paint()
-      ..color = theme.colorScheme.onSurface.withValues(alpha: 0.4)
+      ..color = theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.4 : 0.7)
       ..strokeWidth = 2;
 
     // Draw thin grid lines

@@ -1351,8 +1351,30 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
             KeyboardInput(
               onLetterTap: (letter) {
+                final wasFilledBefore = gameProvider.isCrosswordFilledButIncorrect;
                 gameProvider.enterLetter(letter);
                 _audioService.playTap();
+                // Show message when puzzle becomes filled but incorrect
+                if (!wasFilledBefore && gameProvider.isCrosswordFilledButIncorrect) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.white),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text('All cells filled, but some answers are incorrect. Check your work!'),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                      duration: const Duration(seconds: 4),
+                      behavior: SnackBarBehavior.floating,
+                      margin: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                }
               },
               onDeleteTap: () {
                 gameProvider.deleteLetter();

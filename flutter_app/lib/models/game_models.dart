@@ -516,6 +516,21 @@ class CrosswordPuzzle {
     return true;
   }
 
+  /// Returns true if all non-black cells have been filled (regardless of correctness)
+  bool get isFilled {
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        if (grid[i][j] != null && (userGrid[i][j] == null || userGrid[i][j]!.isEmpty)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Returns true if the board is completely filled but has errors
+  bool get isFilledButIncorrect => isFilled && !isComplete;
+
   List<CrosswordClue> get acrossClues =>
       clues.where((c) => c.direction == 'across').toList()..sort((a, b) => a.number.compareTo(b.number));
 
@@ -991,9 +1006,33 @@ class NonogramPuzzle {
 }
 
 // Number Target specific models
+/// Represents a single target with its difficulty level
+class NumberTarget {
+  final int target;
+  final String difficulty; // 'easy', 'medium', 'hard'
+  final String? solution;
+  bool completed;
+
+  NumberTarget({
+    required this.target,
+    required this.difficulty,
+    this.solution,
+    this.completed = false,
+  });
+
+  factory NumberTarget.fromJson(Map<String, dynamic> json) {
+    return NumberTarget(
+      target: json['target'] as int,
+      difficulty: json['difficulty'] as String? ?? 'medium',
+      solution: json['expression'] as String?,
+    );
+  }
+}
+
 class NumberTargetPuzzle {
   final List<int> numbers; // 4 numbers to use
-  final int target; // Target number to reach
+  final int target; // Main target (for backwards compatibility)
+  final List<NumberTarget> targets; // 3 targets with increasing difficulty
   final String solution; // One valid expression
   final List<String> alternates; // Alternative solutions
   String userExpression; // User's current expression
@@ -1003,6 +1042,7 @@ class NumberTargetPuzzle {
     required this.numbers,
     required this.target,
     required this.solution,
+    this.targets = const [],
     this.alternates = const [],
     this.userExpression = '',
     List<bool>? usedNumbers,
@@ -1012,13 +1052,43 @@ class NumberTargetPuzzle {
     final puzzleData = json;
     final solutionData = json['solution'] ?? json;
 
+    // Parse multiple targets if available
+    List<NumberTarget> targets = [];
+    if (puzzleData['targets'] != null) {
+      final targetsList = puzzleData['targets'] as List;
+      final solutionsList = solutionData['targetSolutions'] as List? ?? [];
+
+      for (int i = 0; i < targetsList.length; i++) {
+        final targetData = targetsList[i] as Map<String, dynamic>;
+        String? solution;
+        if (i < solutionsList.length) {
+          solution = (solutionsList[i] as Map<String, dynamic>)['expression'] as String?;
+        }
+        targets.add(NumberTarget(
+          target: targetData['target'] as int,
+          difficulty: targetData['difficulty'] as String? ?? 'medium',
+          solution: solution,
+        ));
+      }
+    }
+
     return NumberTargetPuzzle(
       numbers: List<int>.from(puzzleData['numbers'] ?? []),
       target: puzzleData['target'] as int,
+      targets: targets,
       solution: solutionData['expression'] ?? '',
       alternates: List<String>.from(solutionData['alternates'] ?? []),
     );
   }
+
+  /// Check if all 3 targets have been completed
+  bool get allTargetsComplete {
+    if (targets.isEmpty) return isComplete;
+    return targets.every((t) => t.completed);
+  }
+
+  /// Get the count of completed targets
+  int get completedTargetCount => targets.where((t) => t.completed).length;
 
   bool get isComplete {
     if (userExpression.isEmpty) return false;

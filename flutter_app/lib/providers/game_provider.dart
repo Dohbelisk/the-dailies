@@ -159,6 +159,12 @@ class GameProvider extends ChangeNotifier {
     if (_numberTargetPuzzle != null) {
       state['numberTargetExpression'] = _currentExpression;
       state['numberTargetUserExpression'] = _numberTargetPuzzle!.userExpression;
+      // Save which targets have been completed
+      if (_numberTargetPuzzle!.targets.isNotEmpty) {
+        state['numberTargetCompletedTargets'] = _numberTargetPuzzle!.targets
+            .map((t) => t.completed)
+            .toList();
+      }
     }
 
     if (_ballSortPuzzle != null) {
@@ -285,6 +291,13 @@ class GameProvider extends ChangeNotifier {
     if (_numberTargetPuzzle != null) {
       _currentExpression = state['numberTargetExpression'] ?? '';
       _numberTargetPuzzle!.userExpression = state['numberTargetUserExpression'];
+      // Restore which targets have been completed
+      if (state['numberTargetCompletedTargets'] != null && _numberTargetPuzzle!.targets.isNotEmpty) {
+        final completedList = List<bool>.from(state['numberTargetCompletedTargets'] as List);
+        for (int i = 0; i < completedList.length && i < _numberTargetPuzzle!.targets.length; i++) {
+          _numberTargetPuzzle!.targets[i].completed = completedList[i];
+        }
+      }
     }
 
     if (_ballSortPuzzle != null && state['ballSortCurrentState'] != null) {
@@ -832,6 +845,12 @@ class GameProvider extends ChangeNotifier {
       return true;
     }
     return false;
+  }
+
+  /// Returns true if the crossword is completely filled but has errors
+  bool get isCrosswordFilledButIncorrect {
+    if (_crosswordPuzzle == null) return false;
+    return _crosswordPuzzle!.isFilledButIncorrect;
   }
 
   // Word Search methods
@@ -1446,8 +1465,47 @@ class GameProvider extends ChangeNotifier {
         return NumberTargetResult(success: false, message: 'Invalid expression');
       }
 
-      final target = _numberTargetPuzzle!.target;
       final intResult = result.round();
+
+      // Check against all targets if available
+      if (_numberTargetPuzzle!.targets.isNotEmpty) {
+        for (final target in _numberTargetPuzzle!.targets) {
+          if (!target.completed && (result - target.target).abs() < 0.0001) {
+            target.completed = true;
+            _numberTargetPuzzle!.userExpression = _currentExpression;
+
+            // Check if all targets are complete
+            if (_numberTargetPuzzle!.allTargetsComplete) {
+              _isPlaying = false;
+            }
+
+            // Clear expression for next target
+            _currentExpression = '';
+            _usedNumberIndices.clear();
+
+            notifyListeners();
+            return NumberTargetResult(
+                success: true,
+                message: '${target.difficulty.toUpperCase()} target complete!',
+                value: intResult);
+          }
+        }
+
+        // No matching target
+        _mistakes++;
+        notifyListeners();
+        final targetsList = _numberTargetPuzzle!.targets
+            .where((t) => !t.completed)
+            .map((t) => t.target)
+            .join(', ');
+        return NumberTargetResult(
+            success: false,
+            message: '= $intResult (targets: $targetsList)',
+            value: intResult);
+      }
+
+      // Fallback to single target logic
+      final target = _numberTargetPuzzle!.target;
       if ((result - target).abs() < 0.0001) {
         _numberTargetPuzzle!.userExpression = _currentExpression;
         _isPlaying = false;
@@ -1470,6 +1528,18 @@ class GameProvider extends ChangeNotifier {
   Future<bool> checkNumberTargetComplete() async {
     if (_numberTargetPuzzle == null) return false;
 
+    // Check if all targets are complete (if using multi-target mode)
+    if (_numberTargetPuzzle!.targets.isNotEmpty) {
+      if (_numberTargetPuzzle!.allTargetsComplete) {
+        _isPlaying = false;
+        await _markAsCompleted();
+        notifyListeners();
+        return true;
+      }
+      return false;
+    }
+
+    // Fallback to single target
     if (_numberTargetPuzzle!.isComplete) {
       _isPlaying = false;
       await _markAsCompleted();
