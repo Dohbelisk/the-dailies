@@ -189,29 +189,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  dateFormat.format(today),
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                TokenBalanceWidget(
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const ArchiveScreen(),
+                            Flexible(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    dateFormat.format(today),
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                      letterSpacing: 1.2,
                                     ),
-                                  ).then((_) => setState(() {})),
-                                ),
-                              ],
-                            ).animate(controller: _headerController)
-                              .fadeIn(duration: 600.ms)
-                              .slideX(begin: -0.2, end: 0),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  TokenBalanceWidget(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const ArchiveScreen(),
+                                      ),
+                                    ).then((_) => setState(() {})),
+                                  ),
+                                ],
+                              ).animate(controller: _headerController)
+                                .fadeIn(duration: 600.ms)
+                                .slideX(begin: -0.2, end: 0),
+                            ),
                             // Settings, theme, and refresh (super user only) on top row
                             Row(
                               mainAxisSize: MainAxisSize.min,
