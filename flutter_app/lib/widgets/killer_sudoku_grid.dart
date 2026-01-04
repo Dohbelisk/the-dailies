@@ -155,7 +155,7 @@ class KillerSudokuGrid extends StatelessWidget {
     final isInitial = puzzle.initialGrid[row][col] != null;
     final isSelected = row == selectedRow && col == selectedCol;
     final isHighlighted = _shouldHighlight(row, col);
-    final isError = value != null && !puzzle.isValidPlacement(row, col, value);
+    final isError = puzzle.hasError(row, col);
     final cageInfo = puzzle.getCageForCell(row, col);
     final notes = puzzle.notes[row][col];
 

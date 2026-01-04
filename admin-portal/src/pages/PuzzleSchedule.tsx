@@ -7,15 +7,16 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Eye,
   Edit,
   BarChart3,
   Users,
   Timer,
   Trophy,
   AlertCircle,
+  Sparkles,
 } from 'lucide-react'
 import { puzzlesApi, scoresApi, GAME_TYPE_LABELS, GameType } from '../lib/api'
+import GeneratePuzzlesModal from '../components/GeneratePuzzlesModal'
 
 type TabType = 'today' | 'tomorrow' | 'week' | 'yesterday'
 
@@ -40,7 +41,11 @@ interface PuzzleStats {
 }
 
 function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0]
+  // Use local date components to avoid timezone issues
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function formatDisplayDate(dateStr: string): string {
@@ -79,6 +84,8 @@ export default function PuzzleSchedule() {
   const [stats, setStats] = useState<Record<string, PuzzleStats>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showGenerateModal, setShowGenerateModal] = useState(false)
+  const [generateDate, setGenerateDate] = useState<string>('')
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'today', label: "Today's Puzzles", icon: <Calendar className="w-4 h-4" /> },
@@ -114,6 +121,23 @@ export default function PuzzleSchedule() {
         return { startDate: formatDate(yesterday), endDate: formatDate(yesterday) }
       }
     }
+  }
+
+  const getCurrentTabDate = (): string => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+    if (activeTab === 'tomorrow') {
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      return formatDate(tomorrow)
+    }
+    return formatDate(today)
+  }
+
+  const handleOpenGenerateModal = () => {
+    setGenerateDate(getCurrentTabDate())
+    setShowGenerateModal(true)
   }
 
   const loadPuzzles = async () => {
@@ -314,6 +338,15 @@ export default function PuzzleSchedule() {
             View and manage puzzles by date
           </p>
         </div>
+        {(activeTab === 'today' || activeTab === 'tomorrow') && (
+          <button
+            onClick={handleOpenGenerateModal}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <Sparkles className="w-4 h-4" />
+            Generate Puzzles
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -395,6 +428,14 @@ export default function PuzzleSchedule() {
           </div>
         </div>
       )}
+
+      {/* Generate Puzzles Modal */}
+      <GeneratePuzzlesModal
+        isOpen={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
+        date={generateDate}
+        onSuccess={loadPuzzles}
+      />
     </div>
   )
 }

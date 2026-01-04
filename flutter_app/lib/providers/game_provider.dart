@@ -33,6 +33,7 @@ class GameProvider extends ChangeNotifier {
   // Nonogram specific state
   NonogramPuzzle? _nonogramPuzzle;
   bool _nonogramMarkMode = false; // false = fill, true = mark X
+  List<List<List<int>>> _nonogramUndoHistory = []; // Stack of grid states for undo
 
   // Number Target specific state
   NumberTargetPuzzle? _numberTargetPuzzle;
@@ -83,6 +84,7 @@ class GameProvider extends ChangeNotifier {
 
   NonogramPuzzle? get nonogramPuzzle => _nonogramPuzzle;
   bool get nonogramMarkMode => _nonogramMarkMode;
+  bool get canUndoNonogram => _nonogramUndoHistory.isNotEmpty;
 
   NumberTargetPuzzle? get numberTargetPuzzle => _numberTargetPuzzle;
   String get currentExpression => _currentExpression;
@@ -419,6 +421,7 @@ class GameProvider extends ChangeNotifier {
         break;
       case GameType.nonogram:
         _nonogramPuzzle = NonogramPuzzle.fromJson(puzzleDataWithSolution);
+        _nonogramUndoHistory.clear();
         break;
       case GameType.numberTarget:
         _numberTargetPuzzle = NumberTargetPuzzle.fromJson(puzzleDataWithSolution);
@@ -434,6 +437,8 @@ class GameProvider extends ChangeNotifier {
         break;
       case GameType.wordLadder:
         _wordLadderPuzzle = WordLadderPuzzle.fromJson(puzzleDataWithSolution);
+        // Ensure dictionary is loaded for word validation
+        await DictionaryService().load();
         break;
       case GameType.connections:
         _connectionsPuzzle = ConnectionsPuzzle.fromJson(puzzleDataWithSolution);
@@ -1187,6 +1192,39 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Save current nonogram state for undo (call before a tap or at drag start)
+  void saveNonogramStateForUndo() {
+    if (_nonogramPuzzle == null) return;
+
+    // Deep copy the current grid state (convert null to 0 for storage)
+    final gridCopy = _nonogramPuzzle!.userGrid
+        .map((row) => row.map((cell) => cell ?? 0).toList())
+        .toList();
+
+    _nonogramUndoHistory.add(gridCopy);
+
+    // Limit history to 50 entries to prevent memory issues
+    if (_nonogramUndoHistory.length > 50) {
+      _nonogramUndoHistory.removeAt(0);
+    }
+  }
+
+  /// Undo the last nonogram action (restores previous grid state)
+  void undoNonogram() {
+    if (_nonogramPuzzle == null || _nonogramUndoHistory.isEmpty) return;
+
+    final previousState = _nonogramUndoHistory.removeLast();
+
+    // Restore the grid state
+    for (int r = 0; r < _nonogramPuzzle!.rows; r++) {
+      for (int c = 0; c < _nonogramPuzzle!.cols; c++) {
+        _nonogramPuzzle!.userGrid[r][c] = previousState[r][c];
+      }
+    }
+
+    notifyListeners();
+  }
+
   /// Toggle a cell in the nonogram grid.
   /// In fill mode: empty -> filled -> empty
   /// In mark mode: empty -> marked (X) -> empty
@@ -1199,7 +1237,10 @@ class GameProvider extends ChangeNotifier {
       // Mark mode: toggle between empty (0) and marked (-1)
       if (currentState == -1) {
         _nonogramPuzzle!.userGrid[row][col] = 0;
+      } else if (currentState == 0) {
+        _nonogramPuzzle!.userGrid[row][col] = -1;
       } else {
+        // Was filled, toggle to marked
         _nonogramPuzzle!.userGrid[row][col] = -1;
       }
     } else {
@@ -1209,7 +1250,7 @@ class GameProvider extends ChangeNotifier {
       } else if (currentState == 0) {
         _nonogramPuzzle!.userGrid[row][col] = 1;
       } else {
-        // Was marked, now fill
+        // Was marked, toggle to filled
         _nonogramPuzzle!.userGrid[row][col] = 1;
       }
     }
@@ -1221,6 +1262,27 @@ class GameProvider extends ChangeNotifier {
   void clearNonogramCell(int row, int col) {
     if (_nonogramPuzzle == null) return;
     _nonogramPuzzle!.userGrid[row][col] = 0;
+    notifyListeners();
+  }
+
+  /// Set a nonogram cell to a specific state
+  /// State: 0 = empty, 1 = filled, -1 = marked
+  void setNonogramCellState(int row, int col, int state) {
+    if (_nonogramPuzzle == null) return;
+    if (state < -1 || state > 1) return;
+    _nonogramPuzzle!.userGrid[row][col] = state;
+    notifyListeners();
+  }
+
+  /// Set a nonogram cell state without notifying listeners (for batch updates)
+  void setNonogramCellStateSilent(int row, int col, int state) {
+    if (_nonogramPuzzle == null) return;
+    if (state < -1 || state > 1) return;
+    _nonogramPuzzle!.userGrid[row][col] = state;
+  }
+
+  /// Notify listeners after batch updates
+  void notifyNonogramChanged() {
     notifyListeners();
   }
 
@@ -1526,12 +1588,40 @@ class GameProvider extends ChangeNotifier {
         while (path.length > existingIdx + 1) {
           path.removeLast();
         }
+        notifyListeners();
       } else {
+        // Check if this cell contains an endpoint of a DIFFERENT color
+        final endpointAtCell = _pipesPuzzle!.getEndpointAt(row, col);
+        if (endpointAtCell != null && endpointAtCell.color != color) {
+          // Can't go through another color's endpoint
+          return;
+        }
+
+        // Check if this cell is occupied by another color's path
+        for (final entry in _pipesPuzzle!.currentPaths.entries) {
+          if (entry.key != color) {
+            for (final cell in entry.value) {
+              if (cell[0] == row && cell[1] == col) {
+                // Can't go through another color's path
+                return;
+              }
+            }
+          }
+        }
+
         // Add to path
         _pipesPuzzle!.addToPath(color, row, col);
+        notifyListeners();
       }
-      notifyListeners();
     }
+  }
+
+  void continuePipesPath(String color) {
+    if (_pipesPuzzle == null) return;
+    // Just set the selected color without clearing the path
+    // This allows continuing from where the path left off
+    _pipesPuzzle!.selectedColor = color;
+    notifyListeners();
   }
 
   void endPipesPath() {
@@ -1622,6 +1712,17 @@ class GameProvider extends ChangeNotifier {
     }
 
     final word = _wordLadderInput.toUpperCase();
+
+    // Check if it's a valid dictionary word
+    final dictionary = DictionaryService();
+    if (!dictionary.isValidWord(word)) {
+      _wordLadderInput = '';
+      notifyListeners();
+      return WordLadderSubmitResult(
+        success: false,
+        message: 'Not a valid word'
+      );
+    }
 
     // Check if it differs by exactly one letter
     if (!_wordLadderPuzzle!.canAddWord(word)) {

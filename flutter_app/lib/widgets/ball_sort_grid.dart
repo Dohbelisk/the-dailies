@@ -204,12 +204,6 @@ class _BallSortGridState extends State<BallSortGrid> with TickerProviderStateMix
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  Text(
-                    'Optimal: ${widget.puzzle.minMoves}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
                 ],
               ),
               // Control buttons

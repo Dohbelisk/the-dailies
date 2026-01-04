@@ -13,35 +13,58 @@ import {
   FeedbackStatsDto,
 } from "./dto/feedback.dto";
 import { EmailService } from "../email/email.service";
+import { GitHubService } from "../github/github.service";
 
 @Injectable()
 export class FeedbackService {
   constructor(
     @InjectModel(Feedback.name) private feedbackModel: Model<FeedbackDocument>,
     private readonly emailService: EmailService,
+    private readonly githubService: GitHubService,
   ) {}
 
   async create(createFeedbackDto: CreateFeedbackDto): Promise<Feedback> {
     const feedback = new this.feedbackModel(createFeedbackDto);
     const saved = await feedback.save();
 
+    const feedbackData = {
+      feedbackId: saved._id.toString(),
+      type: saved.type,
+      message: saved.message,
+      email: saved.email,
+      puzzleId: saved.puzzleId,
+      gameType: saved.gameType,
+      difficulty: saved.difficulty,
+      puzzleDate: saved.puzzleDate
+        ? new Date(saved.puzzleDate).toISOString().split("T")[0]
+        : undefined,
+      deviceInfo: saved.deviceInfo,
+      createdAt:
+        (saved as any).createdAt?.toISOString() || new Date().toISOString(),
+    };
+
     // Send email notification asynchronously (don't await to not block response)
     this.emailService
       .sendFeedbackNotification({
-        _id: saved._id.toString(),
-        type: saved.type,
-        message: saved.message,
-        email: saved.email,
-        puzzleId: saved.puzzleId,
-        gameType: saved.gameType,
-        difficulty: saved.difficulty,
+        _id: feedbackData.feedbackId,
+        type: feedbackData.type,
+        message: feedbackData.message,
+        email: feedbackData.email,
+        puzzleId: feedbackData.puzzleId,
+        gameType: feedbackData.gameType,
+        difficulty: feedbackData.difficulty,
         puzzleDate: saved.puzzleDate,
-        deviceInfo: saved.deviceInfo,
+        deviceInfo: feedbackData.deviceInfo,
         createdAt: (saved as any).createdAt,
       })
       .catch((error) => {
         console.error("Failed to send feedback notification:", error);
       });
+
+    // Create GitHub issue asynchronously (don't await to not block response)
+    this.githubService.createIssueFromFeedback(feedbackData).catch((error) => {
+      console.error("Failed to create GitHub issue:", error);
+    });
 
     return saved;
   }

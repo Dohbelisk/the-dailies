@@ -42,22 +42,11 @@ class WordLadderGrid extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Steps: ${puzzle.currentSteps}',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    'Optimal: ${puzzle.minSteps}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+              Text(
+                'Steps: ${puzzle.currentSteps}',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               Row(
                 children: [
@@ -181,19 +170,14 @@ class WordLadderGrid extends StatelessWidget {
     final theme = Theme.of(context);
 
     Color bgColor;
-    Color textColor;
     if (isTarget) {
       bgColor = theme.colorScheme.primaryContainer;
-      textColor = theme.colorScheme.onPrimaryContainer;
     } else if (isStart) {
       bgColor = theme.colorScheme.secondaryContainer;
-      textColor = theme.colorScheme.onSecondaryContainer;
     } else if (isCurrent) {
       bgColor = theme.colorScheme.tertiaryContainer;
-      textColor = theme.colorScheme.onTertiaryContainer;
     } else {
       bgColor = theme.colorScheme.surfaceContainerHigh;
-      textColor = theme.colorScheme.onSurface;
     }
 
     return Container(
@@ -225,7 +209,7 @@ class WordLadderGrid extends StatelessWidget {
                   word[i],
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: textColor,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
               ),

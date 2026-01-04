@@ -94,10 +94,40 @@ export class SudokuGenerator {
     for (const [row, col] of positions) {
       if (removed >= count) break;
       if (this.grid[row][col] !== 0) {
+        const backup = this.grid[row][col];
         this.grid[row][col] = 0;
-        removed++;
+
+        // Check if puzzle still has unique solution
+        if (this.countSolutions(0) === 1) {
+          removed++;
+        } else {
+          // Restore the cell - removing it creates multiple solutions
+          this.grid[row][col] = backup;
+        }
       }
     }
+  }
+
+  // Count solutions (stops at 2 since we only need to know if unique)
+  private countSolutions(count: number): number {
+    if (count > 1) return count; // Early exit - already found multiple
+
+    const emptyCell = this.findEmptyCell();
+    if (!emptyCell) return count + 1; // Found a complete solution
+
+    const [row, col] = emptyCell;
+
+    for (let num = 1; num <= 9; num++) {
+      if (this.isValid(row, col, num)) {
+        this.grid[row][col] = num;
+        count = this.countSolutions(count);
+        this.grid[row][col] = 0;
+
+        if (count > 1) return count; // Early exit
+      }
+    }
+
+    return count;
   }
 
   private shuffle<T>(array: T[]): T[] {
@@ -412,14 +442,12 @@ export class CrosswordGenerator {
       this.placeWord(firstWord, startRow, startCol, "across");
     }
 
-    // Place remaining words
+    // Place remaining words - only if they connect to existing words
     for (let i = 1; i < sorted.length; i++) {
       const word = sorted[i].word.toUpperCase();
-      const placed = this.findAndPlaceWord(word);
-      if (!placed) {
-        // Try to place it anywhere if intersection fails
-        this.tryPlaceWordAnywhere(word);
-      }
+      // Only place words that intersect with the existing grid
+      // Skip words that can't connect to maintain grid connectivity
+      this.findAndPlaceWord(word);
     }
 
     // Convert to final format with black cells (#)
@@ -470,23 +498,6 @@ export class CrosswordGenerator {
             }
           }
         }
-      }
-    }
-
-    return false;
-  }
-
-  private tryPlaceWordAnywhere(word: string): boolean {
-    const attempts = 50;
-
-    for (let attempt = 0; attempt < attempts; attempt++) {
-      const direction = Math.random() < 0.5 ? "across" : "down";
-      const row = Math.floor(Math.random() * this.rows);
-      const col = Math.floor(Math.random() * this.cols);
-
-      if (this.canPlaceWord(word, row, col, direction)) {
-        this.placeWord(word, row, col, direction);
-        return true;
       }
     }
 

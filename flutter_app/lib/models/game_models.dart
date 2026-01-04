@@ -254,6 +254,26 @@ class SudokuPuzzle {
     return true;
   }
 
+  /// Checks if the value at a cell matches the solution
+  /// Returns true if the value is correct according to the solution
+  bool isCorrectValue(int row, int col, int value) {
+    if (row < 0 || row >= 9 || col < 0 || col >= 9) return false;
+    if (solution.isEmpty || solution.length != 9) return true; // No solution to check against
+    return solution[row][col] == value;
+  }
+
+  /// Checks if a cell has an error (either conflicts with Sudoku rules OR doesn't match solution)
+  bool hasError(int row, int col) {
+    final value = grid[row][col];
+    if (value == null) return false;
+
+    // Check if it doesn't match the solution (primary check)
+    if (!isCorrectValue(row, col, value)) return true;
+
+    // Also check Sudoku rule violations (shouldn't happen if solution check works, but good for safety)
+    return !isValidPlacement(row, col, value);
+  }
+
   /// Returns a set of numbers (1-9) that have all 9 instances placed on the grid
   Set<int> get completedNumbers {
     final counts = <int, int>{};

@@ -66,9 +66,9 @@ class CrosswordGrid extends StatelessWidget {
     if (isBlack) {
       return Container(
         decoration: BoxDecoration(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
+          color: Colors.black87,
           border: Border.all(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            color: Colors.black54,
             width: 0.5,
           ),
         ),

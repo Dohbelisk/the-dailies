@@ -5,14 +5,24 @@ class NonogramGrid extends StatefulWidget {
   final NonogramPuzzle puzzle;
   final bool markMode;
   final Function(int row, int col) onCellTap;
+  final Function(int row, int col, int state) onSetCellState;
   final VoidCallback onToggleMarkMode;
+  final VoidCallback onSaveStateForUndo;
+  final VoidCallback onUndo;
+  final VoidCallback onDragEnd;
+  final bool canUndo;
 
   const NonogramGrid({
     super.key,
     required this.puzzle,
     required this.markMode,
     required this.onCellTap,
+    required this.onSetCellState,
     required this.onToggleMarkMode,
+    required this.onSaveStateForUndo,
+    required this.onUndo,
+    required this.onDragEnd,
+    required this.canUndo,
   });
 
   @override
@@ -31,9 +41,11 @@ class _NonogramGridState extends State<NonogramGrid> {
   double _rowClueWidth = 0;
   double _colClueHeight = 0;
 
-  // Track the target state for the current drag
-  // null = no drag, 1 = filling, -1 = marking, 0 = clearing
-  int? _dragTargetState;
+  // Track the drag action for the current drag
+  // null = no drag started
+  // In Fill mode: 'fill' or 'clear'
+  // In Mark mode: 'mark' or 'unmark'
+  String? _dragAction;
 
   // Track drag direction: null = not set, true = horizontal, false = vertical
   bool? _dragIsHorizontal;
@@ -43,15 +55,22 @@ class _NonogramGridState extends State<NonogramGrid> {
   void _handleDragStart(DragStartDetails details) {
     _draggedCells.clear();
     _changedCells.clear();
-    _dragTargetState = null;
+    _dragAction = null;
     _dragIsHorizontal = null;
     _dragStartRow = null;
     _dragStartCol = null;
+    // Save state for undo before making any changes
+    widget.onSaveStateForUndo();
     _handleDragAt(details.localPosition, isStart: true);
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
     _handleDragAt(details.localPosition, isStart: false);
+  }
+
+  void _handleDragEnd(DragEndDetails details) {
+    // Notify that drag ended so listeners can update
+    widget.onDragEnd();
   }
 
   void _handleDragAt(Offset position, {bool isStart = false}) {
@@ -77,9 +96,6 @@ class _NonogramGridState extends State<NonogramGrid> {
       _dragStartCol = col;
     } else if (_dragIsHorizontal == null && (row != _dragStartRow || col != _dragStartCol)) {
       // Determine direction on first movement away from start
-      // If only column changed -> horizontal
-      // If only row changed -> vertical
-      // If both changed, pick based on which moved more (using raw position)
       final rowDiff = (row - _dragStartRow!).abs();
       final colDiff = (col - _dragStartCol!).abs();
 
@@ -103,31 +119,192 @@ class _NonogramGridState extends State<NonogramGrid> {
     }
 
     final cellKey = '$row,$col';
-    if (!_draggedCells.contains(cellKey)) {
-      _draggedCells.add(cellKey);
+    if (_draggedCells.contains(cellKey)) return;
+    _draggedCells.add(cellKey);
 
-      // Read the current state from the grid
-      final currentState = widget.puzzle.userGrid[row][col];
+    // Get current state: null or 0 = empty, 1 = filled, -1 = marked
+    final rawState = widget.puzzle.userGrid[row][col];
+    final currentState = rawState ?? 0; // Treat null as empty (0)
+    final isEmpty = rawState == null || rawState == 0;
 
-      // On first cell, determine target state based on current cell and mode
-      if (_dragTargetState == null) {
-        if (widget.markMode) {
-          // Mark mode: if empty (0), mark it (-1); if marked (-1), clear it (0)
-          _dragTargetState = currentState == -1 ? 0 : -1;
-        } else {
-          // Fill mode: if empty (0), fill it (1); if filled (1), clear it (0)
-          _dragTargetState = currentState == 1 ? 0 : 1;
-        }
-      }
+    // Check if this is the first cell (origin) of the drag
+    final isFirstCell = _dragAction == null;
 
-      // Only tap if:
-      // 1. We haven't already changed this cell in this drag
-      // 2. The cell needs to change to match target state
-      if (!_changedCells.contains(cellKey) && currentState != _dragTargetState) {
-        _changedCells.add(cellKey);
-        widget.onCellTap(row, col);
+    // On first cell, determine the action based on origin cell state and mode
+    if (isFirstCell) {
+      if (widget.markMode) {
+        // Mark mode:
+        // - Origin is Marked (-1) -> action is 'unmark'
+        // - Origin is Empty or Filled -> action is 'mark'
+        _dragAction = (currentState == -1) ? 'unmark' : 'mark';
+      } else {
+        // Fill mode:
+        // - Origin is Filled (1) -> action is 'clear'
+        // - Origin is Empty or Marked -> action is 'fill'
+        _dragAction = (currentState == 1) ? 'clear' : 'fill';
       }
     }
+
+    // Safety check: ensure we're not in a mark action when in fill mode
+    if (!widget.markMode && (_dragAction == 'mark' || _dragAction == 'unmark')) {
+      return;
+    }
+    if (widget.markMode && (_dragAction == 'fill' || _dragAction == 'clear')) {
+      return;
+    }
+
+    // Determine what to do with this cell based on action and current state
+    // States: null/0 = empty, 1 = filled, -1 = marked
+    int? newState;
+
+    if (isFirstCell) {
+      // FIRST CELL (tap or drag start): Always toggle based on mode
+      if (widget.markMode) {
+        // Mark mode: toggle between empty and marked
+        if (currentState == -1) {
+          newState = 0; // marked -> empty
+        } else {
+          newState = -1; // empty or filled -> marked
+        }
+      } else {
+        // Fill mode: toggle between empty and filled
+        if (currentState == 1) {
+          newState = 0; // filled -> empty
+        } else {
+          newState = 1; // empty or marked -> filled
+        }
+      }
+    } else {
+      // SUBSEQUENT CELLS: Follow drag action, respect other cell types
+      switch (_dragAction) {
+        case 'fill':
+          // Fill action: ONLY empty cells become filled
+          if (isEmpty) {
+            newState = 1;
+          }
+          break;
+
+        case 'clear':
+          // Clear action: ONLY filled cells become empty
+          if (currentState == 1) {
+            newState = 0;
+          }
+          break;
+
+        case 'mark':
+          // Mark action: ONLY empty cells become marked
+          if (isEmpty) {
+            newState = -1;
+          }
+          break;
+
+        case 'unmark':
+          // Unmark action: ONLY marked cells become empty
+          if (currentState == -1) {
+            newState = 0;
+          }
+          break;
+      }
+    }
+
+    // Apply the change if needed
+    if (newState != null && !_changedCells.contains(cellKey)) {
+      _changedCells.add(cellKey);
+      widget.onSetCellState(row, col, newState);
+    }
+  }
+
+  Widget _buildModeToggle(BuildContext context) {
+    final theme = Theme.of(context);
+    final fillSelected = !widget.markMode;
+    final markSelected = widget.markMode;
+
+    // Muted red for mark mode
+    final markColor = theme.colorScheme.error.withValues(alpha: 0.7);
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Fill button
+          GestureDetector(
+            onTap: widget.markMode ? widget.onToggleMarkMode : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: fillSelected
+                    ? theme.colorScheme.primary
+                    : Colors.transparent,
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(7)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.square_rounded,
+                    size: 16,
+                    color: fillSelected
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.onSurface,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Fill',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: fillSelected
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Mark button
+          GestureDetector(
+            onTap: !widget.markMode ? widget.onToggleMarkMode : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: markSelected ? markColor : Colors.transparent,
+                borderRadius: const BorderRadius.horizontal(right: Radius.circular(7)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.close,
+                    size: 16,
+                    color: markSelected
+                        ? Colors.white
+                        : theme.colorScheme.onSurface,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Mark',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: markSelected
+                          ? Colors.white
+                          : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -158,29 +335,18 @@ class _NonogramGridState extends State<NonogramGrid> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              // Toggle between Fill and Mark modes
-              SegmentedButton<bool>(
-                segments: [
-                  ButtonSegment<bool>(
-                    value: false,
-                    label: const Text('Fill'),
-                    icon: const Icon(Icons.square_rounded, size: 18),
+              Row(
+                children: [
+                  // Undo button
+                  IconButton.outlined(
+                    onPressed: widget.canUndo ? widget.onUndo : null,
+                    icon: const Icon(Icons.undo, size: 20),
+                    tooltip: 'Undo',
                   ),
-                  ButtonSegment<bool>(
-                    value: true,
-                    label: const Text('X'),
-                    icon: const Icon(Icons.close, size: 18),
-                  ),
+                  const SizedBox(width: 8),
+                  // Toggle between Fill and Mark modes
+                  _buildModeToggle(context),
                 ],
-                selected: {widget.markMode},
-                onSelectionChanged: (Set<bool> selected) {
-                  if (selected.first != widget.markMode) {
-                    widget.onToggleMarkMode();
-                  }
-                },
-                style: ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                ),
               ),
             ],
           ),
@@ -215,6 +381,7 @@ class _NonogramGridState extends State<NonogramGrid> {
                 // Use only pan gestures - a tap is just a pan that doesn't move
                 onPanStart: _handleDragStart,
                 onPanUpdate: _handleDragUpdate,
+                onPanEnd: _handleDragEnd,
                 child: _buildGridWithClues(
                   context,
                   cellSize,
@@ -324,13 +491,25 @@ class _NonogramGridState extends State<NonogramGrid> {
       bgColor = theme.colorScheme.surface;
       child = Icon(
         Icons.close,
-        size: size * 0.6,
-        color: theme.colorScheme.error.withValues(alpha: 0.7),
+        size: size * 0.75,
+        color: theme.colorScheme.error,
+        weight: 700,
       );
     } else {
       // Unmarked
       bgColor = theme.colorScheme.surface;
     }
+
+    // Thicker borders every 5th row/column for easier counting
+    final thinBorder = theme.colorScheme.outline.withValues(alpha: 0.3);
+    final thickBorder = theme.colorScheme.outline.withValues(alpha: 0.8);
+    const thinWidth = 0.5;
+    const thickWidth = 1.5;
+
+    final isLeftThick = col % 5 == 0;
+    final isTopThick = row % 5 == 0;
+    final isRightThick = col == widget.puzzle.cols - 1;
+    final isBottomThick = row == widget.puzzle.rows - 1;
 
     // No GestureDetector here - taps and drags handled by parent
     return Container(
@@ -338,9 +517,23 @@ class _NonogramGridState extends State<NonogramGrid> {
       height: size,
       decoration: BoxDecoration(
         color: bgColor,
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.3),
-          width: 0.5,
+        border: Border(
+          left: BorderSide(
+            color: isLeftThick ? thickBorder : thinBorder,
+            width: isLeftThick ? thickWidth : thinWidth,
+          ),
+          top: BorderSide(
+            color: isTopThick ? thickBorder : thinBorder,
+            width: isTopThick ? thickWidth : thinWidth,
+          ),
+          right: BorderSide(
+            color: isRightThick ? thickBorder : thinBorder,
+            width: isRightThick ? thickWidth : thinWidth,
+          ),
+          bottom: BorderSide(
+            color: isBottomThick ? thickBorder : thinBorder,
+            width: isBottomThick ? thickWidth : thinWidth,
+          ),
         ),
       ),
       child: child,

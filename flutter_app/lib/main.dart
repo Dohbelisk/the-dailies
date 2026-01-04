@@ -24,6 +24,7 @@ import 'providers/game_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/theme_selection_screen.dart';
 import 'widgets/version_dialogs.dart';
+import 'widgets/shake_feedback_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -153,6 +154,12 @@ class _TheDailiesAppState extends State<TheDailiesApp> {
             title: 'The Dailies',
             debugShowCheckedModeBanner: false,
             theme: _buildTheme(themeProvider.isDarkMode),
+            builder: (context, child) {
+              // Wrap all screens with shake-to-report functionality
+              return ShakeFeedbackWrapper(
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             home: showThemeSelection
                 ? ThemeSelectionScreen(onComplete: _onThemeSelectionComplete)
                 : _VersionCheckWrapper(

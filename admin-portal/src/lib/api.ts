@@ -142,6 +142,38 @@ export const dictionaryApi = {
     api.get('/dictionary/status'),
 }
 
+// Generate
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert'
+
+export const generateApi = {
+  sudoku: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/sudoku', { date, difficulty }),
+  killerSudoku: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/killer-sudoku', { date, difficulty }),
+  crossword: (date: string, difficulty: Difficulty, wordsWithClues: { word: string; clue: string }[]) =>
+    api.post('/generate/crossword', { date, difficulty, wordsWithClues }),
+  wordSearch: (date: string, difficulty: Difficulty, words: string[], theme?: string) =>
+    api.post('/generate/word-search', { date, difficulty, words, theme }),
+  wordForge: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/word-forge', { date, difficulty }),
+  nonogram: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/nonogram', { date, difficulty }),
+  numberTarget: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/number-target', { date, difficulty }),
+  ballSort: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/ball-sort', { date, difficulty }),
+  pipes: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/pipes', { date, difficulty }),
+  lightsOut: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/lights-out', { date, difficulty }),
+  wordLadder: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/word-ladder', { date, difficulty }),
+  connections: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/connections', { date, difficulty }),
+  mathora: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/mathora', { date, difficulty }),
+}
+
 // Validation
 export interface Cage {
   sum: number

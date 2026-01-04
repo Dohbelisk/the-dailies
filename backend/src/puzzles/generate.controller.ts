@@ -258,11 +258,15 @@ export class GenerateController {
       expert: 1200,
     };
 
+    // Extract solution from puzzleData
+    const solution = { grid: puzzleData.solution };
+
     return this.puzzlesService.create({
       gameType: GameType.SUDOKU,
       difficulty: dto.difficulty as Difficulty,
       date: dto.date,
-      puzzleData,
+      puzzleData: { grid: puzzleData.grid },
+      solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Daily Sudoku - ${dto.difficulty}`,
       isActive: true,
@@ -281,11 +285,15 @@ export class GenerateController {
       expert: 1800,
     };
 
+    // Extract solution from puzzleData
+    const solution = { grid: puzzleData.solution };
+
     return this.puzzlesService.create({
       gameType: GameType.KILLER_SUDOKU,
       difficulty: dto.difficulty as Difficulty,
       date: dto.date,
-      puzzleData,
+      puzzleData: { grid: puzzleData.grid, cages: puzzleData.cages },
+      solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Killer Sudoku - ${dto.difficulty}`,
       isActive: true,
@@ -308,11 +316,23 @@ export class GenerateController {
       expert: 1200,
     };
 
+    // For crossword, the grid contains the solution (letters)
+    // Extract answers from clues for the solution object
+    const solution = {
+      grid: puzzleData.grid,
+      answers: puzzleData.clues.map((c: any) => ({
+        number: c.number,
+        direction: c.direction,
+        answer: c.answer,
+      })),
+    };
+
     return this.puzzlesService.create({
       gameType: GameType.CROSSWORD,
       difficulty: dto.difficulty as Difficulty,
       date: dto.date,
       puzzleData,
+      solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Daily Crossword - ${dto.difficulty}`,
       isActive: true,
@@ -336,11 +356,17 @@ export class GenerateController {
       expert: 600,
     };
 
+    // For word search, words array contains word positions (the solution)
+    const solution = {
+      words: puzzleData.words,
+    };
+
     return this.puzzlesService.create({
       gameType: GameType.WORD_SEARCH,
       difficulty: dto.difficulty as Difficulty,
       date: dto.date,
       puzzleData,
+      solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Word Search - ${dto.theme || "Mixed"}`,
       isActive: false, // Word Search is currently removed from circulation
@@ -840,7 +866,8 @@ export class GenerateController {
           gameType: GameType.SUDOKU,
           difficulty: difficulty as Difficulty,
           date: dateStr,
-          puzzleData: sudokuData,
+          puzzleData: { grid: sudokuData.grid },
+          solution: { grid: sudokuData.solution },
           targetTime: { easy: 300, medium: 600, hard: 900, expert: 1200 }[
             difficulty
           ],
@@ -857,7 +884,8 @@ export class GenerateController {
           gameType: GameType.KILLER_SUDOKU,
           difficulty: difficulty as Difficulty,
           date: dateStr,
-          puzzleData: killerData,
+          puzzleData: { grid: killerData.grid, cages: killerData.cages },
+          solution: { grid: killerData.solution },
           targetTime: { easy: 450, medium: 900, hard: 1200, expert: 1800 }[
             difficulty
           ],
@@ -876,6 +904,14 @@ export class GenerateController {
           difficulty: difficulty as Difficulty,
           date: dateStr,
           puzzleData: crosswordPuzzle,
+          solution: {
+            grid: crosswordPuzzle.grid,
+            answers: crosswordPuzzle.clues.map((c: any) => ({
+              number: c.number,
+              direction: c.direction,
+              answer: c.answer,
+            })),
+          },
           targetTime: { easy: 360, medium: 600, hard: 900, expert: 1200 }[
             difficulty
           ],
@@ -899,6 +935,7 @@ export class GenerateController {
           difficulty: difficulty as Difficulty,
           date: dateStr,
           puzzleData: wsData,
+          solution: { words: wsData.words },
           targetTime: { easy: 180, medium: 300, hard: 420, expert: 600 }[
             difficulty
           ],

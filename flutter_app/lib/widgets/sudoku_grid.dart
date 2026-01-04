@@ -64,7 +64,7 @@ class SudokuGrid extends StatelessWidget {
     final isInitial = puzzle.initialGrid[row][col] != null;
     final isSelected = row == selectedRow && col == selectedCol;
     final isHighlighted = _shouldHighlight(row, col);
-    final isError = value != null && !puzzle.isValidPlacement(row, col, value);
+    final isError = puzzle.hasError(row, col);
     final notes = puzzle.notes[row][col];
 
     Color? backgroundColor;

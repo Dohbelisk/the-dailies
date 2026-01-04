@@ -11,6 +11,7 @@ import { EmailModule } from "./email/email.module";
 import { FeedbackModule } from "./feedback/feedback.module";
 import { AppConfigModule } from "./config/config.module";
 import { DictionaryModule } from "./dictionary/dictionary.module";
+import { GitHubModule } from "./github/github.module";
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { DictionaryModule } from "./dictionary/dictionary.module";
     FeedbackModule,
     AppConfigModule,
     DictionaryModule,
+    GitHubModule,
   ],
 })
 export class AppModule {}

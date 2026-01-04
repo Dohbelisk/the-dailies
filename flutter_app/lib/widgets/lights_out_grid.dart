@@ -39,7 +39,7 @@ class LightsOutGrid extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Optimal: ${puzzle.minMoves} | Lights on: ${puzzle.lightsOnCount}',
+                    'Lights on: ${puzzle.lightsOnCount}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

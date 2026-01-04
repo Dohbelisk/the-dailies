@@ -716,11 +716,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
       child: Row(
         children: [
+          // Left buttons - compact constraints for small screens
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
+            icon: const Icon(Icons.arrow_back_rounded, size: 20),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: const EdgeInsets.all(6),
             onPressed: () async {
               await _saveAndExit();
               if (context.mounted) {
@@ -729,37 +732,48 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.help_outline_rounded),
+            icon: const Icon(Icons.help_outline_rounded, size: 20),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: const EdgeInsets.all(6),
             tooltip: 'How to Play',
             onPressed: () => _showGameInstructions(context),
           ),
+          // Center - title with flexible sizing
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     if (isChallenge) ...[
                       Icon(
                         Icons.sports_esports_rounded,
-                        size: 18,
+                        size: 14,
                         color: theme.colorScheme.primary,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 2),
                     ],
-                    Text(
-                      _puzzle!.gameType.displayName,
-                      style: theme.textTheme.titleLarge,
+                    Flexible(
+                      child: Text(
+                        _puzzle!.gameType.displayName,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: List.generate(
                     _puzzle!.difficulty.stars,
                     (index) => Icon(
                       Icons.star_rounded,
-                      size: 14,
+                      size: 10,
                       color: theme.colorScheme.primary,
                     ),
                   ),
@@ -767,6 +781,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ],
             ),
           ),
+          // Right side - timer and buttons with very compact sizing
           Consumer<GameProvider>(
             builder: (context, gameProvider, _) {
               return Row(
@@ -776,11 +791,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   IconButton(
                     icon: Icon(
                       _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                      size: 20,
                     ),
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    padding: const EdgeInsets.all(4),
                     onPressed: _togglePause,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.settings_rounded),
+                    icon: const Icon(Icons.settings_rounded, size: 20),
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    padding: const EdgeInsets.all(4),
                     tooltip: 'Settings',
                     onPressed: () {
                       Navigator.push(
@@ -1768,12 +1788,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           child: NonogramGrid(
             puzzle: gameProvider.nonogramPuzzle!,
             markMode: gameProvider.nonogramMarkMode,
+            canUndo: gameProvider.canUndoNonogram,
             onCellTap: (row, col) {
               gameProvider.toggleNonogramCell(row, col);
               _audioService.playTap();
             },
+            onSetCellState: (row, col, state) {
+              gameProvider.setNonogramCellStateSilent(row, col, state);
+            },
             onToggleMarkMode: () {
               gameProvider.toggleNonogramMarkMode();
+              _audioService.playTap();
+            },
+            onSaveStateForUndo: () {
+              gameProvider.saveNonogramStateForUndo();
+            },
+            onUndo: () {
+              gameProvider.undoNonogram();
+              _audioService.playTap();
+            },
+            onDragEnd: () {
+              gameProvider.notifyNonogramChanged();
               _audioService.playTap();
             },
           ),
@@ -1883,6 +1918,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             puzzle: gameProvider.pipesPuzzle!,
             onPathStart: (color, row, col) {
               gameProvider.startPipesPath(color, row, col);
+              _audioService.playTap();
+            },
+            onPathContinue: (color) {
+              gameProvider.continuePipesPath(color);
               _audioService.playTap();
             },
             onPathExtend: (row, col) {

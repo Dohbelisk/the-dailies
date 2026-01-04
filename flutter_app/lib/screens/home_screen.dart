@@ -212,10 +212,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ).animate(controller: _headerController)
                               .fadeIn(duration: 600.ms)
                               .slideX(begin: -0.2, end: 0),
-                            // Settings and theme only on top row
+                            // Settings, theme, and refresh (super user only) on top row
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                // Refresh button - only for super users
+                                if (RemoteConfigService().isSuperAccount)
+                                  IconButton(
+                                    icon: const Icon(Icons.refresh_rounded, size: 22),
+                                    tooltip: 'Refresh puzzles',
+                                    onPressed: () {
+                                      setState(() {
+                                        _loadPuzzles();
+                                      });
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Refreshing puzzles...'),
+                                          duration: Duration(seconds: 1),
+                                        ),
+                                      );
+                                    },
+                                  ).animate(controller: _headerController)
+                                    .fadeIn(delay: 50.ms, duration: 400.ms)
+                                    .scale(begin: const Offset(0.5, 0.5)),
                                 IconButton(
                                   icon: Icon(
                                     themeProvider.isDarkMode
@@ -243,55 +262,58 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        // Secondary action row
-                        Row(
-                          children: [
-                            _buildActionChip(
-                              icon: Icons.people_outline_rounded,
-                              label: 'Friends',
-                              onTap: _handleFriendsPressed,
-                              theme: theme,
-                            ).animate(controller: _headerController)
-                              .fadeIn(delay: 200.ms, duration: 400.ms)
-                              .slideX(begin: -0.1, end: 0),
-                            const SizedBox(width: 8),
-                            _buildActionChip(
-                              icon: Icons.emoji_events_outlined,
-                              label: 'Challenges',
-                              onTap: _handleChallengesPressed,
-                              theme: theme,
-                            ).animate(controller: _headerController)
-                              .fadeIn(delay: 250.ms, duration: 400.ms)
-                              .slideX(begin: -0.1, end: 0),
-                            const SizedBox(width: 8),
-                            _buildActionChip(
-                              icon: Icons.history_rounded,
-                              label: 'Archive',
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ArchiveScreen(),
+                        // Secondary action row - scrollable for small screens
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildActionChip(
+                                icon: Icons.people_outline_rounded,
+                                label: 'Friends',
+                                onTap: _handleFriendsPressed,
+                                theme: theme,
+                              ).animate(controller: _headerController)
+                                .fadeIn(delay: 200.ms, duration: 400.ms)
+                                .slideX(begin: -0.1, end: 0),
+                              const SizedBox(width: 8),
+                              _buildActionChip(
+                                icon: Icons.emoji_events_outlined,
+                                label: 'Challenges',
+                                onTap: _handleChallengesPressed,
+                                theme: theme,
+                              ).animate(controller: _headerController)
+                                .fadeIn(delay: 250.ms, duration: 400.ms)
+                                .slideX(begin: -0.1, end: 0),
+                              const SizedBox(width: 8),
+                              _buildActionChip(
+                                icon: Icons.history_rounded,
+                                label: 'Archive',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ArchiveScreen(),
+                                  ),
+                                ).then((_) => setState(() {})),
+                                theme: theme,
+                              ).animate(controller: _headerController)
+                                .fadeIn(delay: 300.ms, duration: 400.ms)
+                                .slideX(begin: -0.1, end: 0),
+                              const SizedBox(width: 8),
+                              _buildActionChip(
+                                icon: Icons.bar_chart_rounded,
+                                label: 'Stats',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const StatsScreen(),
+                                  ),
                                 ),
-                              ).then((_) => setState(() {})),
-                              theme: theme,
-                            ).animate(controller: _headerController)
-                              .fadeIn(delay: 300.ms, duration: 400.ms)
-                              .slideX(begin: -0.1, end: 0),
-                            const SizedBox(width: 8),
-                            _buildActionChip(
-                              icon: Icons.bar_chart_rounded,
-                              label: 'Stats',
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const StatsScreen(),
-                                ),
-                              ),
-                              theme: theme,
-                            ).animate(controller: _headerController)
-                              .fadeIn(delay: 350.ms, duration: 400.ms)
-                              .slideX(begin: -0.1, end: 0),
-                          ],
+                                theme: theme,
+                              ).animate(controller: _headerController)
+                                .fadeIn(delay: 350.ms, duration: 400.ms)
+                                .slideX(begin: -0.1, end: 0),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 32),
                         
