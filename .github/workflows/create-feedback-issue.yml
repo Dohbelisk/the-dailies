@@ -4,6 +4,9 @@ on:
   repository_dispatch:
     types: [feedback-submitted]
 
+permissions:
+  issues: write
+
 jobs:
   create-issue:
     name: Create GitHub Issue from Feedback
