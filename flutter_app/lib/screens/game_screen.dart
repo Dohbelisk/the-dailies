@@ -59,6 +59,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   DailyPuzzle? _puzzle;
   bool _isLoading = true;
   String? _loadError;
+  bool _isViewingCompleted = false; // True if viewing a previously completed game
+  Map<String, dynamic>? _completionData; // Stored completion data (time, score)
 
   // Crossword clue list controllers
   TabController? _cluesTabController;
@@ -107,7 +109,30 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _loadPuzzleIntoProvider() async {
-    // Check if there's saved state for this puzzle
+    // First check if this game is already completed
+    final completionStatus = await GameStateService.getCompletionStatus(
+      gameType: _puzzle!.gameType,
+      puzzleDate: _puzzle!.date,
+    );
+
+    if (completionStatus != null && mounted) {
+      // Game is already completed - show completed view
+      setState(() {
+        _isViewingCompleted = true;
+        _completionData = completionStatus;
+      });
+
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      await gameProvider.loadPuzzle(_puzzle!, restoreSavedState: false, showSolution: true);
+
+      setState(() {
+        _isLoading = false;
+      });
+      // Don't start timer for completed games
+      return;
+    }
+
+    // Check if there's saved state for this puzzle (in-progress)
     final hasSavedState = await GameStateService.hasInProgressState(
       gameType: _puzzle!.gameType,
       puzzleDate: _puzzle!.date,
@@ -680,9 +705,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 children: [
                   _buildHeader(context),
                   Expanded(
-                    child: _isPaused
-                        ? _buildPausedOverlay(context)
-                        : _buildGameContent(context),
+                    // Always show game content for completed games (no pause overlay)
+                    child: _isViewingCompleted
+                        ? _buildGameContent(context)
+                        : (_isPaused
+                            ? _buildPausedOverlay(context)
+                            : _buildGameContent(context)),
                   ),
                 ],
               ),
@@ -782,39 +810,65 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
           ),
           // Right side - timer and buttons with very compact sizing
-          Consumer<GameProvider>(
-            builder: (context, gameProvider, _) {
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GameTimer(seconds: gameProvider.elapsedSeconds),
-                  IconButton(
-                    icon: Icon(
-                      _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                      size: 20,
+          if (_isViewingCompleted)
+            // Show completed time and home button for completed games
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_completionData != null)
+                  GameTimer(seconds: _completionData!['elapsedSeconds'] as int? ?? 0),
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle_rounded, size: 16, color: Colors.green),
+                      SizedBox(width: 4),
+                      Text('Done', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else
+            Consumer<GameProvider>(
+              builder: (context, gameProvider, _) {
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GameTimer(seconds: gameProvider.elapsedSeconds),
+                    IconButton(
+                      icon: Icon(
+                        _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                        size: 20,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      padding: const EdgeInsets.all(4),
+                      onPressed: _togglePause,
                     ),
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    padding: const EdgeInsets.all(4),
-                    onPressed: _togglePause,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.settings_rounded, size: 20),
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    padding: const EdgeInsets.all(4),
-                    tooltip: 'Settings',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
+                    IconButton(
+                      icon: const Icon(Icons.settings_rounded, size: 20),
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      padding: const EdgeInsets.all(4),
+                      tooltip: 'Settings',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
         ],
       ),
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0);
