@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'admob_service.dart';
+import 'remote_config_service.dart';
 
 class HintService {
   static final HintService _instance = HintService._internal();
@@ -13,10 +14,12 @@ class HintService {
 
   int _availableHints = _freeHintsPerDay;
   final AdMobService _adMobService = AdMobService();
+  final RemoteConfigService _configService = RemoteConfigService();
 
   int get availableHints => _availableHints;
-  bool get hasHints => _availableHints > 0 || _adMobService.isPremiumUser;
+  bool get hasHints => _availableHints > 0 || _adMobService.isPremiumUser || _configService.isSuperAccount;
   bool get isPremium => _adMobService.isPremiumUser;
+  bool get isSuperAccount => _configService.isSuperAccount;
 
   // Initialize and load hint count from storage
   Future<void> initialize() async {
@@ -38,6 +41,11 @@ class HintService {
   Future<bool> useHint() async {
     // Premium users have unlimited hints
     if (_adMobService.isPremiumUser) {
+      return true;
+    }
+
+    // Super accounts have unlimited hints
+    if (_configService.isSuperAccount) {
       return true;
     }
 

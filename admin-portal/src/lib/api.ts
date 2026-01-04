@@ -49,6 +49,12 @@ export const puzzlesApi = {
     api.get(`/puzzles/${id}`),
   getToday: () =>
     api.get('/puzzles/today'),
+  getByDate: (date: string) =>
+    api.get('/puzzles', { params: { date } }),
+  getByDateRange: (startDate: string, endDate: string) =>
+    api.get('/puzzles', { params: { startDate, endDate } }),
+  getByTypeAndDate: (gameType: string, date: string) =>
+    api.get(`/puzzles/type/${gameType}/date/${date}`),
   getStats: () =>
     api.get('/puzzles/admin/stats'),
   create: (data: any) =>
@@ -61,6 +67,41 @@ export const puzzlesApi = {
     api.patch(`/puzzles/${id}/toggle-active`),
   delete: (id: string) =>
     api.delete(`/puzzles/${id}`),
+}
+
+// Game Types
+export const GAME_TYPES = [
+  'sudoku',
+  'killerSudoku',
+  'crossword',
+  'wordSearch',
+  'wordForge',
+  'nonogram',
+  'numberTarget',
+  'ballSort',
+  'pipes',
+  'lightsOut',
+  'wordLadder',
+  'connections',
+  'mathora',
+] as const
+
+export type GameType = typeof GAME_TYPES[number]
+
+export const GAME_TYPE_LABELS: Record<GameType, string> = {
+  sudoku: 'Sudoku',
+  killerSudoku: 'Killer Sudoku',
+  crossword: 'Crossword',
+  wordSearch: 'Word Search',
+  wordForge: 'Word Forge',
+  nonogram: 'Nonogram',
+  numberTarget: 'Number Target',
+  ballSort: 'Ball Sort',
+  pipes: 'Pipes',
+  lightsOut: 'Lights Out',
+  wordLadder: 'Word Ladder',
+  connections: 'Connections',
+  mathora: 'Mathora',
 }
 
 // Scores

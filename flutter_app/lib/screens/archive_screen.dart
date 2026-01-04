@@ -315,8 +315,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       return;
     }
 
-    // Spend tokens if not premium
-    if (!_tokenService.isPremium) {
+    // Spend tokens if not premium or super account
+    if (!_tokenService.isPremium && !_tokenService.isSuperAccount) {
       bool spent = await _tokenService.spendTokens(puzzle.difficulty.name);
       if (!spent) {
         if (mounted) {
@@ -408,8 +408,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             ),
           ).animate().fadeIn(duration: 400.ms),
 
-          // Token cost info
-          if (!_tokenService.isPremium)
+          // Token cost info (only show for non-premium, non-super users)
+          if (!_tokenService.isPremium && !_tokenService.isSuperAccount)
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(12),
@@ -520,7 +520,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
               onTap: () => _openPuzzle(puzzle),
               isLocked: !canAccess,
             ),
-            if (!_tokenService.isPremium && !canAccess)
+            if (!_tokenService.isPremium && !_tokenService.isSuperAccount && !canAccess)
               Positioned(
                 top: 8,
                 right: 8,

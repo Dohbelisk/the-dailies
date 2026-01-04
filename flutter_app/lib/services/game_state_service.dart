@@ -122,4 +122,38 @@ class GameStateService {
 
     return inProgress;
   }
+
+  /// Clear all game progress (game states and completions)
+  /// Used by super accounts for testing
+  static Future<int> clearAllProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final allKeys = prefs.getKeys();
+    int cleared = 0;
+
+    for (final key in allKeys) {
+      if (key.startsWith(_stateKeyPrefix) || key.startsWith(_completedKeyPrefix)) {
+        await prefs.remove(key);
+        cleared++;
+      }
+    }
+
+    return cleared;
+  }
+
+  /// Clear progress for a specific game type only
+  static Future<int> clearProgressForGameType(GameType gameType) async {
+    final prefs = await SharedPreferences.getInstance();
+    final allKeys = prefs.getKeys();
+    int cleared = 0;
+
+    for (final key in allKeys) {
+      if ((key.startsWith(_stateKeyPrefix) || key.startsWith(_completedKeyPrefix)) &&
+          key.contains(gameType.name)) {
+        await prefs.remove(key);
+        cleared++;
+      }
+    }
+
+    return cleared;
+  }
 }

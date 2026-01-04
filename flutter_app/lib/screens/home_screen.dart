@@ -326,94 +326,194 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
 
-                // Puzzles grid
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  sliver: FutureBuilder<List<DailyPuzzle>>(
-                    future: _puzzlesFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const SliverToBoxAdapter(
-                          child: Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(48),
-                              child: CircularProgressIndicator(),
-                            ),
+                // Puzzles content
+                FutureBuilder<List<DailyPuzzle>>(
+                  future: _puzzlesFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const SliverToBoxAdapter(
+                        child: Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(48),
+                            child: CircularProgressIndicator(),
                           ),
-                        );
-                      }
-
-                      if (snapshot.hasError) {
-                        return SliverToBoxAdapter(
-                          child: Center(
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.error_outline_rounded,
-                                  size: 48,
-                                  color: theme.colorScheme.error,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Failed to load puzzles',
-                                  style: theme.textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 8),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _loadPuzzles();
-                                    });
-                                  },
-                                  child: const Text('Retry'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-
-                      var rawPuzzles = snapshot.data ?? [];
-                      // Filter out inactive puzzles unless feature flag is enabled
-                      final showInactive = RemoteConfigService().isFeatureEnabled('display_inactive_games');
-                      if (!showInactive) {
-                        rawPuzzles = rawPuzzles.where((p) => p.isActive).toList();
-                      }
-                      // Sort puzzles with favorites first
-                      final puzzles = FavoritesService.sortByFavorites(rawPuzzles, _favorites);
-
-                      return SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 1.1,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final puzzle = puzzles[index];
-                            final isCompleted = _completions.containsKey(puzzle.gameType);
-                            final isInProgress = _inProgress[puzzle.gameType] ?? false;
-                            final isFavorite = _favorites.contains(puzzle.gameType);
-                            return PuzzleCard(
-                              puzzle: puzzle,
-                              onTap: () => _openPuzzle(context, puzzle),
-                              isCompleted: isCompleted,
-                              isInProgress: isInProgress && !isCompleted,
-                              isFavorite: isFavorite,
-                              onFavoriteToggle: () => _toggleFavorite(puzzle.gameType),
-                            ).animate()
-                              .fadeIn(
-                                delay: Duration(milliseconds: 400 + index * 100),
-                                duration: 500.ms,
-                              )
-                              .slideY(begin: 0.2, end: 0);
-                          },
-                          childCount: puzzles.length,
                         ),
                       );
-                    },
-                  ),
+                    }
+
+                    if (snapshot.hasError) {
+                      return SliverToBoxAdapter(
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.error_outline_rounded,
+                                size: 48,
+                                color: theme.colorScheme.error,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Failed to load puzzles',
+                                style: theme.textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _loadPuzzles();
+                                  });
+                                },
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    var rawPuzzles = snapshot.data ?? [];
+                    // Filter out inactive puzzles unless feature flag is enabled
+                    final showInactive = RemoteConfigService().isFeatureEnabled('display_inactive_games');
+                    if (!showInactive) {
+                      rawPuzzles = rawPuzzles.where((p) => p.isActive).toList();
+                    }
+
+                    // Split puzzles into favorites and others
+                    final favoritePuzzles = rawPuzzles
+                        .where((p) => _favorites.contains(p.gameType))
+                        .toList();
+                    final otherPuzzles = rawPuzzles
+                        .where((p) => !_favorites.contains(p.gameType))
+                        .toList();
+
+                    return SliverMainAxisGroup(
+                      slivers: [
+                        // Favorites section (only shown if there are favorites)
+                        if (favoritePuzzles.isNotEmpty) ...[
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            sliver: SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.star_rounded,
+                                      size: 20,
+                                      color: Colors.amber,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Favorites',
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ).animate()
+                                  .fadeIn(delay: 350.ms, duration: 400.ms),
+                              ),
+                            ),
+                          ),
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            sliver: SliverGrid(
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 1.1,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final puzzle = favoritePuzzles[index];
+                                  final isCompleted = _completions.containsKey(puzzle.gameType);
+                                  final isInProgress = _inProgress[puzzle.gameType] ?? false;
+                                  return PuzzleCard(
+                                    puzzle: puzzle,
+                                    onTap: () => _openPuzzle(context, puzzle),
+                                    isCompleted: isCompleted,
+                                    isInProgress: isInProgress && !isCompleted,
+                                    isFavorite: true,
+                                    onFavoriteToggle: () => _toggleFavorite(puzzle.gameType),
+                                  ).animate()
+                                    .fadeIn(
+                                      delay: Duration(milliseconds: 400 + index * 100),
+                                      duration: 500.ms,
+                                    )
+                                    .slideY(begin: 0.2, end: 0);
+                                },
+                                childCount: favoritePuzzles.length,
+                              ),
+                            ),
+                          ),
+                          // Spacer between sections
+                          const SliverToBoxAdapter(
+                            child: SizedBox(height: 24),
+                          ),
+                        ],
+
+                        // All Games section (or just the grid if no favorites)
+                        if (otherPuzzles.isNotEmpty) ...[
+                          if (favoritePuzzles.isNotEmpty)
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              sliver: SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Text(
+                                    'All Games',
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ).animate()
+                                    .fadeIn(
+                                      delay: Duration(milliseconds: 400 + favoritePuzzles.length * 100),
+                                      duration: 400.ms,
+                                    ),
+                                ),
+                              ),
+                            ),
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            sliver: SliverGrid(
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 1.1,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final puzzle = otherPuzzles[index];
+                                  final isCompleted = _completions.containsKey(puzzle.gameType);
+                                  final isInProgress = _inProgress[puzzle.gameType] ?? false;
+                                  final isFavorite = _favorites.contains(puzzle.gameType);
+                                  final animationDelay = favoritePuzzles.isNotEmpty
+                                      ? 450 + favoritePuzzles.length * 100 + index * 100
+                                      : 400 + index * 100;
+                                  return PuzzleCard(
+                                    puzzle: puzzle,
+                                    onTap: () => _openPuzzle(context, puzzle),
+                                    isCompleted: isCompleted,
+                                    isInProgress: isInProgress && !isCompleted,
+                                    isFavorite: isFavorite,
+                                    onFavoriteToggle: () => _toggleFavorite(puzzle.gameType),
+                                  ).animate()
+                                    .fadeIn(
+                                      delay: Duration(milliseconds: animationDelay),
+                                      duration: 500.ms,
+                                    )
+                                    .slideY(begin: 0.2, end: 0);
+                                },
+                                childCount: otherPuzzles.length,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
                 ),
 
                 // Bottom spacing

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/remote_config_service.dart';
 import '../services/firebase_service.dart';
+import '../services/game_state_service.dart';
+import '../services/api_service.dart';
 import '../config/environment.dart';
+import '../models/game_models.dart';
 
 /// Hidden debug menu for developers and testers
 class DebugMenuScreen extends StatefulWidget {
@@ -42,6 +45,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    _buildSuperAccountSection(theme),
+                    const SizedBox(height: 24),
                     _buildVersionSection(theme),
                     const SizedBox(height: 24),
                     _buildFirebaseSection(theme),
@@ -55,6 +60,71 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
                 );
               },
             ),
+    );
+  }
+
+  Widget _buildSuperAccountSection(ThemeData theme) {
+    return _buildSection(
+      theme,
+      title: 'Super Account',
+      icon: Icons.star,
+      children: [
+        // Super Account Toggle
+        SwitchListTile(
+          title: const Text('Enable Super Account'),
+          subtitle: Text(
+            _configService.isSuperAccount
+                ? 'Unlimited tokens, future puzzles, reset access'
+                : 'Normal account mode',
+          ),
+          value: _configService.isSuperAccount,
+          activeTrackColor: Colors.amber.withValues(alpha: 0.5),
+          onChanged: (value) async {
+            await _configService.setSuperAccount(value);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(value
+                      ? '⭐ Super Account enabled!'
+                      : 'Super Account disabled'),
+                ),
+              );
+            }
+          },
+        ),
+        const Divider(),
+        // Super Account Features (only enabled when super account is on)
+        if (_configService.isSuperAccount) ...[
+          ListTile(
+            leading: const Icon(Icons.delete_forever, color: Colors.red),
+            title: const Text('Reset All Progress'),
+            subtitle: const Text('Clear all game states and completions'),
+            onTap: _resetAllProgress,
+          ),
+          ListTile(
+            leading: const Icon(Icons.calendar_month, color: Colors.blue),
+            title: const Text('Test Tomorrow\'s Puzzles'),
+            subtitle: const Text('Preview puzzles for the next day'),
+            onTap: () => _testFuturePuzzles(1),
+          ),
+          ListTile(
+            leading: const Icon(Icons.calendar_today, color: Colors.purple),
+            title: const Text('Test Custom Date'),
+            subtitle: const Text('Pick any date to test puzzles'),
+            onTap: _testCustomDatePuzzles,
+          ),
+        ] else
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Enable Super Account to access reset progress, future puzzle testing, and unlimited tokens.',
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -457,6 +527,157 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _resetAllProgress() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset All Progress'),
+        content: const Text(
+          'This will clear all your game progress, including:\n\n'
+          '• All in-progress games\n'
+          '• All completion records\n\n'
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Reset Everything'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final cleared = await GameStateService.clearAllProgress();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Cleared $cleared saved game states')),
+        );
+      }
+    }
+  }
+
+  Future<void> _testFuturePuzzles(int daysAhead) async {
+    final targetDate = DateTime.now().add(Duration(days: daysAhead));
+    await _showPuzzlesForDate(targetDate);
+  }
+
+  Future<void> _testCustomDatePuzzles() async {
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime(2024),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      helpText: 'Select a date to test puzzles',
+    );
+
+    if (selectedDate != null) {
+      await _showPuzzlesForDate(selectedDate);
+    }
+  }
+
+  Future<void> _showPuzzlesForDate(DateTime date) async {
+    setState(() => _isRefreshing = true);
+
+    final apiService = ApiService();
+    final puzzles = await apiService.getPuzzlesForDate(date);
+
+    setState(() => _isRefreshing = false);
+
+    if (!mounted) return;
+
+    final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Puzzles for $dateStr'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: puzzles.isEmpty
+              ? const Text('No puzzles found for this date.')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: puzzles.length,
+                  itemBuilder: (context, index) {
+                    final puzzle = puzzles[index];
+                    return ListTile(
+                      leading: Icon(
+                        _getGameTypeIcon(puzzle.gameType),
+                        color: puzzle.isActive ? Colors.green : Colors.grey,
+                      ),
+                      title: Text(puzzle.gameType.displayName),
+                      subtitle: Text(
+                        '${puzzle.difficulty.displayName} • ${puzzle.isActive ? "Active" : "Inactive"}',
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.play_arrow),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _launchPuzzle(puzzle);
+                        },
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getGameTypeIcon(GameType gameType) {
+    switch (gameType) {
+      case GameType.sudoku:
+        return Icons.grid_3x3;
+      case GameType.killerSudoku:
+        return Icons.grid_4x4;
+      case GameType.crossword:
+        return Icons.abc;
+      case GameType.wordSearch:
+        return Icons.search;
+      case GameType.wordForge:
+        return Icons.hexagon;
+      case GameType.nonogram:
+        return Icons.apps;
+      case GameType.numberTarget:
+        return Icons.calculate;
+      case GameType.ballSort:
+        return Icons.science;
+      case GameType.pipes:
+        return Icons.linear_scale;
+      case GameType.lightsOut:
+        return Icons.lightbulb;
+      case GameType.wordLadder:
+        return Icons.stairs;
+      case GameType.connections:
+        return Icons.group_work;
+      case GameType.mathora:
+        return Icons.functions;
+    }
+  }
+
+  void _launchPuzzle(DailyPuzzle puzzle) {
+    Navigator.pushNamed(
+      context,
+      '/game',
+      arguments: puzzle,
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'admob_service.dart';
+import 'remote_config_service.dart';
 
 class TokenService {
   static final TokenService _instance = TokenService._internal();
@@ -13,9 +14,11 @@ class TokenService {
 
   int _availableTokens = 0;
   final AdMobService _adMobService = AdMobService();
+  final RemoteConfigService _configService = RemoteConfigService();
 
   int get availableTokens => _availableTokens;
   bool get isPremium => _adMobService.isPremiumUser;
+  bool get isSuperAccount => _configService.isSuperAccount;
 
   // Token costs by difficulty
   static int getTokenCost(String difficulty) {
@@ -50,10 +53,13 @@ class TokenService {
     }
   }
 
-  // Check if user can access a puzzle (premium or has tokens)
+  // Check if user can access a puzzle (premium, super account, or has tokens)
   bool canAccessPuzzle(String difficulty, {bool isTodaysPuzzle = false}) {
     // Today's puzzles are always free
     if (isTodaysPuzzle) return true;
+
+    // Super accounts have unlimited access
+    if (_configService.isSuperAccount) return true;
 
     // Premium users have unlimited access
     if (_adMobService.isPremiumUser) return true;
@@ -65,6 +71,9 @@ class TokenService {
 
   // Spend tokens to unlock a puzzle (returns true if successful)
   Future<bool> spendTokens(String difficulty) async {
+    // Super accounts don't spend tokens
+    if (_configService.isSuperAccount) return true;
+
     // Premium users don't spend tokens
     if (_adMobService.isPremiumUser) return true;
 

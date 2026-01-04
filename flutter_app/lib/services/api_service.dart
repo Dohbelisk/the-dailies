@@ -83,7 +83,7 @@ class ApiService {
         Uri.parse('$baseUrl/puzzles/type/${type.apiValue}/date/$dateStr'),
         headers: _getHeaders(),
       );
-      
+
       if (response.statusCode == 200) {
         return DailyPuzzle.fromJson(json.decode(response.body));
       }
@@ -96,6 +96,21 @@ class ApiService {
         orElse: () => puzzles.first,
       );
     }
+  }
+
+  /// Fetch all puzzles for a specific date (used by super accounts for testing future puzzles)
+  Future<List<DailyPuzzle>> getPuzzlesForDate(DateTime date) async {
+    final puzzles = <DailyPuzzle>[];
+
+    // Fetch puzzles for each game type
+    for (final gameType in GameType.values) {
+      final puzzle = await getPuzzleByTypeAndDate(gameType, date);
+      if (puzzle != null) {
+        puzzles.add(puzzle);
+      }
+    }
+
+    return puzzles;
   }
 
   Future<bool> submitScore(String puzzleId, int time, int score) async {
