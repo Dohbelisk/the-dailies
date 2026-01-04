@@ -24,6 +24,7 @@ import 'providers/game_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/theme_selection_screen.dart';
 import 'widgets/version_dialogs.dart';
+import 'widgets/shake_feedback_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -153,6 +154,12 @@ class _TheDailiesAppState extends State<TheDailiesApp> {
             title: 'The Dailies',
             debugShowCheckedModeBanner: false,
             theme: _buildTheme(themeProvider.isDarkMode),
+            builder: (context, child) {
+              // Wrap all screens with shake-to-report functionality
+              return ShakeFeedbackWrapper(
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             home: showThemeSelection
                 ? ThemeSelectionScreen(onComplete: _onThemeSelectionComplete)
                 : _VersionCheckWrapper(
@@ -251,7 +258,7 @@ class _TheDailiesAppState extends State<TheDailiesApp> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: colorScheme.onSurface.withOpacity(0.1),
+            color: colorScheme.onSurface.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -290,8 +297,6 @@ class _VersionCheckWrapper extends StatefulWidget {
 }
 
 class _VersionCheckWrapperState extends State<_VersionCheckWrapper> {
-  bool _versionCheckComplete = false;
-
   @override
   void initState() {
     super.initState();
@@ -341,21 +346,9 @@ class _VersionCheckWrapperState extends State<_VersionCheckWrapper> {
           builder: (_) => UpdateAvailableDialog(
             config: config,
             currentVersion: widget.configService.currentVersion,
-            onDismiss: () {
-              setState(() {
-                _versionCheckComplete = true;
-              });
-            },
           ),
         );
       }
-    }
-
-    // Mark as complete
-    if (mounted) {
-      setState(() {
-        _versionCheckComplete = true;
-      });
     }
   }
 

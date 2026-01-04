@@ -178,12 +178,12 @@ class _StatsScreenState extends State<StatsScreen> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withValues(alpha: 0.3),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -197,7 +197,7 @@ class _StatsScreenState extends State<StatsScreen> {
           Text(
             label,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 4),
@@ -219,7 +219,7 @@ class _StatsScreenState extends State<StatsScreen> {
                   child: Text(
                     suffix,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -245,7 +245,7 @@ class _StatsScreenState extends State<StatsScreen> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
         ),
       ),
       child: Row(
@@ -267,7 +267,7 @@ class _StatsScreenState extends State<StatsScreen> {
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: percentage / 100,
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation(theme.colorScheme.primary),
                     minHeight: 6,
                   ),
@@ -288,7 +288,7 @@ class _StatsScreenState extends State<StatsScreen> {
               Text(
                 '$percentage%',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -315,7 +315,7 @@ class _StatsScreenState extends State<StatsScreen> {
                 child: CircularProgressIndicator(
                   value: percentage / 100,
                   strokeWidth: 12,
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                   valueColor: AlwaysStoppedAnimation(theme.colorScheme.primary),
                 ),
               ),
@@ -332,7 +332,7 @@ class _StatsScreenState extends State<StatsScreen> {
                   Text(
                     'Win Rate',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],

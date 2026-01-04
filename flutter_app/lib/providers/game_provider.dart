@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/game_models.dart';
 import '../services/game_state_service.dart';
+import '../services/dictionary_service.dart';
 
 class GameProvider extends ChangeNotifier {
   DateTime? _currentPuzzleDate;
@@ -32,6 +33,7 @@ class GameProvider extends ChangeNotifier {
   // Nonogram specific state
   NonogramPuzzle? _nonogramPuzzle;
   bool _nonogramMarkMode = false; // false = fill, true = mark X
+  List<List<List<int>>> _nonogramUndoHistory = []; // Stack of grid states for undo
 
   // Number Target specific state
   NumberTargetPuzzle? _numberTargetPuzzle;
@@ -82,6 +84,7 @@ class GameProvider extends ChangeNotifier {
 
   NonogramPuzzle? get nonogramPuzzle => _nonogramPuzzle;
   bool get nonogramMarkMode => _nonogramMarkMode;
+  bool get canUndoNonogram => _nonogramUndoHistory.isNotEmpty;
 
   NumberTargetPuzzle? get numberTargetPuzzle => _numberTargetPuzzle;
   String get currentExpression => _currentExpression;
@@ -178,7 +181,8 @@ class GameProvider extends ChangeNotifier {
     }
 
     if (_wordLadderPuzzle != null) {
-      state['wordLadderCurrentPath'] = _wordLadderPuzzle!.currentPath.toList();
+      state['wordLadderPathFromStart'] = _wordLadderPuzzle!.pathFromStart.toList();
+      state['wordLadderPathFromTarget'] = _wordLadderPuzzle!.pathFromTarget.toList();
       state['wordLadderInput'] = _wordLadderInput;
     }
 
@@ -320,8 +324,13 @@ class GameProvider extends ChangeNotifier {
       _lightsOutPuzzle!.moveCount = state['lightsOutMoveCount'] ?? 0;
     }
 
-    if (_wordLadderPuzzle != null && state['wordLadderCurrentPath'] != null) {
-      _wordLadderPuzzle!.currentPath = List<String>.from(state['wordLadderCurrentPath'] as List);
+    if (_wordLadderPuzzle != null) {
+      if (state['wordLadderPathFromStart'] != null) {
+        _wordLadderPuzzle!.pathFromStart = List<String>.from(state['wordLadderPathFromStart'] as List);
+      }
+      if (state['wordLadderPathFromTarget'] != null) {
+        _wordLadderPuzzle!.pathFromTarget = List<String>.from(state['wordLadderPathFromTarget'] as List);
+      }
       _wordLadderInput = state['wordLadderInput'] ?? '';
     }
 
@@ -407,9 +416,12 @@ class GameProvider extends ChangeNotifier {
         break;
       case GameType.wordForge:
         _wordForgePuzzle = WordForgePuzzle.fromJson(puzzleDataWithSolution);
+        // Initialize valid words from dictionary
+        await _initializeWordForgeDictionary();
         break;
       case GameType.nonogram:
         _nonogramPuzzle = NonogramPuzzle.fromJson(puzzleDataWithSolution);
+        _nonogramUndoHistory.clear();
         break;
       case GameType.numberTarget:
         _numberTargetPuzzle = NumberTargetPuzzle.fromJson(puzzleDataWithSolution);
@@ -425,13 +437,15 @@ class GameProvider extends ChangeNotifier {
         break;
       case GameType.wordLadder:
         _wordLadderPuzzle = WordLadderPuzzle.fromJson(puzzleDataWithSolution);
+        // Ensure dictionary is loaded for word validation
+        await DictionaryService().load();
         break;
       case GameType.connections:
         _connectionsPuzzle = ConnectionsPuzzle.fromJson(puzzleDataWithSolution);
         break;
       case GameType.mathora:
         _mathoraPuzzle = MathoraPuzzle.fromJson(
-          puzzleData,
+          puzzleDataWithSolution,
           puzzle.solution as Map<String, dynamic>?,
         );
         break;
@@ -1013,9 +1027,201 @@ class GameProvider extends ChangeNotifier {
     return _wordForgePuzzle?.maxScore ?? 0;
   }
 
+  /// Initialize Word Forge puzzle with valid words from dictionary (legacy fallback)
+  Future<void> _initializeWordForgeDictionary() async {
+    if (_wordForgePuzzle == null) return;
+
+    // Skip if puzzle already has words from backend
+    if (_wordForgePuzzle!.words.isNotEmpty) {
+      print('Word Forge initialized from backend: ${_wordForgePuzzle!.words.length} valid words, ${_wordForgePuzzle!.pangrams.length} pangrams');
+      return;
+    }
+
+    // Legacy fallback: load from local dictionary
+    final dictionary = DictionaryService();
+    await dictionary.load();
+
+    if (!dictionary.isLoaded) {
+      print('Warning: Dictionary not loaded, Word Forge may not work correctly');
+      return;
+    }
+
+    final validWords = dictionary.findValidWords(
+      _wordForgePuzzle!.letters,
+      _wordForgePuzzle!.centerLetter,
+    );
+    final pangrams = dictionary.findPangrams(
+      _wordForgePuzzle!.letters,
+      _wordForgePuzzle!.centerLetter,
+    );
+
+    _wordForgePuzzle!.initializeFromDictionary(validWords, pangrams);
+    print('Word Forge initialized from local dictionary: ${validWords.length} valid words, ${pangrams.length} pangrams');
+  }
+
+  /// Get two-letter hints grid (FREE hint)
+  Map<String, int> getWordForgeTwoLetterHints() {
+    if (_wordForgePuzzle == null) return {};
+
+    // Use puzzle's words list (from backend)
+    if (_wordForgePuzzle!.words.isNotEmpty) {
+      final hints = <String, int>{};
+      for (final wordEntry in _wordForgePuzzle!.words) {
+        final word = wordEntry.word;
+        if (word.length >= 2 && !_wordForgePuzzle!.foundWords.contains(word)) {
+          final prefix = word.substring(0, 2);
+          hints[prefix] = (hints[prefix] ?? 0) + 1;
+        }
+      }
+      return hints;
+    }
+
+    // Legacy fallback: use dictionary service
+    final dictionary = DictionaryService();
+    if (!dictionary.isLoaded) return {};
+
+    return dictionary.getTwoLetterHints(
+      _wordForgePuzzle!.letters,
+      _wordForgePuzzle!.centerLetter,
+      _wordForgePuzzle!.foundWords,
+    );
+  }
+
+  /// Reveal a word with the given two-letter prefix (costs a hint)
+  /// Returns the revealed word with clue, or null if none available
+  WordForgeWord? revealWordForgeWordWithPrefix(String prefix) {
+    if (_wordForgePuzzle == null) return null;
+
+    final revealed = _wordForgePuzzle!.revealWordWithPrefix(prefix);
+    if (revealed != null) {
+      _hintsUsed++;
+      notifyListeners();
+    }
+    return revealed;
+  }
+
+  /// Get all revealed words (for display in hint panel)
+  List<WordForgeWord> getRevealedWordForgeWords() {
+    if (_wordForgePuzzle == null) return [];
+    return _wordForgePuzzle!.words
+        .where((w) => _wordForgePuzzle!.revealedWords.contains(w.word))
+        .toList();
+  }
+
+  /// Get a pangram hint (first letter and length) - costs a hint
+  /// Returns null if no unfound pangrams exist
+  Map<String, dynamic>? getWordForgePangramHint() {
+    if (_wordForgePuzzle == null) return null;
+    if (_wordForgePuzzle!.hasUsedPangramHint) return null;
+
+    // Check if user has found all pangrams
+    final unfoundPangrams = _wordForgePuzzle!.pangrams
+        .where((p) => !_wordForgePuzzle!.foundWords.contains(p))
+        .toList();
+
+    if (unfoundPangrams.isEmpty) return null;
+
+    // Pick a random unfound pangram
+    unfoundPangrams.shuffle();
+    final pangram = unfoundPangrams.first;
+
+    return {
+      'firstLetter': pangram[0],
+      'length': pangram.length,
+    };
+  }
+
+  /// Use the pangram hint - marks it as used and increments hint count
+  void useWordForgePangramHint() {
+    if (_wordForgePuzzle == null) return;
+    _wordForgePuzzle!.hasUsedPangramHint = true;
+    _hintsUsed++;
+    notifyListeners();
+  }
+
+  /// Get a random word hint (first letter and length) - costs a hint
+  Map<String, dynamic>? getWordForgeWordHint() {
+    if (_wordForgePuzzle == null) return null;
+
+    final unfoundWords = _wordForgePuzzle!.validWords
+        .where((w) => !_wordForgePuzzle!.foundWords.contains(w))
+        .toList();
+
+    if (unfoundWords.isEmpty) return null;
+
+    // Pick a random unfound word
+    unfoundWords.shuffle();
+    final word = unfoundWords.first;
+
+    return {
+      'firstLetter': word[0],
+      'length': word.length,
+      'word': word, // For reveal feature
+    };
+  }
+
+  /// Use a word hint (reveal) - costs a hint and reveals the word
+  void useWordForgeWordReveal(String word) {
+    if (_wordForgePuzzle == null) return;
+    final upperWord = word.toUpperCase();
+    if (_wordForgePuzzle!.validWords.contains(upperWord)) {
+      _wordForgePuzzle!.foundWords.add(upperWord);
+      _hintsUsed++;
+      notifyListeners();
+    }
+  }
+
+  /// Check if user has found any pangrams
+  bool hasFoundPangram() {
+    if (_wordForgePuzzle == null) return false;
+    return _wordForgePuzzle!.foundWords
+        .any((w) => _wordForgePuzzle!.pangrams.contains(w));
+  }
+
+  /// Get count of unfound pangrams
+  int getUnfoundPangramCount() {
+    if (_wordForgePuzzle == null) return 0;
+    return _wordForgePuzzle!.pangrams
+        .where((p) => !_wordForgePuzzle!.foundWords.contains(p))
+        .length;
+  }
+
   // Nonogram methods
   void toggleNonogramMarkMode() {
     _nonogramMarkMode = !_nonogramMarkMode;
+    notifyListeners();
+  }
+
+  /// Save current nonogram state for undo (call before a tap or at drag start)
+  void saveNonogramStateForUndo() {
+    if (_nonogramPuzzle == null) return;
+
+    // Deep copy the current grid state (convert null to 0 for storage)
+    final gridCopy = _nonogramPuzzle!.userGrid
+        .map((row) => row.map((cell) => cell ?? 0).toList())
+        .toList();
+
+    _nonogramUndoHistory.add(gridCopy);
+
+    // Limit history to 50 entries to prevent memory issues
+    if (_nonogramUndoHistory.length > 50) {
+      _nonogramUndoHistory.removeAt(0);
+    }
+  }
+
+  /// Undo the last nonogram action (restores previous grid state)
+  void undoNonogram() {
+    if (_nonogramPuzzle == null || _nonogramUndoHistory.isEmpty) return;
+
+    final previousState = _nonogramUndoHistory.removeLast();
+
+    // Restore the grid state
+    for (int r = 0; r < _nonogramPuzzle!.rows; r++) {
+      for (int c = 0; c < _nonogramPuzzle!.cols; c++) {
+        _nonogramPuzzle!.userGrid[r][c] = previousState[r][c];
+      }
+    }
+
     notifyListeners();
   }
 
@@ -1031,7 +1237,10 @@ class GameProvider extends ChangeNotifier {
       // Mark mode: toggle between empty (0) and marked (-1)
       if (currentState == -1) {
         _nonogramPuzzle!.userGrid[row][col] = 0;
+      } else if (currentState == 0) {
+        _nonogramPuzzle!.userGrid[row][col] = -1;
       } else {
+        // Was filled, toggle to marked
         _nonogramPuzzle!.userGrid[row][col] = -1;
       }
     } else {
@@ -1041,7 +1250,7 @@ class GameProvider extends ChangeNotifier {
       } else if (currentState == 0) {
         _nonogramPuzzle!.userGrid[row][col] = 1;
       } else {
-        // Was marked, now fill
+        // Was marked, toggle to filled
         _nonogramPuzzle!.userGrid[row][col] = 1;
       }
     }
@@ -1053,6 +1262,27 @@ class GameProvider extends ChangeNotifier {
   void clearNonogramCell(int row, int col) {
     if (_nonogramPuzzle == null) return;
     _nonogramPuzzle!.userGrid[row][col] = 0;
+    notifyListeners();
+  }
+
+  /// Set a nonogram cell to a specific state
+  /// State: 0 = empty, 1 = filled, -1 = marked
+  void setNonogramCellState(int row, int col, int state) {
+    if (_nonogramPuzzle == null) return;
+    if (state < -1 || state > 1) return;
+    _nonogramPuzzle!.userGrid[row][col] = state;
+    notifyListeners();
+  }
+
+  /// Set a nonogram cell state without notifying listeners (for batch updates)
+  void setNonogramCellStateSilent(int row, int col, int state) {
+    if (_nonogramPuzzle == null) return;
+    if (state < -1 || state > 1) return;
+    _nonogramPuzzle!.userGrid[row][col] = state;
+  }
+
+  /// Notify listeners after batch updates
+  void notifyNonogramChanged() {
     notifyListeners();
   }
 
@@ -1096,24 +1326,111 @@ class GameProvider extends ChangeNotifier {
   }
 
   // Number Target methods
-  void addToNumberTargetExpression(String token) {
+  Set<int> _usedNumberIndices = {};
+
+  Set<int> get usedNumberIndices => _usedNumberIndices;
+
+  bool _isOperator(String token) {
+    return token == '+' || token == '-' || token == '×' || token == '÷';
+  }
+
+  String? _getLastToken() {
+    if (_currentExpression.isEmpty) return null;
+    // Parse from end to find last token
+    final expr = _currentExpression;
+    int i = expr.length - 1;
+
+    // Check if last char is operator or parenthesis
+    final lastChar = expr[i];
+    if (_isOperator(lastChar) || lastChar == '(' || lastChar == ')') {
+      return lastChar;
+    }
+
+    // Otherwise it's a number - find its start
+    while (i > 0 && RegExp(r'\d').hasMatch(expr[i - 1])) {
+      i--;
+    }
+    return expr.substring(i);
+  }
+
+  void addToNumberTargetExpression(String token, {int? numberIndex}) {
+    // Validate the token can be added
+    final lastToken = _getLastToken();
+
+    if (_isOperator(token)) {
+      // Can't start with an operator (except could allow '-' for negative, but let's keep it simple)
+      if (_currentExpression.isEmpty) return;
+      // Can't have operator after operator
+      if (lastToken != null && _isOperator(lastToken)) return;
+      // Can't have operator after opening parenthesis
+      if (lastToken == '(') return;
+    }
+
+    // If it's a number, check if it's already used
+    if (numberIndex != null) {
+      if (_usedNumberIndices.contains(numberIndex)) return;
+      // Can't add number right after another number (need operator between)
+      if (lastToken != null && RegExp(r'^\d+$').hasMatch(lastToken)) return;
+      // Can't add number right after closing parenthesis
+      if (lastToken == ')') return;
+
+      _usedNumberIndices.add(numberIndex);
+    }
+
+    // Opening parenthesis rules
+    if (token == '(') {
+      // Can't add after a number or closing paren without operator
+      if (lastToken != null &&
+          (RegExp(r'^\d+$').hasMatch(lastToken) || lastToken == ')')) return;
+    }
+
+    // Closing parenthesis rules
+    if (token == ')') {
+      // Can't close after operator or opening paren
+      if (lastToken != null && (_isOperator(lastToken) || lastToken == '('))
+        return;
+      // Must have matching open paren
+      final openCount = '('.allMatches(_currentExpression).length;
+      final closeCount = ')'.allMatches(_currentExpression).length;
+      if (closeCount >= openCount) return;
+    }
+
     _currentExpression += token;
     notifyListeners();
   }
 
   void clearNumberTargetExpression() {
     _currentExpression = '';
+    _usedNumberIndices.clear();
     notifyListeners();
   }
 
   void backspaceNumberTargetExpression() {
-    if (_currentExpression.isNotEmpty) {
-      // Remove last character or last number (if multi-digit)
-      // Simple approach: just remove last character
-      _currentExpression =
-          _currentExpression.substring(0, _currentExpression.length - 1);
-      notifyListeners();
+    if (_currentExpression.isEmpty) return;
+
+    final lastToken = _getLastToken();
+    if (lastToken == null) return;
+
+    // Remove the last token
+    _currentExpression = _currentExpression.substring(
+        0, _currentExpression.length - lastToken.length);
+
+    // If it was a number, find which index it was and mark as unused
+    if (RegExp(r'^\d+$').hasMatch(lastToken)) {
+      final number = int.parse(lastToken);
+      // Find the index of this number in the puzzle numbers
+      if (_numberTargetPuzzle != null) {
+        for (int i = 0; i < _numberTargetPuzzle!.numbers.length; i++) {
+          if (_numberTargetPuzzle!.numbers[i] == number &&
+              _usedNumberIndices.contains(i)) {
+            _usedNumberIndices.remove(i);
+            break;
+          }
+        }
+      }
     }
+
+    notifyListeners();
   }
 
   /// Evaluate the current expression and check if it equals the target.
@@ -1238,6 +1555,25 @@ class GameProvider extends ChangeNotifier {
 
     if (path.isEmpty) return;
 
+    // Check if path has already reached the destination endpoint - don't extend further
+    final endpoints = _pipesPuzzle!.getEndpointsForColor(color);
+    if (endpoints.length == 2 && path.length >= 2) {
+      final lastCell = path.last;
+      final startEndpoint = endpoints.firstWhere(
+        (e) => e.row == path.first[0] && e.col == path.first[1],
+        orElse: () => endpoints.first,
+      );
+      final destEndpoint = endpoints.firstWhere(
+        (e) => e != startEndpoint,
+        orElse: () => endpoints.last,
+      );
+
+      // If we've reached the destination endpoint, don't allow extending
+      if (lastCell[0] == destEndpoint.row && lastCell[1] == destEndpoint.col) {
+        return;
+      }
+    }
+
     // Check if this is an adjacent cell
     final lastCell = path.last;
     final rowDiff = (row - lastCell[0]).abs();
@@ -1252,12 +1588,40 @@ class GameProvider extends ChangeNotifier {
         while (path.length > existingIdx + 1) {
           path.removeLast();
         }
+        notifyListeners();
       } else {
+        // Check if this cell contains an endpoint of a DIFFERENT color
+        final endpointAtCell = _pipesPuzzle!.getEndpointAt(row, col);
+        if (endpointAtCell != null && endpointAtCell.color != color) {
+          // Can't go through another color's endpoint
+          return;
+        }
+
+        // Check if this cell is occupied by another color's path
+        for (final entry in _pipesPuzzle!.currentPaths.entries) {
+          if (entry.key != color) {
+            for (final cell in entry.value) {
+              if (cell[0] == row && cell[1] == col) {
+                // Can't go through another color's path
+                return;
+              }
+            }
+          }
+        }
+
         // Add to path
         _pipesPuzzle!.addToPath(color, row, col);
+        notifyListeners();
       }
-      notifyListeners();
     }
+  }
+
+  void continuePipesPath(String color) {
+    if (_pipesPuzzle == null) return;
+    // Just set the selected color without clearing the path
+    // This allows continuing from where the path left off
+    _pipesPuzzle!.selectedColor = color;
+    notifyListeners();
   }
 
   void endPipesPath() {
@@ -1321,6 +1685,21 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void addWordLadderLetter(String letter) {
+    if (_wordLadderPuzzle == null) return;
+    if (_wordLadderInput.length < _wordLadderPuzzle!.wordLength) {
+      _wordLadderInput += letter.toUpperCase();
+      notifyListeners();
+    }
+  }
+
+  void deleteWordLadderLetter() {
+    if (_wordLadderInput.isNotEmpty) {
+      _wordLadderInput = _wordLadderInput.substring(0, _wordLadderInput.length - 1);
+      notifyListeners();
+    }
+  }
+
   void clearWordLadderInput() {
     _wordLadderInput = '';
     notifyListeners();
@@ -1333,6 +1712,17 @@ class GameProvider extends ChangeNotifier {
     }
 
     final word = _wordLadderInput.toUpperCase();
+
+    // Check if it's a valid dictionary word
+    final dictionary = DictionaryService();
+    if (!dictionary.isValidWord(word)) {
+      _wordLadderInput = '';
+      notifyListeners();
+      return WordLadderSubmitResult(
+        success: false,
+        message: 'Not a valid word'
+      );
+    }
 
     // Check if it differs by exactly one letter
     if (!_wordLadderPuzzle!.canAddWord(word)) {
@@ -1436,10 +1826,60 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void shuffleConnectionsWords() {
+    if (_connectionsPuzzle == null) return;
+    _connectionsPuzzle!.shuffleWords();
+    notifyListeners();
+  }
+
+  /// Auto-reveal remaining categories one by one (for game over)
+  Future<void> autoRevealConnectionsCategories() async {
+    if (_connectionsPuzzle == null) return;
+
+    // Mark as lost
+    _connectionsPuzzle!.wasLost = true;
+
+    // Get unfound categories sorted by difficulty
+    final unfoundCategories = _connectionsPuzzle!.categories
+        .where((c) => !_connectionsPuzzle!.foundCategories.contains(c))
+        .toList()
+      ..sort((a, b) => a.difficulty.compareTo(b.difficulty));
+
+    // Reveal each category with animation
+    for (final category in unfoundCategories) {
+      // First, highlight the words one by one
+      _connectionsPuzzle!.selectedWords.clear();
+      notifyListeners();
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Select each word with a small delay
+      for (final word in category.words) {
+        _connectionsPuzzle!.selectedWords.add(word);
+        notifyListeners();
+        await Future.delayed(const Duration(milliseconds: 250));
+      }
+
+      // Pause to show all 4 selected
+      await Future.delayed(const Duration(milliseconds: 600));
+
+      // Clear selection and reveal the category
+      _connectionsPuzzle!.selectedWords.clear();
+      _connectionsPuzzle!.foundCategories.add(category);
+      // Sort by difficulty after adding
+      _connectionsPuzzle!.foundCategories.sort((a, b) => a.difficulty.compareTo(b.difficulty));
+      notifyListeners();
+
+      // Pause before next category
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
   Future<bool> checkConnectionsComplete() async {
     if (_connectionsPuzzle == null) return false;
 
-    if (_connectionsPuzzle!.isComplete) {
+    // Only count as complete if player won (not lost)
+    if (_connectionsPuzzle!.wasWon) {
       _isPlaying = false;
       await _markAsCompleted();
       notifyListeners();

@@ -94,10 +94,40 @@ export class SudokuGenerator {
     for (const [row, col] of positions) {
       if (removed >= count) break;
       if (this.grid[row][col] !== 0) {
+        const backup = this.grid[row][col];
         this.grid[row][col] = 0;
-        removed++;
+
+        // Check if puzzle still has unique solution
+        if (this.countSolutions(0) === 1) {
+          removed++;
+        } else {
+          // Restore the cell - removing it creates multiple solutions
+          this.grid[row][col] = backup;
+        }
       }
     }
+  }
+
+  // Count solutions (stops at 2 since we only need to know if unique)
+  private countSolutions(count: number): number {
+    if (count > 1) return count; // Early exit - already found multiple
+
+    const emptyCell = this.findEmptyCell();
+    if (!emptyCell) return count + 1; // Found a complete solution
+
+    const [row, col] = emptyCell;
+
+    for (let num = 1; num <= 9; num++) {
+      if (this.isValid(row, col, num)) {
+        this.grid[row][col] = num;
+        count = this.countSolutions(count);
+        this.grid[row][col] = 0;
+
+        if (count > 1) return count; // Early exit
+      }
+    }
+
+    return count;
   }
 
   private shuffle<T>(array: T[]): T[] {
@@ -412,14 +442,12 @@ export class CrosswordGenerator {
       this.placeWord(firstWord, startRow, startCol, "across");
     }
 
-    // Place remaining words
+    // Place remaining words - only if they connect to existing words
     for (let i = 1; i < sorted.length; i++) {
       const word = sorted[i].word.toUpperCase();
-      const placed = this.findAndPlaceWord(word);
-      if (!placed) {
-        // Try to place it anywhere if intersection fails
-        this.tryPlaceWordAnywhere(word);
-      }
+      // Only place words that intersect with the existing grid
+      // Skip words that can't connect to maintain grid connectivity
+      this.findAndPlaceWord(word);
     }
 
     // Convert to final format with black cells (#)
@@ -470,23 +498,6 @@ export class CrosswordGenerator {
             }
           }
         }
-      }
-    }
-
-    return false;
-  }
-
-  private tryPlaceWordAnywhere(word: string): boolean {
-    const attempts = 50;
-
-    for (let attempt = 0; attempt < attempts; attempt++) {
-      const direction = Math.random() < 0.5 ? "across" : "down";
-      const row = Math.floor(Math.random() * this.rows);
-      const col = Math.floor(Math.random() * this.cols);
-
-      if (this.canPlaceWord(word, row, col, direction)) {
-        this.placeWord(word, row, col, direction);
-        return true;
       }
     }
 
@@ -3079,20 +3090,41 @@ export class WordForgeGenerator {
       maxScore: number;
     };
   } {
-    // Try to find a good letter set with enough words
+    // Try to find a good letter set with enough words AND at least one pangram
     let bestResult = this.tryGeneratePuzzle();
     let attempts = 0;
-    const maxAttempts = 50;
+    const maxAttempts = 100;
 
     // Target word counts based on difficulty
     const minWords = { easy: 15, medium: 25, hard: 35, expert: 50 }[difficulty];
 
-    while (bestResult.validWords.length < minWords && attempts < maxAttempts) {
+    // MUST have at least one pangram (7-letter word using all letters)
+    while (
+      (bestResult.pangrams.length === 0 ||
+        bestResult.validWords.length < minWords) &&
+      attempts < maxAttempts
+    ) {
       const newResult = this.tryGeneratePuzzle();
-      if (newResult.validWords.length > bestResult.validWords.length) {
+      // Prefer results with pangrams
+      if (newResult.pangrams.length > 0) {
+        if (
+          bestResult.pangrams.length === 0 ||
+          newResult.validWords.length > bestResult.validWords.length
+        ) {
+          bestResult = newResult;
+        }
+      } else if (
+        bestResult.pangrams.length === 0 &&
+        newResult.validWords.length > bestResult.validWords.length
+      ) {
         bestResult = newResult;
       }
       attempts++;
+    }
+
+    // If still no pangram after max attempts, try using known pangram-friendly letter sets
+    if (bestResult.pangrams.length === 0) {
+      bestResult = this.generateWithKnownPangram();
     }
 
     // Calculate score
@@ -3167,6 +3199,186 @@ export class WordForgeGenerator {
     }
 
     return { letters, centerLetter, validWords, pangrams };
+  }
+
+  // Pre-defined pangram puzzles with guaranteed 7-letter words
+  private static readonly PANGRAM_SETS = [
+    {
+      letters: ["G", "A", "R", "D", "E", "N", "I"],
+      centerLetter: "G",
+      pangrams: ["READING", "GRADING"],
+      validWords: [
+        "GAIN",
+        "GRIN",
+        "GRIND",
+        "GRAIN",
+        "GRAND",
+        "GRADE",
+        "RANGE",
+        "ANGER",
+        "DANGER",
+        "GARDEN",
+        "READING",
+        "GRADING",
+        "RIDGE",
+        "AGING",
+        "RAGED",
+        "RING",
+        "DRAG",
+        "DARING",
+        "RAGING",
+      ],
+    },
+    {
+      letters: ["T", "R", "A", "I", "N", "E", "D"],
+      centerLetter: "T",
+      pangrams: ["TRAINED"],
+      validWords: [
+        "TRAIN",
+        "TRADE",
+        "TREAD",
+        "TREAT",
+        "TRIED",
+        "TIRED",
+        "RATE",
+        "TEAR",
+        "TIDE",
+        "DATE",
+        "TEND",
+        "RENT",
+        "DENT",
+        "NEAT",
+        "EDIT",
+        "DIET",
+        "RIDE",
+        "RAIN",
+        "DRAIN",
+        "RANTED",
+        "TRAINED",
+        "RATED",
+        "TRADED",
+      ],
+    },
+    {
+      letters: ["S", "T", "A", "R", "I", "N", "G"],
+      centerLetter: "S",
+      pangrams: ["RATINGS", "STARING"],
+      validWords: [
+        "STAR",
+        "STAIRS",
+        "STIR",
+        "SING",
+        "STING",
+        "STRING",
+        "RING",
+        "RAIN",
+        "GRAIN",
+        "TRAIN",
+        "STRAIN",
+        "RATS",
+        "ARTS",
+        "GRANT",
+        "GRANTS",
+        "GIANT",
+        "GIANTS",
+        "SAINT",
+        "SAINTS",
+        "STARING",
+        "RATINGS",
+        "GRAINS",
+        "TRAINS",
+      ],
+    },
+    {
+      letters: ["P", "L", "A", "Y", "I", "N", "G"],
+      centerLetter: "P",
+      pangrams: ["PLAYING"],
+      validWords: [
+        "PLAY",
+        "PLAN",
+        "PAIN",
+        "PAIL",
+        "PLAIN",
+        "PLYING",
+        "PLAYING",
+        "APPLY",
+        "PAYING",
+        "PING",
+        "NAIL",
+        "GAIN",
+        "ALIGN",
+        "LYING",
+        "INLAY",
+        "LAYING",
+      ],
+    },
+    {
+      letters: ["C", "R", "E", "A", "T", "I", "N"],
+      centerLetter: "C",
+      pangrams: ["CERTAIN"],
+      validWords: [
+        "CARE",
+        "CART",
+        "RACE",
+        "TRACE",
+        "CRANE",
+        "CREATE",
+        "REACT",
+        "NECTAR",
+        "TRANCE",
+        "CERTAIN",
+        "CITE",
+        "NICE",
+        "RICE",
+        "CRATE",
+        "RETAIN",
+        "ACNE",
+        "CANE",
+        "ANTIC",
+      ],
+    },
+    {
+      letters: ["W", "O", "R", "K", "I", "N", "G"],
+      centerLetter: "W",
+      pangrams: ["WORKING"],
+      validWords: [
+        "WORK",
+        "WORN",
+        "WINK",
+        "WING",
+        "KNOW",
+        "GROW",
+        "GOWN",
+        "ROWING",
+        "KNOWING",
+        "WORKING",
+        "GROWN",
+        "WRONG",
+        "OWING",
+        "GROWING",
+        "WRING",
+      ],
+    },
+  ];
+
+  // Fallback: Use pre-defined pangram sets
+  private generateWithKnownPangram(): {
+    letters: string[];
+    centerLetter: string;
+    validWords: string[];
+    pangrams: string[];
+  } {
+    // Pick a random pre-defined set
+    const set =
+      WordForgeGenerator.PANGRAM_SETS[
+        Math.floor(Math.random() * WordForgeGenerator.PANGRAM_SETS.length)
+      ];
+    return {
+      letters: [...set.letters],
+      centerLetter: set.centerLetter,
+      validWords: [...set.validWords],
+      pangrams: [...set.pangrams],
+    };
   }
 
   private calculateMaxScore(words: string[], pangrams: string[]): number {
@@ -3588,31 +3800,41 @@ export class BallSortGenerator {
     state: string[][],
     config: { colors: number; tubes: number; tubeCapacity: number },
   ): string[][] {
-    // Deep copy
-    const scrambled = state.map((tube) => [...tube]);
-
-    // Make random moves to scramble
-    const numMoves = config.colors * config.tubeCapacity * 2;
-
-    for (let i = 0; i < numMoves; i++) {
-      const validMoves = this.getValidMoves(scrambled, config.tubeCapacity);
-      if (validMoves.length > 0) {
-        const move = validMoves[Math.floor(Math.random() * validMoves.length)];
-        this.makeMove(scrambled, move.from, move.to);
-      }
+    // Collect all balls into a single array
+    const allBalls: string[] = [];
+    for (const tube of state) {
+      allBalls.push(...tube);
     }
 
-    // Ensure puzzle isn't already solved
-    if (this.isSolved(scrambled)) {
-      // Make a few more moves
-      for (let i = 0; i < 10; i++) {
-        const validMoves = this.getValidMoves(scrambled, config.tubeCapacity);
-        if (validMoves.length > 0) {
-          const move =
-            validMoves[Math.floor(Math.random() * validMoves.length)];
-          this.makeMove(scrambled, move.from, move.to);
-        }
+    // Fisher-Yates shuffle
+    for (let i = allBalls.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allBalls[i], allBalls[j]] = [allBalls[j], allBalls[i]];
+    }
+
+    // Distribute balls into tubes (fill colored tubes, leave empty tubes empty)
+    const scrambled: string[][] = [];
+    let ballIndex = 0;
+
+    for (let i = 0; i < config.colors; i++) {
+      const tube: string[] = [];
+      for (let j = 0; j < config.tubeCapacity; j++) {
+        tube.push(allBalls[ballIndex++]);
       }
+      scrambled.push(tube);
+    }
+
+    // Add empty tubes
+    for (let i = config.colors; i < config.tubes; i++) {
+      scrambled.push([]);
+    }
+
+    // Ensure puzzle isn't already solved (extremely unlikely but check anyway)
+    if (this.isSolved(scrambled)) {
+      // Swap two balls from different tubes
+      const temp = scrambled[0][0];
+      scrambled[0][0] = scrambled[1][0];
+      scrambled[1][0] = temp;
     }
 
     return scrambled;
@@ -3775,27 +3997,40 @@ export class PipesGenerator {
     };
   } {
     const config = {
-      easy: { size: 5, colors: 4, bridges: 0 },
-      medium: { size: 6, colors: 5, bridges: 1 },
-      hard: { size: 7, colors: 6, bridges: 2 },
-      expert: { size: 8, colors: 8, bridges: 3 },
+      easy: { size: 5, colors: 5 },
+      medium: { size: 6, colors: 6 },
+      hard: { size: 7, colors: 8 },
+      expert: { size: 8, colors: 10 },
     }[difficulty];
 
     const colors = PipesGenerator.COLORS.slice(0, config.colors);
 
-    // Generate puzzle by working backwards from solution
-    const result = this.generateSolvablePuzzle(
-      config.size,
-      colors,
-      config.bridges,
-    );
+    // Try to generate a full-grid puzzle
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const result = this.generateFullGridPuzzle(config.size, colors);
+      if (result) {
+        return {
+          puzzleData: {
+            rows: config.size,
+            cols: config.size,
+            endpoints: result.endpoints,
+            bridges: [],
+          },
+          solution: {
+            paths: result.paths,
+          },
+        };
+      }
+    }
 
+    // Fallback to snake pattern
+    const result = this.generateSnakePuzzle(config.size, colors);
     return {
       puzzleData: {
         rows: config.size,
         cols: config.size,
         endpoints: result.endpoints,
-        bridges: result.bridges,
+        bridges: [],
       },
       solution: {
         paths: result.paths,
@@ -3803,113 +4038,172 @@ export class PipesGenerator {
     };
   }
 
-  private generateSolvablePuzzle(
+  private generateFullGridPuzzle(
     size: number,
     colors: string[],
-    _numBridges: number,
   ): {
     endpoints: Array<{ color: string; row: number; col: number }>;
-    bridges: Array<{ row: number; col: number }>;
     paths: Record<string, Array<{ row: number; col: number }>>;
-  } {
-    const grid: (string | null)[][] = Array(size)
+  } | null {
+    const grid: number[][] = Array(size)
       .fill(null)
-      .map(() => Array(size).fill(null));
-    const paths: Record<string, Array<{ row: number; col: number }>> = {};
-    const endpoints: Array<{ color: string; row: number; col: number }> = [];
-    const bridges: Array<{ row: number; col: number }> = [];
+      .map(() => Array(size).fill(-1));
 
-    // Place paths for each color
-    for (const color of colors) {
-      const path = this.generatePath(grid, size);
-      if (path.length >= 2) {
-        paths[color] = path;
-        // Mark grid cells
-        for (const cell of path) {
-          grid[cell.row][cell.col] = color;
-        }
-        // Add endpoints (first and last)
-        endpoints.push({ color, row: path[0].row, col: path[0].col });
+    const paths: Array<Array<{ row: number; col: number }>> = colors.map(
+      () => [],
+    );
+
+    // Try to fill the grid using backtracking
+    if (!this.fillGridBacktrack(grid, paths, size, colors.length)) {
+      return null;
+    }
+
+    // Convert to output format
+    const endpoints: Array<{ color: string; row: number; col: number }> = [];
+    const pathsRecord: Record<string, Array<{ row: number; col: number }>> = {};
+
+    for (let i = 0; i < colors.length; i++) {
+      if (paths[i].length >= 2) {
+        pathsRecord[colors[i]] = paths[i];
         endpoints.push({
-          color,
-          row: path[path.length - 1].row,
-          col: path[path.length - 1].col,
+          color: colors[i],
+          row: paths[i][0].row,
+          col: paths[i][0].col,
+        });
+        endpoints.push({
+          color: colors[i],
+          row: paths[i][paths[i].length - 1].row,
+          col: paths[i][paths[i].length - 1].col,
         });
       }
     }
 
-    // Add bridges at random empty or overlapping positions (for harder puzzles)
-    // Note: Simplified - real bridges would require path recalculation
+    // Verify all colors have valid paths
+    if (Object.keys(pathsRecord).length !== colors.length) {
+      return null;
+    }
 
-    return { endpoints, bridges, paths };
+    return { endpoints, paths: pathsRecord };
   }
 
-  private generatePath(
-    grid: (string | null)[][],
+  private fillGridBacktrack(
+    grid: number[][],
+    paths: Array<Array<{ row: number; col: number }>>,
     size: number,
-  ): Array<{ row: number; col: number }> {
-    // Find empty starting cell
-    let startRow = -1,
-      startCol = -1;
-    for (let attempts = 0; attempts < 50; attempts++) {
-      const r = Math.floor(Math.random() * size);
-      const c = Math.floor(Math.random() * size);
-      if (grid[r][c] === null) {
-        startRow = r;
-        startCol = c;
-        break;
-      }
-    }
-
-    if (startRow === -1) return [];
-
-    const path: Array<{ row: number; col: number }> = [
-      { row: startRow, col: startCol },
-    ];
-    const visited = new Set<string>();
-    visited.add(`${startRow},${startCol}`);
-
-    const directions = [
-      [0, 1],
-      [1, 0],
-      [0, -1],
-      [-1, 0],
-    ];
-    const minLength = 3;
-    const maxLength = Math.floor(size * 1.5);
-
-    while (path.length < maxLength) {
-      const current = path[path.length - 1];
-      const validMoves: Array<{ row: number; col: number }> = [];
-
-      for (const [dr, dc] of directions) {
-        const nr = current.row + dr;
-        const nc = current.col + dc;
-        const key = `${nr},${nc}`;
-
-        if (
-          nr >= 0 &&
-          nr < size &&
-          nc >= 0 &&
-          nc < size &&
-          grid[nr][nc] === null &&
-          !visited.has(key)
-        ) {
-          validMoves.push({ row: nr, col: nc });
+    numColors: number,
+  ): boolean {
+    // Find first empty cell
+    let emptyRow = -1,
+      emptyCol = -1;
+    outer: for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (grid[r][c] === -1) {
+          emptyRow = r;
+          emptyCol = c;
+          break outer;
         }
       }
-
-      if (validMoves.length === 0) break;
-
-      // Random chance to stop if we have minimum length
-      if (path.length >= minLength && Math.random() < 0.3) break;
-
-      const next = validMoves[Math.floor(Math.random() * validMoves.length)];
-      path.push(next);
-      visited.add(`${next.row},${next.col}`);
     }
 
-    return path.length >= 2 ? path : [];
+    // If no empty cell, check all paths are valid
+    if (emptyRow === -1) {
+      return paths.every((p) => p.length >= 2);
+    }
+
+    // Shuffle color order for randomness
+    const colorOrder = this.shuffledRange(numColors);
+
+    for (const colorIdx of colorOrder) {
+      const path = paths[colorIdx];
+
+      // Option 1: Start a new path here (if path is empty)
+      if (path.length === 0) {
+        grid[emptyRow][emptyCol] = colorIdx;
+        path.push({ row: emptyRow, col: emptyCol });
+
+        if (this.fillGridBacktrack(grid, paths, size, numColors)) {
+          return true;
+        }
+
+        grid[emptyRow][emptyCol] = -1;
+        path.pop();
+      }
+
+      // Option 2: Extend existing path (if adjacent to path end)
+      if (path.length > 0) {
+        const last = path[path.length - 1];
+        const isAdjacentToEnd =
+          (Math.abs(last.row - emptyRow) === 1 && last.col === emptyCol) ||
+          (Math.abs(last.col - emptyCol) === 1 && last.row === emptyRow);
+
+        if (isAdjacentToEnd) {
+          grid[emptyRow][emptyCol] = colorIdx;
+          path.push({ row: emptyRow, col: emptyCol });
+
+          if (this.fillGridBacktrack(grid, paths, size, numColors)) {
+            return true;
+          }
+
+          grid[emptyRow][emptyCol] = -1;
+          path.pop();
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private shuffledRange(n: number): number[] {
+    const arr = Array.from({ length: n }, (_, i) => i);
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  private generateSnakePuzzle(
+    size: number,
+    colors: string[],
+  ): {
+    endpoints: Array<{ color: string; row: number; col: number }>;
+    paths: Record<string, Array<{ row: number; col: number }>>;
+  } {
+    // Create a snake pattern that fills the entire grid
+    const allCells: Array<{ row: number; col: number }> = [];
+    for (let r = 0; r < size; r++) {
+      if (r % 2 === 0) {
+        for (let c = 0; c < size; c++) {
+          allCells.push({ row: r, col: c });
+        }
+      } else {
+        for (let c = size - 1; c >= 0; c--) {
+          allCells.push({ row: r, col: c });
+        }
+      }
+    }
+
+    // Divide snake into color segments
+    const endpoints: Array<{ color: string; row: number; col: number }> = [];
+    const paths: Record<string, Array<{ row: number; col: number }>> = {};
+    const cellsPerColor = Math.floor(allCells.length / colors.length);
+
+    let idx = 0;
+    for (let i = 0; i < colors.length; i++) {
+      const isLast = i === colors.length - 1;
+      const segmentLength = isLast ? allCells.length - idx : cellsPerColor;
+      const path = allCells.slice(idx, idx + segmentLength);
+
+      if (path.length >= 2) {
+        paths[colors[i]] = path;
+        endpoints.push({ color: colors[i], ...path[0] });
+        endpoints.push({ color: colors[i], ...path[path.length - 1] });
+      }
+
+      idx += segmentLength;
+    }
+
+    return { endpoints, paths };
   }
 }
 

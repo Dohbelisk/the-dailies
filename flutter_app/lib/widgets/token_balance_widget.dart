@@ -22,8 +22,8 @@ class _TokenBalanceWidgetState extends State<TokenBalanceWidget> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // Premium users see "Premium" badge instead of tokens
     if (_tokenService.isPremium) {
-      // Premium users see "Premium" badge instead of tokens
       return Material(
         color: Colors.transparent,
         child: InkWell(
@@ -41,7 +41,7 @@ class _TokenBalanceWidgetState extends State<TokenBalanceWidget> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.amber.withOpacity(0.3),
+                  color: Colors.amber.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -66,6 +66,50 @@ class _TokenBalanceWidgetState extends State<TokenBalanceWidget> {
       );
     }
 
+    // Super account users see "Unlimited" badge
+    if (_tokenService.isSuperAccount) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.purple.shade600,
+                  Colors.purple.shade800,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.purple.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.all_inclusive, color: Colors.white, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  'Unlimited',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     // Free users see token balance
     return Material(
       color: Colors.transparent,
@@ -75,10 +119,10 @@ class _TokenBalanceWidgetState extends State<TokenBalanceWidget> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withOpacity(0.1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: theme.colorScheme.primary.withOpacity(0.3),
+              color: theme.colorScheme.primary.withValues(alpha: 0.3),
               width: 1.5,
             ),
           ),
@@ -103,7 +147,7 @@ class _TokenBalanceWidgetState extends State<TokenBalanceWidget> {
                 Text(
                   'tokens',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary.withOpacity(0.7),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.7),
                   ),
                 ),
               ],

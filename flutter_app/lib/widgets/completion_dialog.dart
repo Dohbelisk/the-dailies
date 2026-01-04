@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/game_models.dart';
-import '../models/feedback_models.dart';
 import 'feedback_dialog.dart';
 
 class CompletionDialog extends StatelessWidget {
@@ -37,7 +36,7 @@ class CompletionDialog extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -62,7 +61,7 @@ class CompletionDialog extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.amber.withOpacity(0.4),
+                    color: Colors.amber.withValues(alpha: 0.4),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -97,14 +96,14 @@ class CompletionDialog extends StatelessWidget {
                   Icon(
                     Icons.sports_esports_rounded,
                     size: 18,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   const SizedBox(width: 8),
                 ],
                 Text(
                   puzzle.gameType.displayName,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -128,7 +127,7 @@ class CompletionDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -234,12 +233,12 @@ class CompletionDialog extends StatelessWidget {
               icon: Icon(
                 Icons.flag_outlined,
                 size: 18,
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               label: Text(
                 'Report an Issue',
                 style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               onPressed: () {
@@ -274,7 +273,7 @@ class CompletionDialog extends StatelessWidget {
         Icon(
           icon,
           size: 24,
-          color: color.withOpacity(0.6),
+          color: color.withValues(alpha: 0.6),
         ),
         const SizedBox(height: 4),
         Text(
@@ -287,7 +286,7 @@ class CompletionDialog extends StatelessWidget {
         Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],

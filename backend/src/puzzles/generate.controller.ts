@@ -28,6 +28,7 @@ import {
 } from "../utils/puzzle-generators";
 import { PuzzlesService } from "./puzzles.service";
 import { GameType, Difficulty } from "./schemas/puzzle.schema";
+import { DictionaryService } from "../dictionary/dictionary.service";
 
 class GenerateSudokuDto {
   @IsIn(["easy", "medium", "hard", "expert"])
@@ -240,7 +241,10 @@ class GenerateMathoraDto {
 @UseGuards(JwtAuthGuard, AdminGuard)
 @ApiBearerAuth()
 export class GenerateController {
-  constructor(private readonly puzzlesService: PuzzlesService) {}
+  constructor(
+    private readonly puzzlesService: PuzzlesService,
+    private readonly dictionaryService: DictionaryService,
+  ) {}
 
   @Post("sudoku")
   @ApiOperation({ summary: "Generate a new Sudoku puzzle" })
@@ -254,11 +258,15 @@ export class GenerateController {
       expert: 1200,
     };
 
+    // Extract solution from puzzleData
+    const solution = { grid: puzzleData.solution };
+
     return this.puzzlesService.create({
       gameType: GameType.SUDOKU,
       difficulty: dto.difficulty as Difficulty,
       date: dto.date,
-      puzzleData,
+      puzzleData: { grid: puzzleData.grid },
+      solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Daily Sudoku - ${dto.difficulty}`,
       isActive: true,
@@ -277,11 +285,15 @@ export class GenerateController {
       expert: 1800,
     };
 
+    // Extract solution from puzzleData
+    const solution = { grid: puzzleData.solution };
+
     return this.puzzlesService.create({
       gameType: GameType.KILLER_SUDOKU,
       difficulty: dto.difficulty as Difficulty,
       date: dto.date,
-      puzzleData,
+      puzzleData: { grid: puzzleData.grid, cages: puzzleData.cages },
+      solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Killer Sudoku - ${dto.difficulty}`,
       isActive: true,
@@ -304,11 +316,23 @@ export class GenerateController {
       expert: 1200,
     };
 
+    // For crossword, the grid contains the solution (letters)
+    // Extract answers from clues for the solution object
+    const solution = {
+      grid: puzzleData.grid,
+      answers: puzzleData.clues.map((c: any) => ({
+        number: c.number,
+        direction: c.direction,
+        answer: c.answer,
+      })),
+    };
+
     return this.puzzlesService.create({
       gameType: GameType.CROSSWORD,
       difficulty: dto.difficulty as Difficulty,
       date: dto.date,
       puzzleData,
+      solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Daily Crossword - ${dto.difficulty}`,
       isActive: true,
@@ -332,21 +356,99 @@ export class GenerateController {
       expert: 600,
     };
 
+    // For word search, words array contains word positions (the solution)
+    const solution = {
+      words: puzzleData.words,
+    };
+
     return this.puzzlesService.create({
       gameType: GameType.WORD_SEARCH,
       difficulty: dto.difficulty as Difficulty,
       date: dto.date,
       puzzleData,
+      solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Word Search - ${dto.theme || "Mixed"}`,
-      isActive: true,
+      isActive: false, // Word Search is currently removed from circulation
     });
   }
 
   @Post("word-forge")
   @ApiOperation({ summary: "Generate a new Word Forge puzzle" })
   async generateWordForge(@Body() dto: GenerateWordForgeDto) {
-    const result = generateWordForge(dto.difficulty);
+    const maxWordCount = 75;
+    const maxAttempts = 200; // Increased to find valid configs
+
+    // Step 1: Get all pangrams from dictionary (words with exactly 7 distinct letters)
+    const allPangrams = await this.dictionaryService.findAllPangrams();
+    if (allPangrams.length === 0) {
+      throw new Error("No pangrams found in dictionary");
+    }
+
+    let letters: string[] = [];
+    let centerLetter: string = "";
+    let wordsWithClues: { word: string; clue: string; isPangram: boolean }[] =
+      [];
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      attempts++;
+
+      // Step 2: Pick a random pangram
+      const randomPangram =
+        allPangrams[Math.floor(Math.random() * allPangrams.length)];
+
+      // Step 3: Extract the 7 unique letters from the pangram
+      letters = [...new Set(randomPangram.split(""))].sort();
+      if (letters.length !== 7) {
+        continue; // Skip if not exactly 7 letters
+      }
+
+      // Step 4: Pick a random center letter
+      centerLetter = letters[Math.floor(Math.random() * letters.length)];
+
+      // Step 5: Get all valid words for this configuration
+      wordsWithClues = await this.dictionaryService.findWordsWithCluesForPuzzle(
+        letters,
+        centerLetter,
+        4, // minimum word length
+        9, // maximum word length
+      );
+
+      // Step 6: Check if word count is acceptable (max 75)
+      if (
+        wordsWithClues.length <= maxWordCount &&
+        wordsWithClues.length >= 20
+      ) {
+        console.log(
+          `Word Forge: Found valid config after ${attempts} attempts - ${wordsWithClues.length} words from pangram "${randomPangram}"`,
+        );
+        break;
+      }
+
+      // Log attempt for debugging
+      if (attempts % 10 === 0) {
+        console.log(
+          `Word Forge attempt ${attempts}: ${wordsWithClues.length} words from "${randomPangram}" (max: ${maxWordCount})`,
+        );
+      }
+    }
+
+    // If we couldn't find a good config, use the last one anyway
+    if (wordsWithClues.length > maxWordCount) {
+      console.warn(
+        `Word Forge: Using config with ${wordsWithClues.length} words after ${maxAttempts} attempts`,
+      );
+    }
+
+    // Calculate max score (4-letter = 1pt, 5+ = length, pangram bonus = +7)
+    let maxScore = 0;
+    let pangramCount = 0;
+    for (const { word, isPangram } of wordsWithClues) {
+      const wordScore = word.length === 4 ? 1 : word.length;
+      maxScore += wordScore + (isPangram ? 7 : 0);
+      if (isPangram) pangramCount++;
+    }
 
     const targetTimes = {
       easy: 300,
@@ -355,12 +457,28 @@ export class GenerateController {
       expert: 900,
     };
 
+    // Shuffle letters for display (center letter will be highlighted separately)
+    const shuffledLetters = [...letters].sort(() => Math.random() - 0.5);
+
+    // New puzzle structure with words and clues
+    const puzzleData = {
+      letters: shuffledLetters,
+      centerLetter,
+      words: wordsWithClues, // Array of {word, clue, isPangram}
+    };
+
+    const solution = {
+      maxScore,
+      pangramCount,
+      totalWords: wordsWithClues.length,
+    };
+
     return this.puzzlesService.create({
       gameType: GameType.WORD_FORGE,
       difficulty: dto.difficulty as Difficulty,
       date: dto.date,
-      puzzleData: result.puzzleData,
-      solution: result.solution,
+      puzzleData,
+      solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Word Forge - ${dto.difficulty}`,
       isActive: true,
@@ -748,7 +866,8 @@ export class GenerateController {
           gameType: GameType.SUDOKU,
           difficulty: difficulty as Difficulty,
           date: dateStr,
-          puzzleData: sudokuData,
+          puzzleData: { grid: sudokuData.grid },
+          solution: { grid: sudokuData.solution },
           targetTime: { easy: 300, medium: 600, hard: 900, expert: 1200 }[
             difficulty
           ],
@@ -765,7 +884,8 @@ export class GenerateController {
           gameType: GameType.KILLER_SUDOKU,
           difficulty: difficulty as Difficulty,
           date: dateStr,
-          puzzleData: killerData,
+          puzzleData: { grid: killerData.grid, cages: killerData.cages },
+          solution: { grid: killerData.solution },
           targetTime: { easy: 450, medium: 900, hard: 1200, expert: 1800 }[
             difficulty
           ],
@@ -784,6 +904,14 @@ export class GenerateController {
           difficulty: difficulty as Difficulty,
           date: dateStr,
           puzzleData: crosswordPuzzle,
+          solution: {
+            grid: crosswordPuzzle.grid,
+            answers: crosswordPuzzle.clues.map((c: any) => ({
+              number: c.number,
+              direction: c.direction,
+              answer: c.answer,
+            })),
+          },
           targetTime: { easy: 360, medium: 600, hard: 900, expert: 1200 }[
             difficulty
           ],
@@ -807,24 +935,64 @@ export class GenerateController {
           difficulty: difficulty as Difficulty,
           date: dateStr,
           puzzleData: wsData,
+          solution: { words: wsData.words },
           targetTime: { easy: 180, medium: 300, hard: 420, expert: 600 }[
             difficulty
           ],
           title: `Word Search - ${themeData.theme}`,
-          isActive: true,
+          isActive: false, // Word Search is currently removed from circulation
         });
         createdPuzzles.push(wordSearch);
       }
 
       // Generate Word Forge if requested
       if (dto.gameTypes.includes("wordForge")) {
-        const wfResult = generateWordForge(difficulty);
+        // Target word counts by difficulty
+        const wfTargets = {
+          easy: { min: 20, max: 50 },
+          medium: { min: 30, max: 70 },
+          hard: { min: 40, max: 80 },
+          expert: { min: 50, max: 100 },
+        };
+        const targets = wfTargets[difficulty];
+
+        // Try up to 10 times to find a good letter combination
+        let wfWords: { word: string; clue: string; isPangram: boolean }[] = [];
+        let wfResult: ReturnType<typeof generateWordForge>;
+        let wfAttempts = 0;
+
+        while (wfAttempts < 10) {
+          wfAttempts++;
+          wfResult = generateWordForge(difficulty);
+          wfWords = await this.dictionaryService.findWordsWithCluesForPuzzle(
+            wfResult.puzzleData.letters,
+            wfResult.puzzleData.centerLetter,
+            4,
+            9, // max 9 letters
+          );
+          if (wfWords.length >= targets.min && wfWords.length <= targets.max) {
+            break;
+          }
+        }
+
+        let maxScore = 0;
+        let pangramCount = 0;
+        for (const { word, isPangram } of wfWords) {
+          const wordScore = word.length === 4 ? 1 : word.length;
+          maxScore += wordScore + (isPangram ? 7 : 0);
+          if (isPangram) pangramCount++;
+        }
+
         const wordForge = await this.puzzlesService.create({
           gameType: GameType.WORD_FORGE,
           difficulty: difficulty as Difficulty,
           date: dateStr,
-          puzzleData: wfResult.puzzleData,
-          solution: wfResult.solution,
+          puzzleData: {
+            letters: wfResult!.puzzleData.letters,
+            centerLetter: wfResult!.puzzleData.centerLetter,
+            words: wfWords,
+          },
+          solution: { maxScore, pangramCount, totalWords: wfWords.length },
           targetTime: { easy: 300, medium: 480, hard: 600, expert: 900 }[
             difficulty
           ],

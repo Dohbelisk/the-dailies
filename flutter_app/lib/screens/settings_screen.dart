@@ -368,7 +368,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -385,7 +385,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await _audioService.setMasterVolume(value);
             },
           ),
-          Divider(height: 1, color: theme.colorScheme.onSurface.withOpacity(0.1)),
+          Divider(height: 1, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
 
           // Sound Effects Toggle + Volume
           _buildToggleWithVolume(
@@ -408,7 +408,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await _audioService.setEffectsVolume(value);
             },
           ),
-          Divider(height: 1, color: theme.colorScheme.onSurface.withOpacity(0.1)),
+          Divider(height: 1, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
 
           // Music Toggle + Volume
           _buildToggleWithVolume(
@@ -427,13 +427,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await _audioService.setMusicVolume(value);
             },
           ),
-          Divider(height: 1, color: theme.colorScheme.onSurface.withOpacity(0.1)),
+          Divider(height: 1, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
 
           // Vibration Toggle
           ListTile(
             leading: Icon(
               Icons.vibration_rounded,
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
             title: Text(
               'Vibration',
@@ -442,7 +442,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(
               'Haptic feedback on interactions',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             trailing: Switch(
@@ -468,7 +468,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -477,7 +477,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: Icon(
               Icons.ads_click_rounded,
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
             title: Text(
               'Personalized Ads',
@@ -486,7 +486,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(
               'See ads relevant to your interests',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             trailing: Switch(
@@ -497,13 +497,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ),
-          Divider(height: 1, color: theme.colorScheme.onSurface.withOpacity(0.1)),
+          Divider(height: 1, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
 
           // Analytics Toggle
           ListTile(
             leading: Icon(
               Icons.analytics_outlined,
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
             title: Text(
               'Usage Analytics',
@@ -512,7 +512,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(
               'Help us improve the app',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             trailing: Switch(
@@ -523,13 +523,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ),
-          Divider(height: 1, color: theme.colorScheme.onSurface.withOpacity(0.1)),
+          Divider(height: 1, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
 
           // Privacy Policy
           ListTile(
             leading: Icon(
               Icons.privacy_tip_outlined,
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
             title: Text(
               'Privacy Policy',
@@ -537,20 +537,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             trailing: Icon(
               Icons.chevron_right_rounded,
-              color: theme.colorScheme.onSurface.withOpacity(0.4),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
             ),
           ),
-          Divider(height: 1, color: theme.colorScheme.onSurface.withOpacity(0.1)),
+          Divider(height: 1, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
 
           // Terms of Service
           ListTile(
             leading: Icon(
               Icons.description_outlined,
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
             title: Text(
               'Terms of Service',
@@ -558,7 +558,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             trailing: Icon(
               Icons.chevron_right_rounded,
-              color: theme.colorScheme.onSurface.withOpacity(0.4),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             onTap: () => Navigator.push(
               context,
@@ -584,7 +584,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Icon(
             icon,
-            color: theme.colorScheme.onSurface.withOpacity(0.7),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -601,7 +601,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       '${(value * 100).round()}%',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -616,7 +616,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: value,
                     onChanged: onChanged,
                     activeColor: theme.colorScheme.primary,
-                    inactiveColor: theme.colorScheme.onSurface.withOpacity(0.2),
+                    inactiveColor: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                   ),
                 ),
               ],
@@ -646,8 +646,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Icon(
                 icon,
                 color: enabled
-                    ? theme.colorScheme.onSurface.withOpacity(0.7)
-                    : theme.colorScheme.onSurface.withOpacity(0.3),
+                    ? theme.colorScheme.onSurface.withValues(alpha: 0.7)
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.3),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -656,7 +656,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: enabled
                         ? theme.colorScheme.onSurface
-                        : theme.colorScheme.onSurface.withOpacity(0.5),
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
               ),
@@ -674,7 +674,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Icon(
                   Icons.volume_down_rounded,
                   size: 18,
-                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
                 Expanded(
                   child: SliderTheme(
@@ -686,15 +686,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Slider(
                       value: volume,
                       onChanged: onVolumeChanged,
-                      activeColor: theme.colorScheme.primary.withOpacity(0.8),
-                      inactiveColor: theme.colorScheme.onSurface.withOpacity(0.15),
+                      activeColor: theme.colorScheme.primary.withValues(alpha: 0.8),
+                      inactiveColor: theme.colorScheme.onSurface.withValues(alpha: 0.15),
                     ),
                   ),
                 ),
                 Icon(
                   Icons.volume_up_rounded,
                   size: 18,
-                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
@@ -702,7 +702,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Text(
                     '${(volume * 100).round()}%',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -721,15 +721,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFFFFD700).withOpacity(0.2),
-              const Color(0xFFFFA500).withOpacity(0.2),
+              const Color(0xFFFFD700).withValues(alpha: 0.2),
+              const Color(0xFFFFA500).withValues(alpha: 0.2),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: const Color(0xFFFFD700).withOpacity(0.5),
+            color: const Color(0xFFFFD700).withValues(alpha: 0.5),
             width: 2,
           ),
         ),
@@ -738,7 +738,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFD700).withOpacity(0.3),
+                color: const Color(0xFFFFD700).withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -763,7 +763,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(
                     'Unlimited hints, archive access & more',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                   if (_purchaseService.getSubscriptionStatusDetails().isNotEmpty) ...[
@@ -771,7 +771,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       _purchaseService.getSubscriptionStatusDetails(),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -788,15 +788,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            theme.colorScheme.primary.withOpacity(0.1),
-            theme.colorScheme.secondary.withOpacity(0.1),
+            theme.colorScheme.primary.withValues(alpha: 0.1),
+            theme.colorScheme.secondary.withValues(alpha: 0.1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.3),
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -845,10 +845,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.15),
+                color: Colors.green.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: Colors.green.withOpacity(0.3),
+                  color: Colors.green.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -915,7 +915,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text(
                 'Restore Subscription',
                 style: TextStyle(
-                  color: theme.colorScheme.primary.withOpacity(0.8),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.8),
                 ),
               ),
             ),
@@ -926,7 +926,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ? '${_purchaseService.subscriptionDetails} after trial. Cancel anytime.'
                   : '${_purchaseService.subscriptionDetails}. Cancel anytime.',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               textAlign: TextAlign.center,
             ),
@@ -987,13 +987,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
         ),
       ),
       child: ListTile(
         leading: Icon(
           icon,
-          color: theme.colorScheme.onSurface.withOpacity(0.7),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
         ),
         title: Text(
           title,
@@ -1003,7 +1003,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ? Text(
                 subtitle,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               )
             : null,
@@ -1011,7 +1011,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             (onTap != null
                 ? Icon(
                     Icons.chevron_right_rounded,
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   )
                 : null),
         onTap: onTap,

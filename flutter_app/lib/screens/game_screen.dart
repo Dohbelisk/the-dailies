@@ -7,7 +7,6 @@ import 'package:confetti/confetti.dart';
 import '../models/game_models.dart';
 import '../providers/game_provider.dart';
 import '../services/game_service.dart';
-import '../services/admob_service.dart';
 import '../services/hint_service.dart';
 import '../services/audio_service.dart';
 import '../services/challenge_service.dart';
@@ -32,6 +31,7 @@ import '../widgets/game_timer.dart';
 import '../widgets/completion_dialog.dart';
 import '../widgets/feedback_dialog.dart';
 import '../models/feedback_models.dart';
+import 'settings_screen.dart';
 
 class GameScreen extends StatefulWidget {
   final DailyPuzzle? puzzle;
@@ -53,7 +53,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late ConfettiController _confettiController;
   Timer? _timer;
   bool _isPaused = false;
-  final AdMobService _adMobService = AdMobService();
   final HintService _hintService = HintService();
   final AudioService _audioService = AudioService();
 
@@ -327,6 +326,279 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
+  void _showGameInstructions(BuildContext context) {
+    final theme = Theme.of(context);
+    final instructions = _getGameInstructions(_puzzle!.gameType);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.help_outline_rounded,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'How to Play ${_puzzle!.gameType.displayName}',
+                style: theme.textTheme.titleLarge,
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                instructions.objective,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...instructions.steps.map((step) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${instructions.steps.indexOf(step) + 1}',
+                          style: TextStyle(
+                            color: theme.colorScheme.onPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        step,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+              if (instructions.tips != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.lightbulb_outline_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          instructions.tips!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it!'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  _GameInstructions _getGameInstructions(GameType gameType) {
+    switch (gameType) {
+      case GameType.sudoku:
+        return _GameInstructions(
+          objective: 'Fill the 9×9 grid so that each row, column, and 3×3 box contains the numbers 1-9.',
+          steps: [
+            'Tap a cell to select it',
+            'Use the number pad to enter a number',
+            'Use notes mode to add pencil marks for possible numbers',
+            'Numbers turn red if they conflict with existing numbers',
+            'Complete the grid without mistakes to finish',
+          ],
+          tips: 'Look for cells where only one number is possible. Start with rows, columns, or boxes that are nearly complete.',
+        );
+      case GameType.killerSudoku:
+        return _GameInstructions(
+          objective: 'Fill the grid like Sudoku, but also ensure numbers in each colored cage add up to the cage total.',
+          steps: [
+            'Each cage (colored region) shows a target sum',
+            'Numbers in a cage must add up to that sum',
+            'No number can repeat within a cage',
+            'Standard Sudoku rules also apply (1-9 in rows, columns, boxes)',
+            'Use the calculator button to check cage combinations',
+          ],
+          tips: 'Small cages are great starting points. A 2-cell cage with sum 3 can only be 1+2.',
+        );
+      case GameType.crossword:
+        return _GameInstructions(
+          objective: 'Fill in the white squares with letters to form words based on the clues.',
+          steps: [
+            'Tap a cell to select it and see the clue',
+            'Use the keyboard to type letters',
+            'Tap a filled cell again to switch between across and down',
+            'Select clues from the list below to jump to that word',
+            'Complete all words to finish the puzzle',
+          ],
+          tips: 'Start with clues you know for certain. Intersecting letters will help solve other words.',
+        );
+      case GameType.wordSearch:
+        return _GameInstructions(
+          objective: 'Find all the hidden words in the letter grid.',
+          steps: [
+            'Words can be horizontal, vertical, or diagonal',
+            'Words can read forwards or backwards',
+            'Drag your finger across letters to select a word',
+            'Found words are crossed off the list below',
+            'Find all words to complete the puzzle',
+          ],
+          tips: 'Look for uncommon letters like Q, Z, X, or J first – they\'re easier to spot.',
+        );
+      case GameType.wordForge:
+        return _GameInstructions(
+          objective: 'Create as many words as possible using the 7 letters. Every word must include the center letter.',
+          steps: [
+            'Tap letters to build a word (4+ letters required)',
+            'The center letter (highlighted) must be in every word',
+            'Tap Submit to check your word',
+            'Pangrams use all 7 letters and score bonus points',
+            'Reach Genius level (70% of max score) to complete',
+          ],
+          tips: 'Try adding common prefixes (UN-, RE-) and suffixes (-ING, -ED, -ER) to find more words.',
+        );
+      case GameType.nonogram:
+        return _GameInstructions(
+          objective: 'Reveal the hidden picture by filling in cells according to the number clues.',
+          steps: [
+            'Numbers on the left show consecutive filled cells in each row',
+            'Numbers on top show consecutive filled cells in each column',
+            'Tap a cell to fill it in',
+            'Use mark mode (X) to mark cells you know are empty',
+            'Complete the pattern to reveal the picture',
+          ],
+          tips: 'Start with rows or columns where the numbers add up close to the total. Look for overlaps.',
+        );
+      case GameType.numberTarget:
+        return _GameInstructions(
+          objective: 'Use the given numbers and operations to reach the target number.',
+          steps: [
+            'Tap numbers and operators to build an expression',
+            'Each number can only be used once',
+            'Use +, -, ×, ÷ operations',
+            'Tap = to check your answer',
+            'Reach the exact target to win',
+          ],
+          tips: 'You don\'t have to use all numbers. Sometimes a simpler solution works best.',
+        );
+      case GameType.ballSort:
+        return _GameInstructions(
+          objective: 'Sort the colored balls so each tube contains balls of only one color.',
+          steps: [
+            'Tap a tube to pick up the top ball',
+            'Tap another tube to drop it there',
+            'You can only place a ball on the same color or in an empty tube',
+            'Use empty tubes to temporarily hold balls',
+            'Fill each tube with one color to complete',
+          ],
+          tips: 'Plan ahead! Getting a single color started in one tube makes the rest easier.',
+        );
+      case GameType.pipes:
+        return _GameInstructions(
+          objective: 'Connect matching colored endpoints by drawing pipes between them.',
+          steps: [
+            'Tap and drag from an endpoint to draw a pipe',
+            'Connect both endpoints of the same color',
+            'Pipes cannot cross each other',
+            'Fill every cell with a pipe to complete',
+            'Clear a path by drawing over it again',
+          ],
+          tips: 'Start with endpoints that are close together or in corners – they have fewer possible paths.',
+        );
+      case GameType.lightsOut:
+        return _GameInstructions(
+          objective: 'Turn off all the lights on the board.',
+          steps: [
+            'Tap a cell to toggle it and its neighbors',
+            'Toggling affects the cell above, below, left, and right',
+            'Turn all lights off (dark) to win',
+            'The puzzle is always solvable',
+            'Use Reset to start over if needed',
+          ],
+          tips: 'Work systematically from top to bottom. The solution often involves specific patterns.',
+        );
+      case GameType.wordLadder:
+        return _GameInstructions(
+          objective: 'Transform the starting word into the target word, changing one letter at a time.',
+          steps: [
+            'Each step must be a valid English word',
+            'You can only change one letter per step',
+            'Type a word and tap Submit to add it to the ladder',
+            'Reach the target word to complete the puzzle',
+            'Use Undo to remove the last word if stuck',
+          ],
+          tips: 'Think about which letters need to change and plan intermediate words that make those transitions easier.',
+        );
+      case GameType.connections:
+        return _GameInstructions(
+          objective: 'Group 16 words into 4 categories of 4 related words each.',
+          steps: [
+            'Tap words to select them (select exactly 4)',
+            'Tap Submit to check if they form a valid group',
+            'Correct groups are revealed with their category name',
+            'You have 4 mistakes allowed',
+            'Find all 4 groups to complete the puzzle',
+          ],
+          tips: 'Look for word associations like synonyms, categories, or wordplay. The yellow group is easiest, purple is hardest.',
+        );
+      case GameType.mathora:
+        return _GameInstructions(
+          objective: 'Apply math operations to reach the target number within the move limit.',
+          steps: [
+            'Start with the given number',
+            'Tap operation buttons to apply them (+, -, ×, ÷)',
+            'Reach the exact target number',
+            'You have a limited number of moves',
+            'Use Undo to try different operation sequences',
+          ],
+          tips: 'Sometimes you need to go away from the target before getting closer. Think about what operations are available.',
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -444,11 +716,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
       child: Row(
         children: [
+          // Left buttons - compact constraints for small screens
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
+            icon: const Icon(Icons.arrow_back_rounded, size: 20),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: const EdgeInsets.all(6),
             onPressed: () async {
               await _saveAndExit();
               if (context.mounted) {
@@ -456,33 +731,49 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               }
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.help_outline_rounded, size: 20),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: const EdgeInsets.all(6),
+            tooltip: 'How to Play',
+            onPressed: () => _showGameInstructions(context),
+          ),
+          // Center - title with flexible sizing
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     if (isChallenge) ...[
                       Icon(
                         Icons.sports_esports_rounded,
-                        size: 18,
+                        size: 14,
                         color: theme.colorScheme.primary,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 2),
                     ],
-                    Text(
-                      _puzzle!.gameType.displayName,
-                      style: theme.textTheme.titleLarge,
+                    Flexible(
+                      child: Text(
+                        _puzzle!.gameType.displayName,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: List.generate(
                     _puzzle!.difficulty.stars,
                     (index) => Icon(
                       Icons.star_rounded,
-                      size: 14,
+                      size: 10,
                       color: theme.colorScheme.primary,
                     ),
                   ),
@@ -490,16 +781,35 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ],
             ),
           ),
+          // Right side - timer and buttons with very compact sizing
           Consumer<GameProvider>(
             builder: (context, gameProvider, _) {
               return Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   GameTimer(seconds: gameProvider.elapsedSeconds),
                   IconButton(
                     icon: Icon(
                       _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                      size: 20,
                     ),
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    padding: const EdgeInsets.all(4),
                     onPressed: _togglePause,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.settings_rounded, size: 20),
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    padding: const EdgeInsets.all(4),
+                    tooltip: 'Settings',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               );
@@ -520,7 +830,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           Icon(
             Icons.pause_circle_filled_rounded,
             size: 80,
-            color: theme.colorScheme.primary.withOpacity(0.5),
+            color: theme.colorScheme.primary.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 24),
           Text('Paused', style: theme.textTheme.headlineLarge),
@@ -752,7 +1062,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -946,12 +1256,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     
     return Row(
       children: [
-        Icon(icon, size: 20, color: color ?? theme.colorScheme.onSurface.withOpacity(0.6)),
+        Icon(icon, size: 20, color: color ?? theme.colorScheme.onSurface.withValues(alpha: 0.6)),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6))),
+            Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
             Text(value, style: theme.textTheme.titleMedium?.copyWith(color: color, fontWeight: FontWeight.bold)),
           ],
         ),
@@ -1062,7 +1372,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.1),
+        color: theme.colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -1095,7 +1405,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           controller: _cluesTabController,
           tabs: const [Tab(text: 'ACROSS'), Tab(text: 'DOWN')],
           labelColor: theme.colorScheme.primary,
-          unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
+          unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           indicatorColor: theme.colorScheme.primary,
         ),
         Expanded(
@@ -1131,7 +1441,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return ListTile(
           dense: true,
           selected: isSelected,
-          selectedTileColor: theme.colorScheme.primary.withOpacity(0.1),
+          selectedTileColor: theme.colorScheme.primary.withValues(alpha: 0.1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           leading: Text(
             '${clue.number}',
@@ -1228,13 +1538,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: word.found
-                ? theme.colorScheme.primary.withOpacity(0.2)
+                ? theme.colorScheme.primary.withValues(alpha: 0.2)
                 : theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: word.found
                   ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface.withOpacity(0.2),
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.2),
             ),
           ),
           child: Text(
@@ -1309,6 +1619,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       }
                     });
                   },
+                  onShowHints: () => _showWordForgeHints(context, gameProvider),
                 ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
                 if (_wordForgeMessage != null) ...[
                   const SizedBox(height: 16),
@@ -1324,6 +1635,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'Found Words (${puzzle.foundWords.length}/${puzzle.validWords.length})',
@@ -1336,6 +1648,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     ],
                   ),
                 ),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -1373,6 +1686,96 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ).animate().fadeIn(duration: 200.ms).scale(begin: const Offset(0.9, 0.9));
   }
 
+  // Stored pangram hint for display after use
+  Map<String, dynamic>? _storedPangramHint;
+
+  void _showWordForgeHints(BuildContext context, GameProvider gameProvider) {
+    // Check if puzzle has backend words (new format with clues)
+    final hasBackendWords = gameProvider.wordForgePuzzle?.words.isNotEmpty ?? false;
+
+    // Get hints data
+    final hasUnfoundPangrams = gameProvider.getUnfoundPangramCount() > 0;
+    final pangramHintUsed = gameProvider.wordForgePuzzle?.hasUsedPangramHint ?? false;
+    final wordHint = gameProvider.getWordForgeWordHint();
+
+    // Get or update stored pangram hint
+    if (pangramHintUsed && _storedPangramHint == null) {
+      // Hint was used but we don't have the data - try to get it again
+      _storedPangramHint = gameProvider.getWordForgePangramHint();
+    } else if (!pangramHintUsed) {
+      // Haven't used hint yet, get fresh one
+      _storedPangramHint = gameProvider.getWordForgePangramHint();
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            // Get fresh data for the sheet
+            final currentTwoLetterHints = gameProvider.getWordForgeTwoLetterHints();
+            final currentRevealedWords = gameProvider.getRevealedWordForgeWords();
+
+            return WordForgeHintsSheet(
+              twoLetterHints: currentTwoLetterHints,
+              hasUnfoundPangrams: hasUnfoundPangrams,
+              pangramHintUsed: gameProvider.wordForgePuzzle?.hasUsedPangramHint ?? false,
+              pangramHint: _storedPangramHint,
+              wordHint: wordHint,
+              revealedWords: currentRevealedWords,
+              onRevealWithPrefix: hasBackendWords ? (prefix) {
+                final revealed = gameProvider.revealWordForgeWordWithPrefix(prefix);
+                if (revealed != null) {
+                  _audioService.playHint();
+                  // Show a snackbar with the revealed word and clue
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${revealed.word} - ${revealed.clue}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      backgroundColor: revealed.isPangram ? Colors.amber.shade700 : null,
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
+                  // Update the sheet to show new revealed word
+                  setSheetState(() {});
+                  setState(() {});
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No more words with that prefix!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } : null,
+              onUsePangramHint: () {
+                // Store the hint before using it
+                _storedPangramHint = gameProvider.getWordForgePangramHint();
+                gameProvider.useWordForgePangramHint();
+                _audioService.playHint();
+                // Update the sheet to show the revealed hint
+                setSheetState(() {});
+                setState(() {});
+              },
+              onRevealWord: (word) {
+                gameProvider.useWordForgeWordReveal(word);
+                _audioService.playHint();
+                setState(() {});
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildNonogramContent(BuildContext context) {
     return Consumer<GameProvider>(
       builder: (context, gameProvider, _) {
@@ -1385,12 +1788,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           child: NonogramGrid(
             puzzle: gameProvider.nonogramPuzzle!,
             markMode: gameProvider.nonogramMarkMode,
+            canUndo: gameProvider.canUndoNonogram,
             onCellTap: (row, col) {
               gameProvider.toggleNonogramCell(row, col);
               _audioService.playTap();
             },
+            onSetCellState: (row, col, state) {
+              gameProvider.setNonogramCellStateSilent(row, col, state);
+            },
             onToggleMarkMode: () {
               gameProvider.toggleNonogramMarkMode();
+              _audioService.playTap();
+            },
+            onSaveStateForUndo: () {
+              gameProvider.saveNonogramStateForUndo();
+            },
+            onUndo: () {
+              gameProvider.undoNonogram();
+              _audioService.playTap();
+            },
+            onDragEnd: () {
+              gameProvider.notifyNonogramChanged();
               _audioService.playTap();
             },
           ),
@@ -1418,8 +1836,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               currentExpression: gameProvider.currentExpression,
               resultMessage: _numberTargetMessage,
               lastResultSuccess: _numberTargetSuccess,
-              onTokenTap: (token) {
-                gameProvider.addToNumberTargetExpression(token);
+              usedNumberIndices: gameProvider.usedNumberIndices,
+              onTokenTap: (token, {int? numberIndex}) {
+                gameProvider.addToNumberTargetExpression(token, numberIndex: numberIndex);
                 _audioService.playTap();
               },
               onClear: () {
@@ -1501,6 +1920,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               gameProvider.startPipesPath(color, row, col);
               _audioService.playTap();
             },
+            onPathContinue: (color) {
+              gameProvider.continuePipesPath(color);
+              _audioService.playTap();
+            },
             onPathExtend: (row, col) {
               gameProvider.extendPipesPath(row, col);
             },
@@ -1558,8 +1981,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           child: WordLadderGrid(
             puzzle: gameProvider.wordLadderPuzzle!,
             currentInput: gameProvider.wordLadderInput,
-            onInputChanged: (value) {
-              gameProvider.setWordLadderInput(value);
+            message: _wordLadderMessage,
+            messageSuccess: _wordLadderSuccess,
+            onLetterTap: (letter) {
+              gameProvider.addWordLadderLetter(letter);
+              _audioService.playTap();
+              // Clear message when typing
+              if (_wordLadderMessage != null) {
+                setState(() {
+                  _wordLadderMessage = null;
+                  _wordLadderSuccess = null;
+                });
+              }
+            },
+            onDeleteTap: () {
+              gameProvider.deleteWordLadderLetter();
+              _audioService.playTap();
             },
             onSubmit: () {
               final result = gameProvider.submitWordLadderWord();
@@ -1605,11 +2042,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           padding: const EdgeInsets.all(16),
           child: ConnectionsGrid(
             puzzle: gameProvider.connectionsPuzzle!,
+            message: _connectionsMessage,
+            messageSuccess: _connectionsSuccess,
             onWordTap: (word) {
               gameProvider.toggleConnectionsWord(word);
               _audioService.playTap();
+              // Clear message when selecting
+              if (_connectionsMessage != null) {
+                setState(() {
+                  _connectionsMessage = null;
+                  _connectionsSuccess = null;
+                });
+              }
             },
-            onSubmit: () {
+            onSubmit: () async {
               final result = gameProvider.submitConnectionsSelection();
               setState(() {
                 _connectionsMessage = result.message;
@@ -1622,19 +2068,54 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 }
               } else {
                 _audioService.playError();
+                // If game over, auto-reveal remaining categories then show dialog
+                if (result.isGameOver) {
+                  await gameProvider.autoRevealConnectionsCategories();
+                  // Wait 2 seconds then show game over dialog
+                  await Future.delayed(const Duration(seconds: 2));
+                  if (mounted) {
+                    _showConnectionsGameOverDialog();
+                  }
+                }
               }
             },
             onClear: () {
               gameProvider.clearConnectionsSelection();
               _audioService.playTap();
             },
-            onReset: () {
-              gameProvider.resetConnectionsPuzzle();
+            onShuffle: () {
+              gameProvider.shuffleConnectionsWords();
               _audioService.playTap();
             },
           ),
         ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
       },
+    );
+  }
+
+  void _showConnectionsGameOverDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.sentiment_dissatisfied, color: Theme.of(context).colorScheme.error),
+            const SizedBox(width: 12),
+            const Text('Game Over'),
+          ],
+        ),
+        content: const Text('You ran out of mistakes! Better luck next time.'),
+        actions: [
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close dialog
+              Navigator.of(context).pop(); // Go back to home
+            },
+            child: const Text('Back to Home'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1671,4 +2152,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       },
     );
   }
+}
+
+/// Helper class for game instructions
+class _GameInstructions {
+  final String objective;
+  final List<String> steps;
+  final String? tips;
+
+  const _GameInstructions({
+    required this.objective,
+    required this.steps,
+    this.tips,
+  });
 }

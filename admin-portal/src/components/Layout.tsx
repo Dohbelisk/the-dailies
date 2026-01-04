@@ -9,13 +9,17 @@ import {
   X,
   Wand2,
   MessageSquare,
+  Book,
+  CalendarDays,
 } from 'lucide-react'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/schedule', icon: CalendarDays, label: 'Schedule' },
   { to: '/puzzles', icon: Puzzle, label: 'Puzzles' },
   { to: '/puzzles/generate', icon: Wand2, label: 'Generate' },
   { to: '/feedback', icon: MessageSquare, label: 'Feedback' },
+  { to: '/dictionary', icon: Book, label: 'Dictionary' },
 ]
 
 export default function Layout() {

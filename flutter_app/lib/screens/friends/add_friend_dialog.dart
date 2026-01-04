@@ -150,7 +150,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> with SingleTickerProv
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -194,7 +194,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> with SingleTickerProv
                   // Tabs
                   Container(
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surface.withOpacity(0.5),
+                      color: theme.colorScheme.surface.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: TabBar(
@@ -204,7 +204,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> with SingleTickerProv
                         borderRadius: BorderRadius.circular(12),
                       ),
                       labelColor: theme.colorScheme.onPrimary,
-                      unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
+                      unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       dividerColor: Colors.transparent,
                       tabs: const [
                         Tab(text: 'Friend Code'),
@@ -331,7 +331,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> with SingleTickerProv
                           Icon(
                             Icons.person_search_rounded,
                             size: 64,
-                            color: theme.colorScheme.onSurface.withOpacity(0.3),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -339,7 +339,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> with SingleTickerProv
                                 ? 'Search for users'
                                 : 'No users found',
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -365,7 +365,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> with SingleTickerProv
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
           child: Text(
             user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
             style: TextStyle(color: theme.colorScheme.primary),

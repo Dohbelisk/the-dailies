@@ -1,7 +1,7 @@
 name: puzzle_daily
 description: The Dailies - A daily puzzle game featuring Sudoku, Killer Sudoku, Crossword, and Word Search.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -30,12 +30,16 @@ dependencies:
   firebase_messaging: ^15.2.1
   firebase_analytics: ^11.4.0
   flutter_local_notifications: ^18.0.1
+  sensors_plus: ^7.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   flutter_lints: ^3.0.1
   flutter_launcher_icons: ^0.14.2
+  mocktail: ^1.0.4
 
 flutter_launcher_icons:
   android: true
@@ -55,6 +59,7 @@ flutter:
   assets:
     - assets/sounds/
     - assets/images/
+    - assets/data/
 
   fonts:
     - family: SpaceMono

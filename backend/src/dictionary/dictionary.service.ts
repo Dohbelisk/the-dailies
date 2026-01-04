@@ -195,4 +195,175 @@ export class DictionaryService {
     const result = await this.dictionaryModel.bulkWrite(operations);
     return result.upsertedCount + result.modifiedCount;
   }
+
+  // ============ Admin Methods ============
+
+  /**
+   * Find all words with pagination and filters
+   */
+  async findAll(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    length?: number;
+    startsWith?: string;
+    hasClue?: boolean;
+  }) {
+    const {
+      page = 1,
+      limit = 50,
+      search,
+      length,
+      startsWith,
+      hasClue,
+    } = params;
+    const skip = (page - 1) * limit;
+
+    // Build query
+    const query: Record<string, any> = {};
+
+    if (search) {
+      query.word = { $regex: search.toUpperCase(), $options: "i" };
+    }
+
+    if (length) {
+      query.length = length;
+    }
+
+    if (startsWith) {
+      query.word = { ...query.word, $regex: `^${startsWith}` };
+    }
+
+    if (hasClue === true) {
+      query.clue = { $ne: "", $exists: true, $not: /^Define:/ };
+    } else if (hasClue === false) {
+      query.$or = [
+        { clue: { $exists: false } },
+        { clue: "" },
+        { clue: { $regex: /^Define:/ } },
+      ];
+    }
+
+    const [words, total] = await Promise.all([
+      this.dictionaryModel
+        .find(query)
+        .sort({ word: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.dictionaryModel.countDocuments(query),
+    ]);
+
+    return {
+      words,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Find a single word by its value
+   */
+  async findByWord(word: string): Promise<Dictionary | null> {
+    return this.dictionaryModel.findOne({ word: word.toUpperCase() }).lean();
+  }
+
+  /**
+   * Update a word's clue
+   */
+  async updateClue(word: string, clue: string): Promise<Dictionary | null> {
+    return this.dictionaryModel.findOneAndUpdate(
+      { word: word.toUpperCase() },
+      { $set: { clue } },
+      { new: true },
+    );
+  }
+
+  /**
+   * Delete a word from the dictionary
+   */
+  async deleteWord(word: string): Promise<{ deleted: boolean }> {
+    const result = await this.dictionaryModel.deleteOne({
+      word: word.toUpperCase(),
+    });
+    return { deleted: result.deletedCount > 0 };
+  }
+
+  /**
+   * Find all pangrams (words with exactly 7 distinct letters)
+   * Used for Word Forge puzzle generation
+   */
+  async findAllPangrams(): Promise<string[]> {
+    // Find words where the letters array has exactly 7 elements
+    // (letters array contains unique sorted letters)
+    const pangrams = await this.dictionaryModel
+      .find({
+        letters: { $size: 7 },
+        length: { $gte: 7, $lte: 9 }, // Reasonable pangram length
+      })
+      .select("word letters")
+      .lean();
+
+    return pangrams.map((p) => p.word);
+  }
+
+  /**
+   * Find all valid words with clues for a Word Forge puzzle
+   * Returns words with their clues for inclusion in puzzle JSON
+   */
+  async findWordsWithCluesForPuzzle(
+    letters: string[],
+    centerLetter: string,
+    minLength: number = 4,
+    maxLength: number = 9,
+  ): Promise<{ word: string; clue: string; isPangram: boolean }[]> {
+    const normalizedLetters = letters.map((l) => l.toUpperCase());
+    const normalizedCenter = centerLetter.toUpperCase();
+    const letterSet = new Set(normalizedLetters);
+
+    // Get all words that are between minLength and maxLength and contain the center letter
+    const candidates = await this.dictionaryModel
+      .find({
+        length: { $gte: minLength, $lte: maxLength },
+        word: { $regex: normalizedCenter },
+      })
+      .select("word clue")
+      .lean();
+
+    const validWords: { word: string; clue: string; isPangram: boolean }[] = [];
+
+    for (const { word, clue } of candidates) {
+      // Check if word can be made from available letters
+      let canMake = true;
+
+      for (const char of word) {
+        if (!letterSet.has(char)) {
+          canMake = false;
+          break;
+        }
+      }
+
+      if (canMake) {
+        // Check if pangram (uses all 7 letters)
+        const isPangram = normalizedLetters.every((l) => word.includes(l));
+
+        validWords.push({
+          word,
+          clue: clue || `Define: ${word}`,
+          isPangram,
+        });
+      }
+    }
+
+    // Sort: pangrams first, then by length descending, then alphabetically
+    return validWords.sort((a, b) => {
+      if (a.isPangram !== b.isPangram) return a.isPangram ? -1 : 1;
+      if (a.word.length !== b.word.length) return b.word.length - a.word.length;
+      return a.word.localeCompare(b.word);
+    });
+  }
 }

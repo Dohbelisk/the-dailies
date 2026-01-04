@@ -17,79 +17,102 @@ class KeyboardInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      child: Column(
-        children: [
-          _buildRow(context, _row1),
-          const SizedBox(height: 6),
-          _buildRow(context, _row2),
-          const SizedBox(height: 6),
-          _buildRow(context, _row3, includeDelete: true),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Calculate responsive key size based on available width
+          // Row 1 has 10 keys, which is the widest row (without delete)
+          final availableWidth = constraints.maxWidth;
+
+          // Calculate key width to fit 10 keys with small gaps
+          // Each key gets a slot of (availableWidth / 10)
+          final slotWidth = availableWidth / 10;
+          final keyWidth = (slotWidth - 2).clamp(22.0, 32.0); // Leave 2px for gaps
+          final keyHeight = (keyWidth * 1.4).clamp(30.0, 44.0);
+          final fontSize = (keyWidth * 0.5).clamp(11.0, 16.0);
+
+          return Column(
+            children: [
+              _buildRow(context, _row1, slotWidth, keyWidth, keyHeight, fontSize),
+              const SizedBox(height: 4),
+              _buildRow(context, _row2, slotWidth, keyWidth, keyHeight, fontSize),
+              const SizedBox(height: 4),
+              _buildRow(context, _row3, slotWidth, keyWidth, keyHeight, fontSize, includeDelete: true),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildRow(BuildContext context, List<String> letters, {bool includeDelete = false}) {
+  Widget _buildRow(BuildContext context, List<String> letters, double slotWidth, double keyWidth, double keyHeight, double fontSize, {bool includeDelete = false}) {
     final theme = Theme.of(context);
+
+    // Calculate width for delete key (approximately 1.5x a regular key slot)
+    final deleteWidth = slotWidth * 1.5;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ...letters.map((letter) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: _buildKey(context, letter),
+        ...letters.map((letter) => SizedBox(
+          width: slotWidth,
+          child: Center(
+            child: _buildKey(context, letter, keyWidth, keyHeight, fontSize),
+          ),
         )),
-        if (includeDelete) ...[
-          const SizedBox(width: 8),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onDeleteTap,
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                width: 56,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.error.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: theme.colorScheme.error.withOpacity(0.3),
+        if (includeDelete)
+          SizedBox(
+            width: deleteWidth,
+            child: Center(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onDeleteTap,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    width: deleteWidth - 4,
+                    height: keyHeight,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.error.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: theme.colorScheme.error.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.backspace_outlined,
+                      size: fontSize * 1.25,
+                      color: theme.colorScheme.error,
+                    ),
                   ),
-                ),
-                child: Icon(
-                  Icons.backspace_outlined,
-                  size: 20,
-                  color: theme.colorScheme.error,
                 ),
               ),
             ),
           ),
-        ],
       ],
     );
   }
 
-  Widget _buildKey(BuildContext context, String letter) {
+  Widget _buildKey(BuildContext context, String letter, double width, double height, double fontSize) {
     final theme = Theme.of(context);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => onLetterTap(letter),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         child: Container(
-          width: 32,
-          height: 44,
+          width: width,
+          height: height,
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -99,7 +122,7 @@ class KeyboardInput extends StatelessWidget {
             child: Text(
               letter,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: fontSize,
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurface,
               ),

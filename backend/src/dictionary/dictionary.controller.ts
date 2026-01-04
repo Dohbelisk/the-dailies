@@ -1,7 +1,19 @@
-import { Controller, Post, Body, Get } from "@nestjs/common";
-import { ApiTags, ApiOperation } from "@nestjs/swagger";
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Patch,
+  Delete,
+  Param,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { IsString, IsArray, IsOptional, MinLength } from "class-validator";
 import { DictionaryService } from "./dictionary.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { AdminGuard } from "../auth/guards/admin.guard";
 
 class ValidateWordDto {
   @IsString()
@@ -30,6 +42,11 @@ class ValidateWordForPuzzleDto {
 
   @IsOptional()
   minLength?: number;
+}
+
+class UpdateClueDto {
+  @IsString()
+  clue: string;
 }
 
 @ApiTags("dictionary")
@@ -77,5 +94,58 @@ export class DictionaryController {
       wordCount: count,
       minWordLength: 4,
     };
+  }
+
+  // ============ Admin Endpoints ============
+
+  @Get()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiOperation({
+    summary: "List dictionary words with pagination and filters",
+  })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "search", required: false, type: String })
+  @ApiQuery({ name: "length", required: false, type: Number })
+  @ApiQuery({ name: "startsWith", required: false, type: String })
+  @ApiQuery({ name: "hasClue", required: false, type: Boolean })
+  async findAll(
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+    @Query("search") search?: string,
+    @Query("length") length?: string,
+    @Query("startsWith") startsWith?: string,
+    @Query("hasClue") hasClue?: string,
+  ) {
+    return this.dictionaryService.findAll({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 50,
+      search,
+      length: length ? parseInt(length, 10) : undefined,
+      startsWith: startsWith?.toUpperCase(),
+      hasClue:
+        hasClue === "true" ? true : hasClue === "false" ? false : undefined,
+    });
+  }
+
+  @Get("word/:word")
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiOperation({ summary: "Get a single dictionary word" })
+  async findByWord(@Param("word") word: string) {
+    return this.dictionaryService.findByWord(word.toUpperCase());
+  }
+
+  @Patch("word/:word")
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiOperation({ summary: "Update a word's clue" })
+  async updateClue(@Param("word") word: string, @Body() dto: UpdateClueDto) {
+    return this.dictionaryService.updateClue(word.toUpperCase(), dto.clue);
+  }
+
+  @Delete("word/:word")
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiOperation({ summary: "Delete a word from the dictionary" })
+  async deleteWord(@Param("word") word: string) {
+    return this.dictionaryService.deleteWord(word.toUpperCase());
   }
 }

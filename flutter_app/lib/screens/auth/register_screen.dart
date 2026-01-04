@@ -3,7 +3,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/api_service.dart';
-import '../../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -102,7 +101,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Text(
                   'Create an account to challenge friends',
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onBackground.withOpacity(0.6),
+                    color: theme.colorScheme.onBackground.withValues(alpha: 0.6),
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 100.ms, duration: 600.ms),
@@ -244,10 +243,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.error.withOpacity(0.1),
+                      color: theme.colorScheme.error.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: theme.colorScheme.error.withOpacity(0.3),
+                        color: theme.colorScheme.error.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -303,7 +302,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Text(
                   'By creating an account, you agree to our Terms of Service and Privacy Policy',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onBackground.withOpacity(0.5),
+                    color: theme.colorScheme.onBackground.withValues(alpha: 0.5),
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 700.ms, duration: 600.ms),

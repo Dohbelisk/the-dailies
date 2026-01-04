@@ -25,7 +25,7 @@ class SudokuGrid extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -64,14 +64,14 @@ class SudokuGrid extends StatelessWidget {
     final isInitial = puzzle.initialGrid[row][col] != null;
     final isSelected = row == selectedRow && col == selectedCol;
     final isHighlighted = _shouldHighlight(row, col);
-    final isError = value != null && !puzzle.isValidPlacement(row, col, value);
+    final isError = puzzle.hasError(row, col);
     final notes = puzzle.notes[row][col];
 
     Color? backgroundColor;
     if (isSelected) {
-      backgroundColor = theme.colorScheme.primary.withOpacity(0.3);
+      backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.3);
     } else if (isHighlighted) {
-      backgroundColor = theme.colorScheme.primary.withOpacity(0.1);
+      backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.1);
     }
 
     return GestureDetector(
@@ -90,7 +90,7 @@ class SudokuGrid extends StatelessWidget {
                     color: isError
                         ? theme.colorScheme.error
                         : isInitial
-                            ? theme.colorScheme.onSurface.withOpacity(0.85)
+                            ? theme.colorScheme.onSurface.withValues(alpha: 0.85)
                             : theme.colorScheme.primary,
                   ),
                 )
@@ -108,7 +108,7 @@ class SudokuGrid extends StatelessWidget {
       fontSize: 8,
       height: 1.0,
       fontWeight: FontWeight.w500,
-      color: theme.colorScheme.onSurface.withOpacity(0.6),
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
     );
 
     // Build a compact 3x3 grid of notes, centered in the cell
@@ -192,10 +192,10 @@ class _SudokuGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final cellSize = size.width / 9;
     final thinPaint = Paint()
-      ..color = theme.colorScheme.onSurface.withOpacity(0.2)
+      ..color = theme.colorScheme.onSurface.withValues(alpha: 0.2)
       ..strokeWidth = 1;
     final thickPaint = Paint()
-      ..color = theme.colorScheme.onSurface.withOpacity(0.5)
+      ..color = theme.colorScheme.onSurface.withValues(alpha: 0.5)
       ..strokeWidth = 2.5;
 
     // Draw thin lines

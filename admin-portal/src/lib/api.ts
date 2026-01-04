@@ -49,6 +49,12 @@ export const puzzlesApi = {
     api.get(`/puzzles/${id}`),
   getToday: () =>
     api.get('/puzzles/today'),
+  getByDate: (date: string) =>
+    api.get('/puzzles', { params: { date } }),
+  getByDateRange: (startDate: string, endDate: string) =>
+    api.get('/puzzles', { params: { startDate, endDate } }),
+  getByTypeAndDate: (gameType: string, date: string) =>
+    api.get(`/puzzles/type/${gameType}/date/${date}`),
   getStats: () =>
     api.get('/puzzles/admin/stats'),
   create: (data: any) =>
@@ -61,6 +67,41 @@ export const puzzlesApi = {
     api.patch(`/puzzles/${id}/toggle-active`),
   delete: (id: string) =>
     api.delete(`/puzzles/${id}`),
+}
+
+// Game Types
+export const GAME_TYPES = [
+  'sudoku',
+  'killerSudoku',
+  'crossword',
+  'wordSearch',
+  'wordForge',
+  'nonogram',
+  'numberTarget',
+  'ballSort',
+  'pipes',
+  'lightsOut',
+  'wordLadder',
+  'connections',
+  'mathora',
+] as const
+
+export type GameType = typeof GAME_TYPES[number]
+
+export const GAME_TYPE_LABELS: Record<GameType, string> = {
+  sudoku: 'Sudoku',
+  killerSudoku: 'Killer Sudoku',
+  crossword: 'Crossword',
+  wordSearch: 'Word Search',
+  wordForge: 'Word Forge',
+  nonogram: 'Nonogram',
+  numberTarget: 'Number Target',
+  ballSort: 'Ball Sort',
+  pipes: 'Pipes',
+  lightsOut: 'Lights Out',
+  wordLadder: 'Word Ladder',
+  connections: 'Connections',
+  mathora: 'Mathora',
 }
 
 // Scores
@@ -85,6 +126,52 @@ export const feedbackApi = {
     api.patch(`/feedback/${id}`, data),
   delete: (id: string) =>
     api.delete(`/feedback/${id}`),
+}
+
+// Dictionary
+export const dictionaryApi = {
+  getAll: (params?: Record<string, any>) =>
+    api.get('/dictionary', { params }),
+  getByWord: (word: string) =>
+    api.get(`/dictionary/word/${word}`),
+  updateClue: (word: string, clue: string) =>
+    api.patch(`/dictionary/word/${word}`, { clue }),
+  delete: (word: string) =>
+    api.delete(`/dictionary/word/${word}`),
+  getStatus: () =>
+    api.get('/dictionary/status'),
+}
+
+// Generate
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert'
+
+export const generateApi = {
+  sudoku: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/sudoku', { date, difficulty }),
+  killerSudoku: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/killer-sudoku', { date, difficulty }),
+  crossword: (date: string, difficulty: Difficulty, wordsWithClues: { word: string; clue: string }[]) =>
+    api.post('/generate/crossword', { date, difficulty, wordsWithClues }),
+  wordSearch: (date: string, difficulty: Difficulty, words: string[], theme?: string) =>
+    api.post('/generate/word-search', { date, difficulty, words, theme }),
+  wordForge: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/word-forge', { date, difficulty }),
+  nonogram: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/nonogram', { date, difficulty }),
+  numberTarget: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/number-target', { date, difficulty }),
+  ballSort: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/ball-sort', { date, difficulty }),
+  pipes: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/pipes', { date, difficulty }),
+  lightsOut: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/lights-out', { date, difficulty }),
+  wordLadder: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/word-ladder', { date, difficulty }),
+  connections: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/connections', { date, difficulty }),
+  mathora: (date: string, difficulty: Difficulty) =>
+    api.post('/generate/mathora', { date, difficulty }),
 }
 
 // Validation

@@ -4,6 +4,7 @@ import '../models/game_models.dart';
 class PipesGrid extends StatelessWidget {
   final PipesPuzzle puzzle;
   final Function(String color, int row, int col) onPathStart;
+  final Function(String color) onPathContinue;
   final Function(int row, int col) onPathExtend;
   final VoidCallback onPathEnd;
   final VoidCallback onReset;
@@ -12,6 +13,7 @@ class PipesGrid extends StatelessWidget {
     super.key,
     required this.puzzle,
     required this.onPathStart,
+    required this.onPathContinue,
     required this.onPathExtend,
     required this.onPathEnd,
     required this.onReset,
@@ -100,9 +102,28 @@ class PipesGrid extends StatelessWidget {
         onPanStart: (details) {
           final cellPos = _getCellFromPosition(details.localPosition, cellSize);
           if (cellPos != null) {
-            final endpoint = puzzle.getEndpointAt(cellPos[0], cellPos[1]);
+            final row = cellPos[0];
+            final col = cellPos[1];
+
+            // Check if this is an endpoint - if so, start fresh from this endpoint
+            final endpoint = puzzle.getEndpointAt(row, col);
             if (endpoint != null) {
-              onPathStart(endpoint.color, cellPos[0], cellPos[1]);
+              onPathStart(endpoint.color, row, col);
+              return;
+            }
+
+            // Check if this is the tip of an existing partial path
+            for (final entry in puzzle.currentPaths.entries) {
+              final color = entry.key;
+              final path = entry.value;
+              if (path.isNotEmpty) {
+                final last = path.last;
+                if (last[0] == row && last[1] == col) {
+                  // This is the tip of a partial path - continue from here
+                  onPathContinue(color);
+                  return;
+                }
+              }
             }
           }
         },
@@ -120,7 +141,7 @@ class PipesGrid extends StatelessWidget {
             color: theme.colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.3),
+              color: theme.colorScheme.outline.withValues(alpha: 0.3),
             ),
           ),
           child: CustomPaint(
@@ -163,7 +184,7 @@ class _PipesGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // Draw grid lines
     final gridPaint = Paint()
-      ..color = theme.colorScheme.outline.withOpacity(0.2)
+      ..color = theme.colorScheme.outline.withValues(alpha: 0.2)
       ..strokeWidth = 1;
 
     for (int i = 0; i <= puzzle.rows; i++) {
@@ -188,7 +209,7 @@ class _PipesGridPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(centerX, centerY),
         cellSize * 0.15,
-        Paint()..color = theme.colorScheme.outline.withOpacity(0.5),
+        Paint()..color = theme.colorScheme.outline.withValues(alpha: 0.5),
       );
     }
 
@@ -234,7 +255,7 @@ class _PipesGridPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(centerX - cellSize * 0.08, centerY - cellSize * 0.08),
         cellSize * 0.12,
-        Paint()..color = Colors.white.withOpacity(0.4),
+        Paint()..color = Colors.white.withValues(alpha: 0.4),
       );
     }
   }

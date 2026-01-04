@@ -80,6 +80,7 @@ class RemoteConfigService extends ChangeNotifier {
   RemoteConfigService._internal();
 
   static const String _flagOverridesKey = 'feature_flag_overrides';
+  static const String _superAccountKey = 'super_account_enabled';
 
   FirebaseRemoteConfig? _remoteConfig;
   RemoteAppConfig? _appConfig;
@@ -88,6 +89,7 @@ class RemoteConfigService extends ChangeNotifier {
   String _buildNumber = '1';
   bool _initialized = false;
   DateTime? _lastFetch;
+  bool _isSuperAccount = false;
 
   // Getters
   RemoteAppConfig get appConfig => _appConfig ?? RemoteAppConfig.defaults();
@@ -96,6 +98,21 @@ class RemoteConfigService extends ChangeNotifier {
   String get fullVersion => '$_currentVersion+$_buildNumber';
   bool get isInitialized => _initialized;
   DateTime? get lastFetch => _lastFetch;
+
+  /// Super account status - grants unlimited tokens, future puzzle access, etc.
+  bool get isSuperAccount => _isSuperAccount;
+
+  /// Set super account status
+  Future<void> setSuperAccount(bool value) async {
+    _isSuperAccount = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_superAccountKey, value);
+    } catch (e) {
+      debugPrint('RemoteConfigService: Error saving super account status - $e');
+    }
+    notifyListeners();
+  }
 
   /// Initialize the remote config service.
   Future<void> initialize() async {
@@ -110,8 +127,9 @@ class RemoteConfigService extends ChangeNotifier {
       debugPrint('RemoteConfigService: Error getting package info - $e');
     }
 
-    // Load flag overrides from local storage
+    // Load flag overrides and super account status from local storage
     await _loadFlagOverrides();
+    await _loadSuperAccountStatus();
 
     // Initialize Firebase Remote Config
     try {
@@ -133,6 +151,7 @@ class RemoteConfigService extends ChangeNotifier {
         'feature_debug_menu': '',  // Disabled by default
         'feature_challenges': '1.0.0',  // Enabled for all versions
         'feature_friends': '1.0.0',  // Enabled for all versions
+        'feature_display_inactive_games': '',  // Disabled by default - shows inactive games when enabled
       });
 
       // Configure settings
@@ -332,6 +351,7 @@ class RemoteConfigService extends ChangeNotifier {
       'feature_debug_menu',
       'feature_challenges',
       'feature_friends',
+      'feature_display_inactive_games',
     };
     keys.addAll(_flagOverrides.keys);
     return keys;
@@ -406,6 +426,15 @@ class RemoteConfigService extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('RemoteConfigService: Error loading overrides - $e');
+    }
+  }
+
+  Future<void> _loadSuperAccountStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _isSuperAccount = prefs.getBool(_superAccountKey) ?? false;
+    } catch (e) {
+      debugPrint('RemoteConfigService: Error loading super account status - $e');
     }
   }
 

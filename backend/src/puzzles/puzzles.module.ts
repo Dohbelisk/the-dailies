@@ -6,10 +6,12 @@ import { GenerateController } from "./generate.controller";
 import { ValidateController } from "./validate.controller";
 import { ValidateService } from "./validate.service";
 import { Puzzle, PuzzleSchema } from "./schemas/puzzle.schema";
+import { DictionaryModule } from "../dictionary/dictionary.module";
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Puzzle.name, schema: PuzzleSchema }]),
+    DictionaryModule,
   ],
   controllers: [PuzzlesController, GenerateController, ValidateController],
   providers: [PuzzlesService, ValidateService],

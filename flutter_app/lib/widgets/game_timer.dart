@@ -12,12 +12,12 @@ class GameTimer extends StatelessWidget {
     final secs = seconds % 60;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
+        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.3),
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -25,14 +25,14 @@ class GameTimer extends StatelessWidget {
         children: [
           Icon(
             Icons.timer_outlined,
-            size: 18,
+            size: 12,
             color: theme.colorScheme.primary,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 3),
           Text(
             '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 12,
               fontWeight: FontWeight.bold,
               fontFamily: 'monospace',
               color: theme.colorScheme.primary,

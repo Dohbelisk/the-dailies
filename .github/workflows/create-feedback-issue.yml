@@ -1,0 +1,107 @@
+name: Create Feedback Issue
+
+on:
+  repository_dispatch:
+    types: [feedback-submitted]
+
+jobs:
+  create-issue:
+    name: Create GitHub Issue from Feedback
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create Issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const payload = context.payload.client_payload;
+
+            // Map feedback types to labels and emojis
+            const typeConfig = {
+              'bug_report': {
+                label: 'bug',
+                emoji: '🐛',
+                title: 'Bug Report'
+              },
+              'new_game_suggestion': {
+                label: 'enhancement',
+                emoji: '🎮',
+                title: 'New Game Suggestion'
+              },
+              'puzzle_suggestion': {
+                label: 'enhancement',
+                emoji: '🧩',
+                title: 'Puzzle Suggestion'
+              },
+              'puzzle_mistake': {
+                label: 'bug',
+                emoji: '❌',
+                title: 'Puzzle Mistake'
+              },
+              'general': {
+                label: 'feedback',
+                emoji: '💬',
+                title: 'General Feedback'
+              }
+            };
+
+            const config = typeConfig[payload.type] || typeConfig.general;
+            const labels = ['user-feedback', config.label];
+
+            // Add priority label for bug reports
+            if (payload.type === 'bug_report') {
+              labels.push('needs-triage');
+            }
+
+            // Build the issue title
+            const issueTitle = `${config.emoji} [${config.title}] ${payload.message.substring(0, 80)}${payload.message.length > 80 ? '...' : ''}`;
+
+            // Build the issue body with all available details
+            let body = `## ${config.title}\n\n`;
+            body += `**Submitted:** ${new Date(payload.createdAt).toLocaleString()}\n`;
+            body += `**Feedback ID:** \`${payload.feedbackId}\`\n\n`;
+
+            body += `### Message\n\n`;
+            body += `${payload.message}\n\n`;
+
+            // Contact info
+            if (payload.email) {
+              body += `### Contact\n\n`;
+              body += `📧 ${payload.email}\n\n`;
+            }
+
+            // Game context (if available)
+            if (payload.gameType || payload.puzzleId || payload.difficulty || payload.puzzleDate) {
+              body += `### Game Context\n\n`;
+              body += `| Field | Value |\n`;
+              body += `|-------|-------|\n`;
+              if (payload.gameType) body += `| Game Type | ${payload.gameType} |\n`;
+              if (payload.difficulty) body += `| Difficulty | ${payload.difficulty} |\n`;
+              if (payload.puzzleDate) body += `| Puzzle Date | ${payload.puzzleDate} |\n`;
+              if (payload.puzzleId) body += `| Puzzle ID | \`${payload.puzzleId}\` |\n`;
+              body += `\n`;
+            }
+
+            // Device info (especially important for bug reports)
+            if (payload.deviceInfo) {
+              body += `### Device Information\n\n`;
+              body += `\`\`\`\n${payload.deviceInfo}\n\`\`\`\n\n`;
+            }
+
+            // Add footer
+            body += `---\n`;
+            body += `*This issue was automatically created from user feedback submitted through The Dailies app.*`;
+
+            // Create the issue
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issueTitle,
+              body: body,
+              labels: labels
+            });
+
+            console.log(`Created issue #${issue.data.number}: ${issue.data.html_url}`);
+
+            return issue.data;

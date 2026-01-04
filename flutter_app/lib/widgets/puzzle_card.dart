@@ -34,18 +34,18 @@ class PuzzleCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              colors.$1.withOpacity(0.15),
-              colors.$2.withOpacity(0.08),
+              colors.$1.withValues(alpha: 0.15),
+              colors.$2.withValues(alpha: 0.08),
             ],
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: colors.$1.withOpacity(0.3),
+            color: colors.$1.withValues(alpha: 0.3),
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: colors.$1.withOpacity(0.1),
+              color: colors.$1.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -61,7 +61,7 @@ class PuzzleCard extends StatelessWidget {
                 puzzle.gameType.icon,
                 style: TextStyle(
                   fontSize: 50,
-                  color: colors.$1.withOpacity(0.1),
+                  color: colors.$1.withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -71,14 +71,14 @@ class PuzzleCard extends StatelessWidget {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Center(
                     child: Icon(
                       Icons.lock_rounded,
                       size: 48,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                     ),
                   ),
                 ),
@@ -96,7 +96,7 @@ class PuzzleCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: colors.$1.withOpacity(0.15),
+                          color: colors.$1.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -110,7 +110,7 @@ class PuzzleCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.2),
+                            color: Colors.green.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
@@ -123,7 +123,7 @@ class PuzzleCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.2),
+                            color: Colors.orange.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
@@ -140,7 +140,7 @@ class PuzzleCard extends StatelessWidget {
                           child: Icon(
                             isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                             size: 18,
-                            color: isFavorite ? Colors.red : theme.colorScheme.onSurface.withOpacity(0.4),
+                            color: isFavorite ? Colors.red : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                           ),
                         ),
                       ],
@@ -173,14 +173,14 @@ class PuzzleCard extends StatelessWidget {
                           size: 12,
                           color: index < puzzle.difficulty.stars
                               ? colors.$1
-                              : theme.colorScheme.onSurface.withOpacity(0.3),
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.3),
                         ),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         puzzle.difficulty.displayName,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           fontSize: 10,
                         ),
                       ),

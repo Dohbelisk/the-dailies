@@ -29,7 +29,7 @@ class CrosswordGrid extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -66,9 +66,9 @@ class CrosswordGrid extends StatelessWidget {
     if (isBlack) {
       return Container(
         decoration: BoxDecoration(
-          color: theme.colorScheme.onSurface.withOpacity(0.9),
+          color: Colors.black87,
           border: Border.all(
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            color: Colors.black54,
             width: 0.5,
           ),
         ),
@@ -81,21 +81,21 @@ class CrosswordGrid extends StatelessWidget {
 
     if (isSelected) {
       // Current cursor cell - intense highlight with thicker border
-      backgroundColor = theme.colorScheme.primary.withOpacity(0.5);
+      backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.5);
       cellBorder = Border.all(
         color: theme.colorScheme.primary,
         width: 2.5,
       );
     } else if (isHighlighted) {
       // Part of selected word - lighter highlight
-      backgroundColor = theme.colorScheme.primary.withOpacity(0.15);
+      backgroundColor = theme.colorScheme.primary.withValues(alpha: 0.15);
       cellBorder = Border.all(
-        color: theme.colorScheme.primary.withOpacity(0.4),
+        color: theme.colorScheme.primary.withValues(alpha: 0.4),
         width: 1,
       );
     } else {
       cellBorder = Border.all(
-        color: theme.colorScheme.onSurface.withOpacity(0.3),
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
         width: 0.5,
       );
     }
@@ -112,38 +112,44 @@ class CrosswordGrid extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Cell number
+            // Cell number - tiny and tucked in top-left corner
             if (cellNumber != null)
               Positioned(
-                top: 2,
-                left: 3,
+                top: 0,
+                left: 1,
                 child: Text(
                   '$cellNumber',
                   style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 5,
+                    fontWeight: FontWeight.w500,
                     color: isSelected
-                        ? theme.colorScheme.onPrimary.withOpacity(0.8)
-                        : theme.colorScheme.onSurface.withOpacity(0.6),
+                        ? theme.colorScheme.onPrimary.withValues(alpha: 0.6)
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
               ),
 
-            // Letter
-            Center(
-              child: Text(
-                hasValue ? userValue!.toUpperCase() : '',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: hasValue && !isCorrect && _showErrors
-                      ? theme.colorScheme.error
-                      : isSelected
-                          ? theme.colorScheme.onPrimary
-                          : theme.colorScheme.onSurface,
+            // Letter - use FittedBox to scale to cell size, consistent sizing
+            if (hasValue)
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: Text(
+                      userValue.toUpperCase(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: !isCorrect && _showErrors
+                            ? theme.colorScheme.error
+                            : isSelected
+                                ? theme.colorScheme.onPrimary
+                                : theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

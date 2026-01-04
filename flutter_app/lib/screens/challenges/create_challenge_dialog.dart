@@ -217,6 +217,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.stairs_rounded;
       case GameType.connections:
         return Icons.link_rounded;
+      case GameType.mathora:
+        return Icons.calculate_outlined;
     }
   }
 
@@ -246,6 +248,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Word Ladder';
       case GameType.connections:
         return 'Connections';
+      case GameType.mathora:
+        return 'Mathora';
     }
   }
 

@@ -90,7 +90,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                       // Tabs
                       Container(
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surface.withOpacity(0.5),
+                          color: theme.colorScheme.surface.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: TabBar(
@@ -101,7 +101,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                           ),
                           labelColor: theme.colorScheme.onPrimary,
                           unselectedLabelColor:
-                              theme.colorScheme.onSurface.withOpacity(0.6),
+                              theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           dividerColor: Colors.transparent,
                           tabs: const [
                             Tab(text: 'Pending'),
@@ -264,7 +264,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
           Icon(
             icon,
             size: 64,
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.onBackground.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
@@ -276,7 +276,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
             subtitle,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color:
-                      Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+                      Theme.of(context).colorScheme.onBackground.withValues(alpha: 0.6),
                 ),
             textAlign: TextAlign.center,
           ),
@@ -287,8 +287,6 @@ class _ChallengesScreenState extends State<ChallengesScreen>
 
   Widget _buildPendingChallengeCard(Challenge challenge, int index) {
     final theme = Theme.of(context);
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final currentUserId = authService.currentUser?.id ?? '';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -301,7 +299,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
                   child: Text(
                     challenge.challengerUsername.isNotEmpty
                         ? challenge.challengerUsername[0].toUpperCase()
@@ -323,7 +321,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                       Text(
                         'challenged you!',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -338,13 +336,13 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                 Icon(
                   Icons.timer_outlined,
                   size: 16,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 const SizedBox(width: 4),
                 Text(
                   'Expires in ${_formatDuration(challenge.timeRemaining)}',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 const Spacer(),
@@ -356,7 +354,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surface.withOpacity(0.5),
+                  color: theme.colorScheme.surface.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -364,7 +362,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                     Icon(
                       Icons.message_outlined,
                       size: 16,
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -433,7 +431,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
                     child: Text(
                       opponentName.isNotEmpty
                           ? opponentName[0].toUpperCase()
@@ -455,7 +453,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                         Text(
                           isChallenger ? 'You challenged them' : 'They challenged you',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -474,7 +472,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.2),
+                        color: Colors.green.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -547,7 +545,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: resultColor.withOpacity(0.2),
+                color: resultColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(resultIcon, color: resultColor),
@@ -569,7 +567,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
                       Text(
                         dateFormat.format(challenge.createdAt),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -580,7 +578,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: resultColor.withOpacity(0.2),
+                color: resultColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -654,6 +652,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.hub_rounded;
         label = 'Connections';
         break;
+      case GameType.mathora:
+        icon = Icons.calculate_outlined;
+        label = 'Mathora';
+        break;
     }
 
     if (small) {
@@ -675,7 +677,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.1),
+        color: theme.colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -714,7 +716,7 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

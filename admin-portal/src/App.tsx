@@ -7,7 +7,9 @@ import PuzzleList from './pages/PuzzleList'
 import PuzzleCreate from './pages/PuzzleCreate'
 import PuzzleEdit from './pages/PuzzleEdit'
 import PuzzleGenerate from './pages/PuzzleGenerate'
+import PuzzleSchedule from './pages/PuzzleSchedule'
 import FeedbackList from './pages/FeedbackList'
+import Dictionary from './pages/Dictionary'
 import PrivacyPolicy from './pages/legal/PrivacyPolicy'
 import TermsOfService from './pages/legal/TermsOfService'
 import Support from './pages/legal/Support'
@@ -44,7 +46,9 @@ export default function App() {
         <Route path="puzzles/create" element={<PuzzleCreate />} />
         <Route path="puzzles/generate" element={<PuzzleGenerate />} />
         <Route path="puzzles/:id/edit" element={<PuzzleEdit />} />
+        <Route path="schedule" element={<PuzzleSchedule />} />
         <Route path="feedback" element={<FeedbackList />} />
+        <Route path="dictionary" element={<Dictionary />} />
       </Route>
     </Routes>
   )
