@@ -1,0 +1,126 @@
+# Fastfile for The Dailies iOS App
+# https://docs.fastlane.tools
+
+default_platform(:ios)
+
+platform :ios do
+
+  # ==========================================
+  # TESTFLIGHT LANES
+  # ==========================================
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    setup_ci if ENV['CI']
+
+    # Increment build number (uses current timestamp for uniqueness)
+    increment_build_number(
+      build_number: Time.now.strftime("%Y%m%d%H%M"),
+      xcodeproj: "Runner.xcodeproj"
+    )
+
+    # Build the Flutter app
+    build_flutter_app
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      apple_id: ENV["APP_APPLE_ID"] || "6744437941", # Your App Store app ID
+      ipa: "../build/ios/ipa/The Dailies.ipa"
+    )
+  end
+
+  desc "Build and upload to TestFlight (manual trigger)"
+  lane :testflight do
+    beta
+  end
+
+  desc "Build and upload to TestFlight using API Key"
+  lane :beta_ci do
+    # Use App Store Connect API Key for CI/CD
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY_KEY"],
+      is_key_content_base64: true
+    )
+
+    # Increment build number
+    increment_build_number(
+      build_number: Time.now.strftime("%Y%m%d%H%M"),
+      xcodeproj: "Runner.xcodeproj"
+    )
+
+    # Build Flutter app
+    build_flutter_app
+
+    # Upload to TestFlight with API key
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      ipa: "../build/ios/ipa/The Dailies.ipa"
+    )
+  end
+
+  # ==========================================
+  # BUILD LANES
+  # ==========================================
+
+  desc "Build iOS app only (no upload)"
+  lane :build do
+    build_flutter_app
+  end
+
+  desc "Build Flutter iOS app"
+  private_lane :build_flutter_app do
+    # Navigate to flutter_app root and build
+    Dir.chdir("..") do
+      sh("flutter", "clean")
+      sh("flutter", "pub", "get")
+      sh("flutter", "build", "ipa", "--release",
+         "--export-options-plist=ios/ExportOptions.plist")
+    end
+  end
+
+  # ==========================================
+  # UTILITY LANES
+  # ==========================================
+
+  desc "Sync certificates and provisioning profiles"
+  lane :sync_certs do
+    match(type: "appstore", readonly: true)
+  end
+
+  desc "Register new devices"
+  lane :register_device do
+    device_name = prompt(text: "Enter device name: ")
+    device_udid = prompt(text: "Enter device UDID: ")
+    register_devices(
+      devices: {
+        device_name => device_udid
+      }
+    )
+  end
+
+  desc "Increment version number"
+  lane :bump_version do |options|
+    bump_type = options[:type] || "patch"
+    increment_version_number(
+      bump_type: bump_type,
+      xcodeproj: "Runner.xcodeproj"
+    )
+  end
+
+  # ==========================================
+  # ERROR HANDLING
+  # ==========================================
+
+  error do |lane, exception|
+    # Notify on failure (optional - configure as needed)
+    # slack(
+    #   message: "Fastlane failed: #{exception.message}",
+    #   success: false
+    # )
+  end
+
+end
