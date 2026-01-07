@@ -148,6 +148,9 @@ jobs:
           bundler-cache: true
           working-directory: flutter_app/ios
 
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
       - name: Install CocoaPods
         run: |
           cd ios
@@ -162,7 +165,6 @@ jobs:
 
       - name: Build Flutter iOS
         run: |
-          flutter pub get
           flutter build ipa --release \
             --build-number=${{ needs.version-bump.outputs.build_number }} \
             --export-options-plist=ios/ExportOptions.plist
