@@ -33,13 +33,14 @@ export class NotificationsService implements OnModuleInit {
   private async initializeFirebase() {
     if (this.initialized) return;
 
-    // Try file path first, then JSON string
+    // Try file path first, then base64, then JSON string
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+    const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
 
-    if (!serviceAccountPath && !serviceAccountJson) {
+    if (!serviceAccountPath && !serviceAccountBase64 && !serviceAccountJson) {
       this.logger.warn(
-        "Neither FIREBASE_SERVICE_ACCOUNT_PATH nor FIREBASE_SERVICE_ACCOUNT set - push notifications disabled",
+        "No FIREBASE_SERVICE_ACCOUNT_PATH, FIREBASE_SERVICE_ACCOUNT_BASE64, or FIREBASE_SERVICE_ACCOUNT set - push notifications disabled",
       );
       return;
     }
@@ -58,6 +59,14 @@ export class NotificationsService implements OnModuleInit {
           const serviceAccount = require(resolvedPath);
           this.logger.log(
             `Initializing Firebase from file with project: ${serviceAccount.project_id}`,
+          );
+          credential = admin.credential.cert(serviceAccount);
+        } else if (serviceAccountBase64) {
+          // Decode from base64
+          const decoded = Buffer.from(serviceAccountBase64, "base64").toString("utf-8");
+          const serviceAccount = JSON.parse(decoded);
+          this.logger.log(
+            `Initializing Firebase from base64 with project: ${serviceAccount.project_id}`,
           );
           credential = admin.credential.cert(serviceAccount);
         } else {

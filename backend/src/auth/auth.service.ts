@@ -18,9 +18,10 @@ export class AuthService {
     if (admin.apps.length > 0) return;
 
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+    const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
 
-    if (!serviceAccountPath && !serviceAccountJson) {
+    if (!serviceAccountPath && !serviceAccountBase64 && !serviceAccountJson) {
       throw new Error("Firebase service account not configured");
     }
 
@@ -33,6 +34,11 @@ export class AuthService {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const serviceAccount = require(resolvedPath);
       this.logger.log(`Initializing Firebase from file: ${serviceAccount.project_id}`);
+      credential = admin.credential.cert(serviceAccount);
+    } else if (serviceAccountBase64) {
+      const decoded = Buffer.from(serviceAccountBase64, "base64").toString("utf-8");
+      const serviceAccount = JSON.parse(decoded);
+      this.logger.log(`Initializing Firebase from base64: ${serviceAccount.project_id}`);
       credential = admin.credential.cert(serviceAccount);
     } else {
       const serviceAccount = JSON.parse(serviceAccountJson);
