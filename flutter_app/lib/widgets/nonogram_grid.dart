@@ -476,6 +476,18 @@ class _NonogramGridState extends State<NonogramGrid> {
     );
   }
 
+  /// Calculate the interval for bold lines based on grid size.
+  /// Prefers 5 if the size is divisible by 5, otherwise finds a good factor.
+  int _getBoldLineInterval(int size) {
+    // Prefer 5 for standard nonogram sizes (5, 10, 15, 20)
+    if (size % 5 == 0) return 5;
+    // For sizes like 12, use 4; for 9, use 3
+    if (size % 4 == 0) return 4;
+    if (size % 3 == 0) return 3;
+    // For prime sizes, just use the size itself (only edges are bold)
+    return size;
+  }
+
   Widget _buildCell(BuildContext context, int row, int col, double size) {
     final theme = Theme.of(context);
     final cellValue = widget.puzzle.userGrid[row][col];
@@ -500,14 +512,18 @@ class _NonogramGridState extends State<NonogramGrid> {
       bgColor = theme.colorScheme.surface;
     }
 
-    // Thicker borders every 5th row/column for easier counting
+    // Thicker borders at regular intervals for easier counting
+    // Interval is based on grid size: prefer 5, otherwise use the largest factor that divides evenly
     final thinBorder = theme.colorScheme.outline.withValues(alpha: 0.3);
     final thickBorder = theme.colorScheme.outline.withValues(alpha: 0.8);
     const thinWidth = 0.5;
     const thickWidth = 1.5;
 
-    final isLeftThick = col % 5 == 0;
-    final isTopThick = row % 5 == 0;
+    final rowInterval = _getBoldLineInterval(widget.puzzle.rows);
+    final colInterval = _getBoldLineInterval(widget.puzzle.cols);
+
+    final isLeftThick = col % colInterval == 0;
+    final isTopThick = row % rowInterval == 0;
     final isRightThick = col == widget.puzzle.cols - 1;
     final isBottomThick = row == widget.puzzle.rows - 1;
 

@@ -89,6 +89,31 @@ class GameProvider extends ChangeNotifier {
   NumberTargetPuzzle? get numberTargetPuzzle => _numberTargetPuzzle;
   String get currentExpression => _currentExpression;
 
+  /// Get the running total of the current expression if it can be evaluated.
+  /// Returns null if the expression is invalid or incomplete.
+  int? get numberTargetRunningTotal {
+    if (_numberTargetPuzzle == null || _currentExpression.isEmpty) return null;
+
+    // Check if expression ends with an operator
+    final lastChar = _currentExpression[_currentExpression.length - 1];
+    if (lastChar == '+' || lastChar == '-' || lastChar == '×' || lastChar == '÷' || lastChar == '(') {
+      return null;
+    }
+
+    // Check if parentheses are balanced
+    final openCount = '('.allMatches(_currentExpression).length;
+    final closeCount = ')'.allMatches(_currentExpression).length;
+    if (openCount != closeCount) return null;
+
+    try {
+      final result = _numberTargetPuzzle!.evaluateExpression(_currentExpression);
+      if (result.isNaN) return null;
+      return result.round();
+    } catch (e) {
+      return null;
+    }
+  }
+
   BallSortPuzzle? get ballSortPuzzle => _ballSortPuzzle;
   int? get selectedTube => _selectedTube;
   int get undosRemaining => _undosRemaining;
@@ -1403,6 +1428,58 @@ class GameProvider extends ChangeNotifier {
   /// Notify listeners after batch updates
   void notifyNonogramChanged() {
     notifyListeners();
+  }
+
+  /// Auto-fill marks (X) in rows/columns where all required fills are complete.
+  /// This makes solving easier by marking cells that can't be filled.
+  void autoFillNonogramMarks() {
+    if (_nonogramPuzzle == null) return;
+
+    bool changed = false;
+
+    // Check each row
+    for (int r = 0; r < _nonogramPuzzle!.rows; r++) {
+      final requiredFills = _nonogramPuzzle!.rowClues[r].fold(0, (sum, clue) => sum + clue);
+      int currentFills = 0;
+      for (int c = 0; c < _nonogramPuzzle!.cols; c++) {
+        if (_nonogramPuzzle!.userGrid[r][c] == 1) currentFills++;
+      }
+
+      // If all fills are complete, mark remaining empty cells
+      if (currentFills == requiredFills) {
+        for (int c = 0; c < _nonogramPuzzle!.cols; c++) {
+          final cell = _nonogramPuzzle!.userGrid[r][c];
+          if (cell == null || cell == 0) {
+            _nonogramPuzzle!.userGrid[r][c] = -1; // Mark as X
+            changed = true;
+          }
+        }
+      }
+    }
+
+    // Check each column
+    for (int c = 0; c < _nonogramPuzzle!.cols; c++) {
+      final requiredFills = _nonogramPuzzle!.colClues[c].fold(0, (sum, clue) => sum + clue);
+      int currentFills = 0;
+      for (int r = 0; r < _nonogramPuzzle!.rows; r++) {
+        if (_nonogramPuzzle!.userGrid[r][c] == 1) currentFills++;
+      }
+
+      // If all fills are complete, mark remaining empty cells
+      if (currentFills == requiredFills) {
+        for (int r = 0; r < _nonogramPuzzle!.rows; r++) {
+          final cell = _nonogramPuzzle!.userGrid[r][c];
+          if (cell == null || cell == 0) {
+            _nonogramPuzzle!.userGrid[r][c] = -1; // Mark as X
+            changed = true;
+          }
+        }
+      }
+    }
+
+    if (changed) {
+      notifyListeners();
+    }
   }
 
   Future<bool> checkNonogramComplete() async {

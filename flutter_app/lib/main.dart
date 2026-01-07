@@ -19,6 +19,7 @@ import 'services/consent_service.dart';
 import 'services/firebase_service.dart';
 import 'services/remote_config_service.dart';
 import 'services/notification_service.dart';
+import 'services/achievements_service.dart';
 import 'providers/theme_provider.dart';
 import 'providers/game_provider.dart';
 import 'screens/home_screen.dart';
@@ -68,6 +69,9 @@ void main() async {
 
   // Initialize Audio Service
   await AudioService().initialize();
+
+  // Initialize Achievements Service
+  await AchievementsService().initialize();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

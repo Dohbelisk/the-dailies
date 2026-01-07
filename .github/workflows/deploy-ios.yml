@@ -1,15 +1,10 @@
-# iOS TestFlight Deployment Workflow
-# Triggers on push to main branch when flutter_app changes
-# Or manually via workflow_dispatch
+# iOS TestFlight Deployment Workflow (Manual Only)
+# For automatic releases on push to main, use the unified release.yml workflow
+# This workflow is for manual/emergency deployments only
 
-name: Deploy iOS to TestFlight
+name: Deploy iOS to TestFlight (Manual)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'flutter_app/**'
-      - '.github/workflows/deploy-ios.yml'
   workflow_dispatch:
     inputs:
       build_number:

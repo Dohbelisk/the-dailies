@@ -1,0 +1,112 @@
+# Android Firebase App Distribution Deployment Workflow (Manual Only)
+# For automatic releases on push to main, use the unified release.yml workflow
+# This workflow is for manual/emergency deployments only
+
+name: Deploy Android to Firebase (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Release notes for testers'
+        required: false
+        default: 'New build from CI'
+
+env:
+  JAVA_VERSION: '17'
+  FLUTTER_VERSION: '3.38.5'
+
+jobs:
+  deploy:
+    name: Build and Deploy to Firebase
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter_app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+
+      - name: Create key.properties
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cat > android/key.properties << EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+
+      - name: Setup Firebase CLI
+        run: |
+          curl -sL https://firebase.tools | bash
+
+      - name: Deploy to Firebase App Distribution
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          # Write service account to file
+          echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > /tmp/firebase-sa.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-sa.json
+
+          # Deploy APK to Firebase App Distribution
+          # App ID: 1:476194139682:android:e0b084a1040290ed87a47b
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+            --app "1:476194139682:android:e0b084a1040290ed87a47b" \
+            --groups "testers" \
+            --release-notes "${{ github.event.inputs.release_notes || 'Automated build from GitHub Actions' }}"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14
+
+      - name: Upload App Bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: flutter_app/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 14
+
+      - name: Cleanup sensitive files
+        if: always()
+        run: |
+          rm -f android/app/upload-keystore.jks
+          rm -f android/key.properties
+          rm -f /tmp/firebase-sa.json

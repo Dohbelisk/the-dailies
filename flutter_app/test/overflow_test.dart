@@ -5,6 +5,9 @@ import 'package:puzzle_daily/widgets/sudoku_grid.dart';
 import 'package:puzzle_daily/widgets/keyboard_input.dart';
 import 'package:puzzle_daily/widgets/puzzle_card.dart';
 import 'package:puzzle_daily/widgets/game_timer.dart';
+import 'package:puzzle_daily/widgets/hero_puzzle_card.dart';
+import 'package:puzzle_daily/widgets/daily_stats_banner.dart';
+import 'package:puzzle_daily/widgets/vibrant_puzzle_card.dart';
 import 'package:puzzle_daily/models/game_models.dart';
 
 /// Common device sizes for testing overflow
@@ -786,6 +789,411 @@ void main() {
                 ),
               ],
             ),
+          ),
+          deviceName,
+          size,
+        );
+      });
+    }
+  });
+
+  // ==========================================
+  // NEW HOME SCREEN WIDGET TESTS
+  // ==========================================
+
+  group('HeroPuzzleCard Overflow Tests', () {
+    final puzzle = DailyPuzzle(
+      id: 'test-hero',
+      gameType: GameType.killerSudoku, // Use longest name
+      difficulty: Difficulty.expert,
+      date: DateTime.now(),
+      puzzleData: {},
+    );
+
+    for (final (deviceName, size) in DeviceSizes.phones) {
+      testWidgets('HeroPuzzleCard fits on $deviceName', (tester) async {
+        await testOverflowAtSize(
+          tester,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: HeroPuzzleCard(
+              puzzle: puzzle,
+              onTap: () {},
+              isCompleted: false,
+              isInProgress: false,
+            ),
+          ),
+          deviceName,
+          size,
+        );
+      });
+
+      testWidgets('HeroPuzzleCard completed state fits on $deviceName', (tester) async {
+        await testOverflowAtSize(
+          tester,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: HeroPuzzleCard(
+              puzzle: puzzle,
+              onTap: () {},
+              isCompleted: true,
+              isInProgress: false,
+              completionTime: 3599,
+              completionScore: 9999,
+            ),
+          ),
+          deviceName,
+          size,
+        );
+      });
+    }
+  });
+
+  group('DailyStatsBanner Overflow Tests', () {
+    for (final (deviceName, size) in DeviceSizes.phones) {
+      testWidgets('DailyStatsBanner (no streak) fits on $deviceName', (tester) async {
+        await testOverflowAtSize(
+          tester,
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: DailyStatsBanner(
+              completedCount: 5,
+              totalCount: 12,
+              streakDays: 0,
+            ),
+          ),
+          deviceName,
+          size,
+        );
+      });
+
+      testWidgets('DailyStatsBanner (with streak) fits on $deviceName', (tester) async {
+        await testOverflowAtSize(
+          tester,
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: DailyStatsBanner(
+              completedCount: 12,
+              totalCount: 12,
+              streakDays: 365, // Large streak number
+            ),
+          ),
+          deviceName,
+          size,
+        );
+      });
+
+      testWidgets('DailyStatsBanner (all done) fits on $deviceName', (tester) async {
+        await testOverflowAtSize(
+          tester,
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: DailyStatsBanner(
+              completedCount: 12,
+              totalCount: 12,
+              streakDays: 99,
+            ),
+          ),
+          deviceName,
+          size,
+        );
+      });
+    }
+  });
+
+  group('VibrantPuzzleCard Overflow Tests', () {
+    final puzzle = DailyPuzzle(
+      id: 'test-vibrant',
+      gameType: GameType.killerSudoku,
+      difficulty: Difficulty.expert,
+      date: DateTime.now(),
+      puzzleData: {},
+    );
+
+    for (final (deviceName, size) in DeviceSizes.phones) {
+      testWidgets('VibrantPuzzleCard (large) fits on $deviceName', (tester) async {
+        await testOverflowAtSize(
+          tester,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SizedBox(
+              height: 220,
+              child: VibrantPuzzleCard(
+                puzzle: puzzle,
+                onTap: () {},
+                isCompleted: true,
+                isInProgress: false,
+                isFavorite: true,
+                onFavoriteToggle: () {},
+                completionTime: 3599,
+                completionScore: 9999,
+                isLarge: true,
+              ),
+            ),
+          ),
+          deviceName,
+          size,
+        );
+      });
+
+      testWidgets('VibrantPuzzleCard (small) fits on $deviceName', (tester) async {
+        await testOverflowAtSize(
+          tester,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SizedBox(
+              height: 100,
+              width: 150,
+              child: VibrantPuzzleCard(
+                puzzle: puzzle,
+                onTap: () {},
+                isCompleted: false,
+                isInProgress: true,
+                isFavorite: false,
+                onFavoriteToggle: () {},
+                isLarge: false,
+              ),
+            ),
+          ),
+          deviceName,
+          size,
+        );
+      });
+    }
+  });
+
+  group('Magazine Layout Overflow Tests', () {
+    final puzzles = [
+      DailyPuzzle(
+        id: 'test-1',
+        gameType: GameType.sudoku,
+        difficulty: Difficulty.easy,
+        date: DateTime.now(),
+        puzzleData: {},
+      ),
+      DailyPuzzle(
+        id: 'test-2',
+        gameType: GameType.killerSudoku,
+        difficulty: Difficulty.medium,
+        date: DateTime.now(),
+        puzzleData: {},
+      ),
+      DailyPuzzle(
+        id: 'test-3',
+        gameType: GameType.crossword,
+        difficulty: Difficulty.hard,
+        date: DateTime.now(),
+        puzzleData: {},
+      ),
+    ];
+
+    for (final (deviceName, size) in DeviceSizes.phones) {
+      testWidgets('Magazine row (1 large + 2 small) fits on $deviceName', (tester) async {
+        await testOverflowAtSize(
+          tester,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SizedBox(
+              height: 220,
+              child: Row(
+                children: [
+                  // Large card
+                  Expanded(
+                    flex: 3,
+                    child: VibrantPuzzleCard(
+                      puzzle: puzzles[0],
+                      onTap: () {},
+                      isLarge: true,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Two small cards stacked
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: VibrantPuzzleCard(
+                            puzzle: puzzles[1],
+                            onTap: () {},
+                            isLarge: false,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: VibrantPuzzleCard(
+                            puzzle: puzzles[2],
+                            onTap: () {},
+                            isLarge: false,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          deviceName,
+          size,
+        );
+      });
+
+      testWidgets('Two card row fits on $deviceName', (tester) async {
+        await testOverflowAtSize(
+          tester,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SizedBox(
+              height: 140,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: VibrantPuzzleCard(
+                      puzzle: puzzles[0],
+                      onTap: () {},
+                      isLarge: false,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: VibrantPuzzleCard(
+                      puzzle: puzzles[1],
+                      onTap: () {},
+                      isLarge: false,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          deviceName,
+          size,
+        );
+      });
+    }
+  });
+
+  group('New Home Screen Full Layout Overflow Tests', () {
+    final heroPuzzle = DailyPuzzle(
+      id: 'test-hero',
+      gameType: GameType.sudoku,
+      difficulty: Difficulty.medium,
+      date: DateTime.now(),
+      puzzleData: {},
+    );
+
+    for (final (deviceName, size) in DeviceSizes.phones) {
+      testWidgets('Home screen new layout fits on $deviceName', (tester) async {
+        await testOverflowAtSize(
+          tester,
+          Builder(
+            builder: (context) {
+              final theme = Theme.of(context);
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Wednesday, January 15',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.toll_rounded, size: 16, color: Colors.amber),
+                                      SizedBox(width: 4),
+                                      Text('99', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.refresh_rounded, size: 22),
+                                onPressed: () {},
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.light_mode_rounded, size: 22),
+                                onPressed: () {},
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.settings_rounded, size: 22),
+                                onPressed: () {},
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      // Action chips
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildActionChip(icon: Icons.people_outline_rounded, label: 'Friends', theme: theme),
+                            const SizedBox(width: 8),
+                            _buildActionChip(icon: Icons.emoji_events_outlined, label: 'Challenges', theme: theme),
+                            const SizedBox(width: 8),
+                            _buildActionChip(icon: Icons.history_rounded, label: 'Archive', theme: theme),
+                            const SizedBox(width: 8),
+                            _buildActionChip(icon: Icons.bar_chart_rounded, label: 'Stats', theme: theme),
+                            const SizedBox(width: 8),
+                            _buildActionChip(icon: Icons.emoji_events_rounded, label: 'Badges', theme: theme),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Daily Stats Banner
+                      const DailyStatsBanner(
+                        completedCount: 5,
+                        totalCount: 12,
+                        streakDays: 7,
+                      ),
+                      const SizedBox(height: 16),
+                      // Hero card
+                      HeroPuzzleCard(
+                        puzzle: heroPuzzle,
+                        onTap: () {},
+                      ),
+                      const SizedBox(height: 16),
+                      // Section title
+                      Text(
+                        'More Puzzles',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           deviceName,
           size,

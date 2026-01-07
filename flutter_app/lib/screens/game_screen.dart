@@ -1867,6 +1867,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             canUndo: gameProvider.canUndoNonogram,
             onCellTap: (row, col) {
               gameProvider.toggleNonogramCell(row, col);
+              // Auto-fill marks in completed rows/columns
+              gameProvider.autoFillNonogramMarks();
               _audioService.playTap();
             },
             onSetCellState: (row, col, state) {
@@ -1885,6 +1887,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             },
             onDragEnd: () {
               gameProvider.notifyNonogramChanged();
+              // Auto-fill marks in completed rows/columns
+              gameProvider.autoFillNonogramMarks();
               _audioService.playTap();
             },
           ),
@@ -1913,6 +1917,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               resultMessage: _numberTargetMessage,
               lastResultSuccess: _numberTargetSuccess,
               usedNumberIndices: gameProvider.usedNumberIndices,
+              runningTotal: gameProvider.numberTargetRunningTotal,
               onTokenTap: (token, {int? numberIndex}) {
                 gameProvider.addToNumberTargetExpression(token, numberIndex: numberIndex);
                 _audioService.playTap();

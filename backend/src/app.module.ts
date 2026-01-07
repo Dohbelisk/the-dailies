@@ -12,6 +12,7 @@ import { FeedbackModule } from "./feedback/feedback.module";
 import { AppConfigModule } from "./config/config.module";
 import { DictionaryModule } from "./dictionary/dictionary.module";
 import { GitHubModule } from "./github/github.module";
+import { NotificationsModule } from "./notifications/notifications.module";
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { GitHubModule } from "./github/github.module";
     AppConfigModule,
     DictionaryModule,
     GitHubModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}
