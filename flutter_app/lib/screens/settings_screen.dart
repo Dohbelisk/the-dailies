@@ -1,14 +1,17 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/theme_provider.dart';
 import '../services/audio_service.dart';
+import '../services/auth_service.dart';
+import '../services/google_sign_in_service.dart';
 import '../services/purchase_service.dart';
 import '../services/consent_service.dart';
 import '../services/remote_config_service.dart';
 import '../widgets/feedback_dialog.dart';
+import 'auth/login_screen.dart';
+import 'auth/register_screen.dart';
 import 'legal/privacy_policy_screen.dart';
 import 'legal/terms_of_service_screen.dart';
 import 'debug_menu_screen.dart';
@@ -242,6 +245,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          // Account/Profile section
+          _buildProfileSection(context, theme),
+
+          const SizedBox(height: 24),
+
           // Premium section
           _buildPremiumSection(context, theme),
 
@@ -707,6 +715,286 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileSection(BuildContext context, ThemeData theme) {
+    return Consumer<AuthService>(
+      builder: (context, authService, child) {
+        if (authService.isAuthenticated && authService.currentUser != null) {
+          return _buildAuthenticatedProfile(context, theme, authService);
+        } else {
+          return _buildGuestProfile(context, theme);
+        }
+      },
+    );
+  }
+
+  Widget _buildAuthenticatedProfile(
+    BuildContext context,
+    ThemeData theme,
+    AuthService authService,
+  ) {
+    final user = authService.currentUser!;
+    final hasProfilePicture = user.profilePicture != null && user.profilePicture!.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // Avatar
+              CircleAvatar(
+                radius: 32,
+                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+                backgroundImage: hasProfilePicture
+                    ? NetworkImage(user.profilePicture!)
+                    : null,
+                child: hasProfilePicture
+                    ? null
+                    : Text(
+                        user.username.isNotEmpty
+                            ? user.username[0].toUpperCase()
+                            : user.email[0].toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 16),
+              // User info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.username.isNotEmpty ? user.username : 'User',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      user.email,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    if (user.friendCode != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.people_outline,
+                              size: 14,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              user.friendCode!,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Logout button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showLogoutDialog(context, authService),
+              icon: const Icon(Icons.logout_rounded),
+              label: const Text('Log Out'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: theme.colorScheme.error,
+                side: BorderSide(
+                  color: theme.colorScheme.error.withValues(alpha: 0.5),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0);
+  }
+
+  Widget _buildGuestProfile(BuildContext context, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                child: Icon(
+                  Icons.person_outline_rounded,
+                  size: 32,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Playing as Guest',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Sign in to sync progress, challenge friends, and more!',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Sign In',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.colorScheme.primary,
+                    side: BorderSide(color: theme.colorScheme.primary),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Create Account',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0);
+  }
+
+  void _showLogoutDialog(BuildContext context, AuthService authService) {
+    final theme = Theme.of(context);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+
+              // Logout from backend
+              await authService.logout();
+
+              // Also sign out from Google if signed in with Google
+              try {
+                await GoogleSignInService().signOut();
+              } catch (e) {
+                // Ignore errors - user might not have signed in with Google
+              }
+
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Logged out successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: Text(
+              'Log Out',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ),
         ],
       ),
     );

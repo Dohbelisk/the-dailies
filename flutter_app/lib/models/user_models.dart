@@ -4,6 +4,7 @@ class User {
   final String username;
   final String role;
   final String? friendCode;
+  final String? profilePicture;
 
   User({
     required this.id,
@@ -11,6 +12,7 @@ class User {
     required this.username,
     required this.role,
     this.friendCode,
+    this.profilePicture,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class User {
       username: json['username'] ?? '',
       role: json['role'] ?? 'user',
       friendCode: json['friendCode'],
+      profilePicture: json['profilePicture'],
     );
   }
 
@@ -30,6 +33,7 @@ class User {
       'username': username,
       'role': role,
       'friendCode': friendCode,
+      'profilePicture': profilePicture,
     };
   }
 
@@ -39,6 +43,7 @@ class User {
     String? username,
     String? role,
     String? friendCode,
+    String? profilePicture,
   }) {
     return User(
       id: id ?? this.id,
@@ -46,6 +51,7 @@ class User {
       username: username ?? this.username,
       role: role ?? this.role,
       friendCode: friendCode ?? this.friendCode,
+      profilePicture: profilePicture ?? this.profilePicture,
     );
   }
 }

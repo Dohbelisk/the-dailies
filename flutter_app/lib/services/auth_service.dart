@@ -7,6 +7,8 @@ class AuthService extends ChangeNotifier {
   static const String _userIdKey = 'user_id';
   static const String _userEmailKey = 'user_email';
   static const String _usernameKey = 'username';
+  static const String _friendCodeKey = 'friend_code';
+  static const String _profilePictureKey = 'profile_picture';
 
   String? _token;
   User? _currentUser;
@@ -31,6 +33,8 @@ class AuthService extends ChangeNotifier {
         final userId = prefs.getString(_userIdKey);
         final email = prefs.getString(_userEmailKey);
         final username = prefs.getString(_usernameKey);
+        final friendCode = prefs.getString(_friendCodeKey);
+        final profilePicture = prefs.getString(_profilePictureKey);
 
         if (userId != null && email != null) {
           _currentUser = User(
@@ -38,6 +42,8 @@ class AuthService extends ChangeNotifier {
             email: email,
             username: username ?? '',
             role: 'user',
+            friendCode: friendCode,
+            profilePicture: profilePicture,
           );
           _isAuthenticated = true;
         }
@@ -104,6 +110,12 @@ class AuthService extends ChangeNotifier {
     if (user.username.isNotEmpty) {
       await prefs.setString(_usernameKey, user.username);
     }
+    if (user.friendCode != null) {
+      await prefs.setString(_friendCodeKey, user.friendCode!);
+    }
+    if (user.profilePicture != null) {
+      await prefs.setString(_profilePictureKey, user.profilePicture!);
+    }
 
     notifyListeners();
   }
@@ -120,6 +132,8 @@ class AuthService extends ChangeNotifier {
     await prefs.remove(_userIdKey);
     await prefs.remove(_userEmailKey);
     await prefs.remove(_usernameKey);
+    await prefs.remove(_friendCodeKey);
+    await prefs.remove(_profilePictureKey);
 
     notifyListeners();
   }
