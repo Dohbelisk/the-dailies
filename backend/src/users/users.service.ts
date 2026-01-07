@@ -6,7 +6,12 @@ import {
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import * as bcrypt from "bcrypt";
-import { User, UserDocument, UserRole } from "./schemas/user.schema";
+import {
+  User,
+  UserDocument,
+  UserRole,
+  AuthProvider,
+} from "./schemas/user.schema";
 
 export class CreateUserDto {
   email: string;
@@ -55,6 +60,10 @@ export class UsersService {
     user: UserDocument,
     password: string,
   ): Promise<boolean> {
+    // Google-only users don't have passwords
+    if (!user.password) {
+      return false;
+    }
     return bcrypt.compare(password, user.password);
   }
 
@@ -111,5 +120,54 @@ export class UsersService {
       .select("-password")
       .limit(20)
       .exec();
+  }
+
+  async findByGoogleId(googleId: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ googleId }).exec();
+  }
+
+  async createFromGoogle(googleData: {
+    email: string;
+    googleId: string;
+    username: string;
+    profilePicture?: string;
+  }): Promise<UserDocument> {
+    const friendCode = await this.generateUniqueFriendCode();
+
+    const user = new this.userModel({
+      email: googleData.email,
+      googleId: googleData.googleId,
+      username: googleData.username,
+      profilePicture: googleData.profilePicture,
+      friendCode,
+      authProvider: AuthProvider.GOOGLE,
+    });
+
+    return user.save();
+  }
+
+  async linkGoogleAccount(
+    userId: string,
+    googleId: string,
+    profilePicture?: string,
+  ): Promise<UserDocument> {
+    const updateData: any = {
+      googleId,
+      authProvider: AuthProvider.BOTH,
+    };
+
+    if (profilePicture) {
+      updateData.profilePicture = profilePicture;
+    }
+
+    const user = await this.userModel
+      .findByIdAndUpdate(userId, updateData, { new: true })
+      .exec();
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    return user;
   }
 }

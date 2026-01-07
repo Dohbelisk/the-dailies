@@ -28,50 +28,15 @@ class NumberTargetGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasMultipleTargets = puzzle.targets.isNotEmpty;
 
     return Column(
       children: [
-        // Target display
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                theme.colorScheme.primary,
-                theme.colorScheme.primary.withValues(alpha: 0.8),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Text(
-                'TARGET',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.7),
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${puzzle.target}',
-                style: theme.textTheme.displayLarge?.copyWith(
-                  color: theme.colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
+        // Target display - show 3 targets if available, otherwise single target
+        if (hasMultipleTargets)
+          _buildMultipleTargets(theme)
+        else
+          _buildSingleTarget(theme),
         const SizedBox(height: 24),
 
         // Expression display
@@ -211,6 +176,155 @@ class NumberTargetGrid extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildSingleTarget(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary,
+            theme.colorScheme.primary.withValues(alpha: 0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            'TARGET',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onPrimary.withValues(alpha: 0.7),
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${puzzle.target}',
+            style: theme.textTheme.displayLarge?.copyWith(
+              color: theme.colorScheme.onPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMultipleTargets(ThemeData theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: puzzle.targets.map((target) {
+        return _TargetCard(
+          target: target,
+          theme: theme,
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _TargetCard extends StatelessWidget {
+  final NumberTarget target;
+  final ThemeData theme;
+
+  const _TargetCard({
+    required this.target,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Color scheme based on difficulty
+    final (Color bgColor, Color fgColor, String label) = switch (target.difficulty) {
+      'easy' => (
+        theme.colorScheme.tertiaryContainer,
+        theme.colorScheme.onTertiaryContainer,
+        'EASY',
+      ),
+      'medium' => (
+        theme.colorScheme.primaryContainer,
+        theme.colorScheme.onPrimaryContainer,
+        'MEDIUM',
+      ),
+      'hard' => (
+        theme.colorScheme.errorContainer,
+        theme.colorScheme.onErrorContainer,
+        'HARD',
+      ),
+      _ => (
+        theme.colorScheme.primaryContainer,
+        theme.colorScheme.onPrimaryContainer,
+        'TARGET',
+      ),
+    };
+
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+        decoration: BoxDecoration(
+          color: target.completed
+              ? Colors.green.withValues(alpha: 0.2)
+              : bgColor,
+          borderRadius: BorderRadius.circular(12),
+          border: target.completed
+              ? Border.all(color: Colors.green, width: 2)
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: (target.completed ? Colors.green : bgColor).withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: target.completed ? Colors.green : fgColor.withValues(alpha: 0.7),
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (target.completed)
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: 20,
+                  ),
+                if (target.completed)
+                  const SizedBox(width: 4),
+                Text(
+                  '${target.target}',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    color: target.completed ? Colors.green : fgColor,
+                    fontWeight: FontWeight.bold,
+                    decoration: target.completed ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

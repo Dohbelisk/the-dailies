@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/api_service.dart';
+import '../../widgets/google_sign_in_button.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -306,6 +307,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 700.ms, duration: 600.ms),
+
+                const SizedBox(height: 24),
+
+                // Divider
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'OR',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onBackground.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ).animate().fadeIn(delay: 750.ms, duration: 600.ms),
+
+                const SizedBox(height: 24),
+
+                // Google Sign-In button
+                GoogleSignInButton(
+                  onSuccess: () {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  },
+                  onError: (error) {
+                    setState(() {
+                      _errorMessage = error;
+                    });
+                  },
+                ).animate().fadeIn(delay: 800.ms, duration: 600.ms).slideY(begin: 0.2, end: 0),
               ],
             ),
           ),

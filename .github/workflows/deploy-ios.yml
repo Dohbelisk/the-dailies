@@ -1,0 +1,74 @@
+# iOS TestFlight Deployment Workflow
+# Triggers on push to main branch when flutter_app changes
+# Or manually via workflow_dispatch
+
+name: Deploy iOS to TestFlight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'flutter_app/**'
+      - '.github/workflows/deploy-ios.yml'
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Build number (leave empty for auto-generated)'
+        required: false
+
+jobs:
+  deploy:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: flutter_app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: flutter_app/ios
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install
+
+      - name: Setup App Store Connect API Key
+        env:
+          APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$APP_STORE_CONNECT_API_KEY_KEY" | base64 --decode > ~/private_keys/AuthKey.p8
+
+      - name: Build Flutter iOS
+        run: |
+          flutter pub get
+          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+        run: |
+          cd ios
+          bundle exec fastlane beta_ci
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: flutter_app/build/ios/ipa/*.ipa
+          retention-days: 14

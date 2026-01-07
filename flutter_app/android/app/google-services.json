@@ -12,7 +12,20 @@
           "package_name": "com.dohbelisk.thedailies"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "476194139682-i146ukqnsag0ub7fcqh9qqq8ioqclmr9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dohbelisk.thedailies",
+            "certificate_hash": "5b368336cadb7d536f7f94019573b3df5a1fce3d"
+          }
+        },
+        {
+          "client_id": "476194139682-cf1ek3s1370s215qujd8bbam4t41tc26.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBStbGSnYahOrBE8XhgPnlfEZGzVE4x51A"
@@ -20,9 +33,22 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "476194139682-cf1ek3s1370s215qujd8bbam4t41tc26.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "476194139682-hl3sbfqvh1ikfu53j3j9ts720bohrhnu.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dohbelisk.thedailies"
+              }
+            }
+          ]
         }
-      }
+      },
+      "admob_app_id": "ca-app-pub-8802406857539177~9781366025"
     }
   ],
   "configuration_version": "1"

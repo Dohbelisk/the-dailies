@@ -359,6 +359,9 @@ export class KillerSudokuGenerator {
     const cells: number[][] = [[startRow, startCol]];
     used[startRow][startCol] = true;
 
+    // Track values already in this cage to prevent duplicates
+    const valuesInCage = new Set<number>([this.solution[startRow][startCol]]);
+
     // Grow cage by adding adjacent cells
     while (cells.length < targetSize) {
       const candidates: number[][] = [];
@@ -374,19 +377,23 @@ export class KillerSudokuGenerator {
 
         for (const [nr, nc] of neighbors) {
           if (nr >= 0 && nr < 9 && nc >= 0 && nc < 9 && !used[nr][nc]) {
-            // Ensure cage doesn't span multiple 3x3 boxes too much (optional constraint)
-            candidates.push([nr, nc]);
+            // Check that adding this cell won't create a duplicate value in the cage
+            const cellValue = this.solution[nr][nc];
+            if (!valuesInCage.has(cellValue)) {
+              candidates.push([nr, nc]);
+            }
           }
         }
       }
 
-      if (candidates.length === 0) break; // Can't grow anymore
+      if (candidates.length === 0) break; // Can't grow anymore (no valid candidates without duplicates)
 
       // Pick a random candidate
       const [newRow, newCol] =
         candidates[Math.floor(Math.random() * candidates.length)];
       cells.push([newRow, newCol]);
       used[newRow][newCol] = true;
+      valuesInCage.add(this.solution[newRow][newCol]);
     }
 
     return cells;
@@ -429,17 +436,30 @@ export class CrosswordGenerator {
       .map(() => Array(cols).fill(null));
     this.placedWords = [];
 
-    // Sort words by length (longer first for better placement)
-    const sorted = [...wordsWithClues].sort(
-      (a, b) => b.word.length - a.word.length,
-    );
+    // Shuffle words first, then sort by length (preserves randomness for same-length words)
+    const shuffled = this.shuffleArray([...wordsWithClues]);
+    const sorted = shuffled.sort((a, b) => b.word.length - a.word.length);
 
-    // Place first word horizontally in the middle
+    // Randomly choose starting direction
+    const startDirection: "across" | "down" =
+      Math.random() < 0.5 ? "across" : "down";
+
+    // Place first word with random offset from center
     if (sorted.length > 0) {
       const firstWord = sorted[0].word.toUpperCase();
-      const startRow = Math.floor(rows / 2);
-      const startCol = Math.floor((cols - firstWord.length) / 2);
-      this.placeWord(firstWord, startRow, startCol, "across");
+      const offsetRange = 2;
+      const randomOffset =
+        Math.floor(Math.random() * (offsetRange * 2 + 1)) - offsetRange;
+
+      if (startDirection === "across") {
+        const startRow = Math.floor(rows / 2) + randomOffset;
+        const startCol = Math.floor((cols - firstWord.length) / 2);
+        this.placeWord(firstWord, startRow, startCol, "across");
+      } else {
+        const startRow = Math.floor((rows - firstWord.length) / 2);
+        const startCol = Math.floor(cols / 2) + randomOffset;
+        this.placeWord(firstWord, startRow, startCol, "down");
+      }
     }
 
     // Place remaining words - only if they connect to existing words
@@ -467,41 +487,70 @@ export class CrosswordGenerator {
   }
 
   private findAndPlaceWord(word: string): boolean {
-    const attempts = 100;
+    // Collect all valid placements first
+    const validPlacements: Array<{
+      row: number;
+      col: number;
+      direction: "across" | "down";
+    }> = [];
 
-    for (let attempt = 0; attempt < attempts; attempt++) {
-      // Try to find an intersection with existing words
-      for (const placed of this.placedWords) {
-        for (let i = 0; i < placed.word.length; i++) {
-          for (let j = 0; j < word.length; j++) {
-            if (placed.word[i] === word[j]) {
-              // Found a potential intersection
-              let newRow: number, newCol: number;
-              let newDir: "across" | "down";
+    // Shuffle placed words to check intersections in random order
+    const shuffledPlaced = this.shuffleArray([...this.placedWords]);
 
-              if (placed.direction === "across") {
-                // Place new word vertically
-                newDir = "down";
-                newRow = placed.row - j;
-                newCol = placed.col + i;
-              } else {
-                // Place new word horizontally
-                newDir = "across";
-                newRow = placed.row + i;
-                newCol = placed.col - j;
-              }
+    for (const placed of shuffledPlaced) {
+      // Create shuffled indices for both loops
+      const iIndices = this.shuffleArray(
+        Array.from({ length: placed.word.length }, (_, i) => i),
+      );
+      const jIndices = this.shuffleArray(
+        Array.from({ length: word.length }, (_, j) => j),
+      );
 
-              if (this.canPlaceWord(word, newRow, newCol, newDir)) {
-                this.placeWord(word, newRow, newCol, newDir);
-                return true;
-              }
+      for (const i of iIndices) {
+        for (const j of jIndices) {
+          if (placed.word[i] === word[j]) {
+            // Found a potential intersection
+            let newRow: number, newCol: number;
+            let newDir: "across" | "down";
+
+            if (placed.direction === "across") {
+              // Place new word vertically
+              newDir = "down";
+              newRow = placed.row - j;
+              newCol = placed.col + i;
+            } else {
+              // Place new word horizontally
+              newDir = "across";
+              newRow = placed.row + i;
+              newCol = placed.col - j;
+            }
+
+            if (this.canPlaceWord(word, newRow, newCol, newDir)) {
+              validPlacements.push({ row: newRow, col: newCol, direction: newDir });
             }
           }
         }
       }
     }
 
+    // Pick a random valid placement if any exist
+    if (validPlacements.length > 0) {
+      const chosen =
+        validPlacements[Math.floor(Math.random() * validPlacements.length)];
+      this.placeWord(word, chosen.row, chosen.col, chosen.direction);
+      return true;
+    }
+
     return false;
+  }
+
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   }
 
   private canPlaceWord(
@@ -3413,10 +3462,34 @@ export class NonogramGenerator {
     // Grid size based on difficulty
     const size = { easy: 5, medium: 10, hard: 12, expert: 15 }[difficulty];
 
-    // Generate a random pattern with some structure
-    const grid = this.generatePattern(size, size, difficulty);
+    // Try to generate a logically solvable puzzle
+    const maxAttempts = 50;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // Generate a random pattern with some structure
+      const grid = this.generatePattern(size, size, difficulty);
 
-    // Generate clues from the pattern
+      // Generate clues from the pattern
+      const rowClues = this.generateRowClues(grid);
+      const colClues = this.generateColClues(grid);
+
+      // Verify the puzzle is solvable using pure logic (no guessing)
+      if (this.isLogicallySolvable(rowClues, colClues, grid)) {
+        return {
+          puzzleData: {
+            rows: size,
+            cols: size,
+            rowClues,
+            colClues,
+          },
+          solution: {
+            grid,
+          },
+        };
+      }
+    }
+
+    // Fallback: generate a simple, guaranteed-solvable pattern
+    const grid = this.generateSimplePattern(size);
     const rowClues = this.generateRowClues(grid);
     const colClues = this.generateColClues(grid);
 
@@ -3431,6 +3504,242 @@ export class NonogramGenerator {
         grid,
       },
     };
+  }
+
+  /**
+   * Checks if a nonogram can be solved using line-by-line logic alone (no guessing)
+   */
+  private isLogicallySolvable(
+    rowClues: number[][],
+    colClues: number[][],
+    _solution: number[][],
+  ): boolean {
+    const rows = rowClues.length;
+    const cols = colClues.length;
+
+    // 0 = unknown, 1 = filled, -1 = empty
+    const grid: number[][] = Array(rows)
+      .fill(null)
+      .map(() => Array(cols).fill(0));
+
+    let changed = true;
+    let iterations = 0;
+    const maxIterations = rows * cols * 2;
+
+    while (changed && iterations < maxIterations) {
+      changed = false;
+      iterations++;
+
+      // Process each row
+      for (let r = 0; r < rows; r++) {
+        const line = grid[r].slice();
+        const newLine = this.solveLine(line, rowClues[r]);
+        for (let c = 0; c < cols; c++) {
+          if (grid[r][c] === 0 && newLine[c] !== 0) {
+            grid[r][c] = newLine[c];
+            changed = true;
+          }
+        }
+      }
+
+      // Process each column
+      for (let c = 0; c < cols; c++) {
+        const line = grid.map((row) => row[c]);
+        const newLine = this.solveLine(line, colClues[c]);
+        for (let r = 0; r < rows; r++) {
+          if (grid[r][c] === 0 && newLine[r] !== 0) {
+            grid[r][c] = newLine[r];
+            changed = true;
+          }
+        }
+      }
+    }
+
+    // Check if fully solved (no unknowns remain)
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (grid[r][c] === 0) {
+          return false; // Still has unknowns - requires guessing
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Solve a single line using line-solving logic
+   * Returns array with 1 (filled), -1 (empty), or 0 (unknown)
+   */
+  private solveLine(line: number[], clues: number[]): number[] {
+    const len = line.length;
+    const result = line.slice();
+
+    // Handle empty line (clue is [0])
+    if (clues.length === 1 && clues[0] === 0) {
+      return result.map((c) => (c === 0 ? -1 : c));
+    }
+
+    // Handle fully filled line
+    const totalFilled = clues.reduce((a, b) => a + b, 0);
+    const minSpaces = clues.length - 1;
+    if (totalFilled + minSpaces === len) {
+      // Entire line is determined
+      let pos = 0;
+      for (let i = 0; i < clues.length; i++) {
+        for (let j = 0; j < clues[i]; j++) {
+          result[pos++] = 1;
+        }
+        if (i < clues.length - 1) {
+          result[pos++] = -1;
+        }
+      }
+      return result;
+    }
+
+    // Generate all possible placements for the clues
+    const placements = this.generatePlacements(clues, len, line);
+
+    if (placements.length === 0) {
+      return result; // Invalid state, return as-is
+    }
+
+    // Find cells that are the same across all valid placements
+    for (let i = 0; i < len; i++) {
+      if (result[i] !== 0) continue;
+
+      const firstVal = placements[0][i];
+      let allSame = true;
+      for (let p = 1; p < placements.length; p++) {
+        if (placements[p][i] !== firstVal) {
+          allSame = false;
+          break;
+        }
+      }
+      if (allSame) {
+        result[i] = firstVal;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Generate all valid placements for clues on a line
+   */
+  private generatePlacements(
+    clues: number[],
+    len: number,
+    current: number[],
+  ): number[][] {
+    const results: number[][] = [];
+
+    const generate = (
+      clueIdx: number,
+      pos: number,
+      placement: number[],
+    ): void => {
+      if (clueIdx === clues.length) {
+        // Fill rest with empty
+        const final = placement.slice();
+        for (let i = pos; i < len; i++) {
+          final[i] = -1;
+        }
+        // Verify placement matches current constraints
+        let valid = true;
+        for (let i = 0; i < len; i++) {
+          if (current[i] !== 0 && current[i] !== final[i]) {
+            valid = false;
+            break;
+          }
+        }
+        if (valid) {
+          results.push(final);
+        }
+        return;
+      }
+
+      const clue = clues[clueIdx];
+      const remaining = clues.slice(clueIdx + 1).reduce((a, b) => a + b, 0);
+      const remainingSpaces = clues.length - clueIdx - 1;
+      const maxStart = len - remaining - remainingSpaces - clue;
+
+      for (let start = pos; start <= maxStart; start++) {
+        // Check if we can place clue at this position
+        let canPlace = true;
+
+        // Check empty cells before
+        for (let i = pos; i < start; i++) {
+          if (current[i] === 1) {
+            canPlace = false;
+            break;
+          }
+        }
+        if (!canPlace) continue;
+
+        // Check filled cells
+        for (let i = start; i < start + clue; i++) {
+          if (current[i] === -1) {
+            canPlace = false;
+            break;
+          }
+        }
+        if (!canPlace) continue;
+
+        // Build placement
+        const newPlacement = placement.slice();
+        for (let i = pos; i < start; i++) {
+          newPlacement[i] = -1;
+        }
+        for (let i = start; i < start + clue; i++) {
+          newPlacement[i] = 1;
+        }
+
+        // Add gap after if not last clue
+        if (clueIdx < clues.length - 1) {
+          if (current[start + clue] === 1) {
+            continue; // Can't place gap here
+          }
+          newPlacement[start + clue] = -1;
+          generate(clueIdx + 1, start + clue + 1, newPlacement);
+        } else {
+          generate(clueIdx + 1, start + clue, newPlacement);
+        }
+      }
+    };
+
+    generate(0, 0, Array(len).fill(0));
+    return results;
+  }
+
+  /**
+   * Generate a simple pattern that is guaranteed to be solvable
+   */
+  private generateSimplePattern(size: number): number[][] {
+    const grid: number[][] = Array(size)
+      .fill(null)
+      .map(() => Array(size).fill(0));
+
+    // Create a simple cross or diamond pattern
+    const mid = Math.floor(size / 2);
+
+    // Horizontal line
+    for (let c = 1; c < size - 1; c++) {
+      grid[mid][c] = 1;
+    }
+
+    // Vertical line
+    for (let r = 1; r < size - 1; r++) {
+      grid[r][mid] = 1;
+    }
+
+    // Add corners for visual interest
+    grid[1][1] = 1;
+    grid[1][size - 2] = 1;
+    grid[size - 2][1] = 1;
+    grid[size - 2][size - 2] = 1;
+
+    return grid;
   }
 
   private generatePattern(
@@ -3545,21 +3854,17 @@ export class NumberTargetGenerator {
     puzzleData: {
       numbers: number[];
       target: number;
+      targets?: { target: number; difficulty: "easy" | "medium" | "hard" }[];
     };
     solution: {
       expression: string;
       alternates: string[];
+      targetSolutions?: {
+        target: number;
+        expression: string;
+      }[];
     };
   } {
-    // Target based on difficulty
-    const targets = {
-      easy: 10,
-      medium: 24,
-      hard: 100,
-      expert: this.randomTarget(),
-    };
-    const target = targets[difficulty];
-
     // Number ranges based on difficulty
     const ranges = {
       easy: { min: 1, max: 9 },
@@ -3569,12 +3874,12 @@ export class NumberTargetGenerator {
     };
     const range = ranges[difficulty];
 
-    // Generate solvable puzzle
-    let result = this.generateSolvablePuzzle(target, range, difficulty);
+    // Generate numbers and find 3 solvable targets with increasing difficulty
+    let result = this.generateMultiTargetPuzzle(range, difficulty);
     let attempts = 0;
 
     while (!result && attempts < 100) {
-      result = this.generateSolvablePuzzle(target, range, difficulty);
+      result = this.generateMultiTargetPuzzle(range, difficulty);
       attempts++;
     }
 
@@ -3582,21 +3887,166 @@ export class NumberTargetGenerator {
       // Fallback to known solvable puzzle
       result = {
         numbers: [1, 2, 3, 4],
-        expression: "(1+2+3)*4",
-        alternates: ["4*(1+2+3)", "(3+2+1)*4"],
+        targets: [
+          { target: 10, difficulty: "easy" as const, expression: "(1+2+3)+4" },
+          {
+            target: 24,
+            difficulty: "medium" as const,
+            expression: "(1+2+3)*4",
+          },
+          {
+            target: 36,
+            difficulty: "hard" as const,
+            expression: "(1+2)*3*4+4",
+          },
+        ],
       };
     }
+
+    // Use the medium target as the main target for backwards compatibility
+    const mainTarget = result.targets[1];
 
     return {
       puzzleData: {
         numbers: result.numbers,
-        target,
+        target: mainTarget.target,
+        targets: result.targets.map((t) => ({
+          target: t.target,
+          difficulty: t.difficulty,
+        })),
       },
       solution: {
-        expression: result.expression,
-        alternates: result.alternates,
+        expression: mainTarget.expression,
+        alternates: [],
+        targetSolutions: result.targets.map((t) => ({
+          target: t.target,
+          expression: t.expression,
+        })),
       },
     };
+  }
+
+  private generateMultiTargetPuzzle(
+    range: { min: number; max: number },
+    _difficulty: string,
+  ): {
+    numbers: number[];
+    targets: {
+      target: number;
+      difficulty: "easy" | "medium" | "hard";
+      expression: string;
+    }[];
+  } | null {
+    // Generate 4 random numbers
+    const numbers: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      numbers.push(
+        Math.floor(Math.random() * (range.max - range.min + 1)) + range.min,
+      );
+    }
+
+    // Find all possible targets we can make with these numbers
+    const allTargets = this.findAllTargets(numbers);
+
+    if (allTargets.length < 3) {
+      return null; // Need at least 3 targets
+    }
+
+    // Sort targets by value to get increasing difficulty
+    allTargets.sort((a, b) => a.target - b.target);
+
+    // Pick 3 targets: one small (easy), one medium, one larger (hard)
+    // Filter to reasonable target ranges
+    const smallTargets = allTargets.filter(
+      (t) => t.target >= 5 && t.target <= 20,
+    );
+    const mediumTargets = allTargets.filter(
+      (t) => t.target > 20 && t.target <= 50,
+    );
+    const largeTargets = allTargets.filter(
+      (t) => t.target > 50 && t.target <= 200,
+    );
+
+    if (
+      smallTargets.length === 0 ||
+      mediumTargets.length === 0 ||
+      largeTargets.length === 0
+    ) {
+      // Fallback: just pick 3 evenly spaced from all targets
+      const step = Math.floor(allTargets.length / 3);
+      return {
+        numbers,
+        targets: [
+          { ...allTargets[0], difficulty: "easy" as const },
+          { ...allTargets[step], difficulty: "medium" as const },
+          { ...allTargets[step * 2], difficulty: "hard" as const },
+        ],
+      };
+    }
+
+    // Pick random targets from each difficulty tier
+    const easyTarget =
+      smallTargets[Math.floor(Math.random() * smallTargets.length)];
+    const mediumTarget =
+      mediumTargets[Math.floor(Math.random() * mediumTargets.length)];
+    const hardTarget =
+      largeTargets[Math.floor(Math.random() * largeTargets.length)];
+
+    return {
+      numbers,
+      targets: [
+        { ...easyTarget, difficulty: "easy" as const },
+        { ...mediumTarget, difficulty: "medium" as const },
+        { ...hardTarget, difficulty: "hard" as const },
+      ],
+    };
+  }
+
+  private findAllTargets(
+    numbers: number[],
+  ): { target: number; expression: string }[] {
+    const targetMap = new Map<number, string>();
+    const ops = ["+", "-", "*", "/"];
+    const perms = this.permutations(numbers);
+
+    for (const perm of perms) {
+      for (const op1 of ops) {
+        for (const op2 of ops) {
+          for (const op3 of ops) {
+            const expressions = [
+              `((${perm[0]}${op1}${perm[1]})${op2}${perm[2]})${op3}${perm[3]}`,
+              `(${perm[0]}${op1}(${perm[1]}${op2}${perm[2]}))${op3}${perm[3]}`,
+              `(${perm[0]}${op1}${perm[1]})${op2}(${perm[2]}${op3}${perm[3]})`,
+              `${perm[0]}${op1}((${perm[1]}${op2}${perm[2]})${op3}${perm[3]})`,
+              `${perm[0]}${op1}(${perm[1]}${op2}(${perm[2]}${op3}${perm[3]}))`,
+            ];
+
+            for (const expr of expressions) {
+              try {
+                const result = Function(`"use strict"; return (${expr})`)();
+                if (
+                  Number.isFinite(result) &&
+                  Number.isInteger(result) &&
+                  result > 0 &&
+                  result <= 1000
+                ) {
+                  if (!targetMap.has(result)) {
+                    targetMap.set(result, expr);
+                  }
+                }
+              } catch {
+                // Invalid expression
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(targetMap.entries()).map(([target, expression]) => ({
+      target,
+      expression,
+    }));
   }
 
   private randomTarget(): number {
@@ -4760,12 +5210,13 @@ export class ConnectionsGenerator {
       categories: Array<{ name: string; words: string[]; difficulty: number }>;
     };
   } {
-    // Select categories based on difficulty
+    // Select categories - always use unique difficulties (1, 2, 3, 4) to ensure unique colors
+    // Each solved category gets its own color (Yellow, Green, Blue, Purple)
     const config = {
-      easy: { difficulties: [1, 1, 2, 2] },
-      medium: { difficulties: [1, 2, 2, 3] },
-      hard: { difficulties: [2, 3, 3, 4] },
-      expert: { difficulties: [3, 3, 4, 4] },
+      easy: { difficulties: [1, 2, 3, 4] },
+      medium: { difficulties: [1, 2, 3, 4] },
+      hard: { difficulties: [1, 2, 3, 4] },
+      expert: { difficulties: [1, 2, 3, 4] },
     }[difficulty];
 
     const selectedCategories: Array<{

@@ -9,6 +9,8 @@ class PuzzleCard extends StatelessWidget {
   final bool isInProgress;
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
+  final int? completionTime; // Time in seconds when completed
+  final int? completionScore; // Score when completed
 
   const PuzzleCard({
     super.key,
@@ -19,6 +21,8 @@ class PuzzleCard extends StatelessWidget {
     this.isInProgress = false,
     this.isFavorite = false,
     this.onFavoriteToggle,
+    this.completionTime,
+    this.completionScore,
   });
 
   @override
@@ -189,33 +193,117 @@ class PuzzleCard extends StatelessWidget {
 
                   const Spacer(),
 
-                  // Play button row
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.play_circle_filled_rounded,
-                        size: 16,
-                        color: colors.$1,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isCompleted || puzzle.isCompleted
-                            ? 'Play Again'
-                            : isInProgress
-                                ? 'Continue'
-                                : 'Play',
-                        style: theme.textTheme.labelSmall?.copyWith(
+                  // Bottom section: completion info or play button
+                  if (isCompleted || puzzle.isCompleted)
+                    _buildCompletionInfo(theme, colors.$1)
+                  else
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.play_circle_filled_rounded,
+                          size: 16,
                           color: colors.$1,
-                          fontWeight: FontWeight.w600,
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isInProgress ? 'Continue' : 'Play',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colors.$1,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCompletionInfo(ThemeData theme, Color accentColor) {
+    final minutes = (completionTime ?? 0) ~/ 60;
+    final seconds = (completionTime ?? 0) % 60;
+    final timeStr = '$minutes:${seconds.toString().padLeft(2, '0')}';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: Colors.green.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.check_circle_rounded,
+            size: 16,
+            color: Colors.green,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Completed',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: Colors.green,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (completionTime != null || completionScore != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              width: 1,
+              height: 12,
+              color: Colors.green.withValues(alpha: 0.3),
+            ),
+            const SizedBox(width: 8),
+            if (completionTime != null)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.timer_outlined,
+                    size: 12,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    timeStr,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            if (completionTime != null && completionScore != null)
+              const SizedBox(width: 6),
+            if (completionScore != null)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.star_rounded,
+                    size: 12,
+                    color: Colors.amber.shade600,
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    '$completionScore',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ],
       ),
     );
   }

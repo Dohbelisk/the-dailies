@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/api_service.dart';
+import '../../widgets/google_sign_in_button.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -275,7 +276,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+
+                // Google Sign-In button
+                GoogleSignInButton(
+                  onSuccess: () {
+                    Navigator.of(context).pop();
+                  },
+                  onError: (error) {
+                    setState(() {
+                      _errorMessage = error;
+                    });
+                  },
+                ).animate().fadeIn(delay: 650.ms, duration: 600.ms).slideY(begin: 0.2, end: 0),
+
+                const SizedBox(height: 16),
 
                 // Continue as guest button
                 SizedBox(

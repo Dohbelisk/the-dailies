@@ -1,0 +1,10 @@
+# Gemfile for Fastlane dependencies
+# Run `bundle install` to install dependencies
+# Run `bundle exec fastlane <lane>` to execute lanes
+
+source "https://rubygems.org"
+
+gem "fastlane", "~> 2.230"
+
+# Optional plugins
+# gem "fastlane-plugin-firebase_app_distribution"

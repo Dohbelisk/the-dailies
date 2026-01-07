@@ -452,7 +452,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               delegate: SliverChildBuilderDelegate(
                                 (context, index) {
                                   final puzzle = favoritePuzzles[index];
-                                  final isCompleted = _completions.containsKey(puzzle.gameType);
+                                  final completionData = _completions[puzzle.gameType];
+                                  final isCompleted = completionData != null;
                                   final isInProgress = _inProgress[puzzle.gameType] ?? false;
                                   return PuzzleCard(
                                     puzzle: puzzle,
@@ -461,6 +462,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     isInProgress: isInProgress && !isCompleted,
                                     isFavorite: true,
                                     onFavoriteToggle: () => _toggleFavorite(puzzle.gameType),
+                                    completionTime: completionData?['elapsedSeconds'] as int?,
+                                    completionScore: completionData?['score'] as int?,
                                   ).animate()
                                     .fadeIn(
                                       delay: Duration(milliseconds: 400 + index * 100),
@@ -511,7 +514,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               delegate: SliverChildBuilderDelegate(
                                 (context, index) {
                                   final puzzle = otherPuzzles[index];
-                                  final isCompleted = _completions.containsKey(puzzle.gameType);
+                                  final completionData = _completions[puzzle.gameType];
+                                  final isCompleted = completionData != null;
                                   final isInProgress = _inProgress[puzzle.gameType] ?? false;
                                   final isFavorite = _favorites.contains(puzzle.gameType);
                                   final animationDelay = favoritePuzzles.isNotEmpty
@@ -524,6 +528,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     isInProgress: isInProgress && !isCompleted,
                                     isFavorite: isFavorite,
                                     onFavoriteToggle: () => _toggleFavorite(puzzle.gameType),
+                                    completionTime: completionData?['elapsedSeconds'] as int?,
+                                    completionScore: completionData?['score'] as int?,
                                   ).animate()
                                     .fadeIn(
                                       delay: Duration(milliseconds: animationDelay),

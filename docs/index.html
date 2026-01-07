@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Dailies - Daily Puzzle Games</title>
+    <meta name="description" content="Challenge yourself with daily puzzles including Sudoku, Crossword, Word Forge, Nonogram, and more. Free to play, new puzzles every day.">
+    <meta name="apple-itunes-app" content="app-id=6744437941">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg: #0f0f1a;
+            --surface: #1a1a2e;
+            --text: #ffffff;
+            --text-muted: #a0a0b0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .hero {
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .app-badges {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .app-badge {
+            height: 50px;
+            border-radius: 8px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .app-badge:hover {
+            opacity: 1;
+        }
+
+        .coming-soon {
+            display: inline-block;
+            padding: 12px 24px;
+            background: var(--surface);
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .features {
+            padding: 80px 0;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 50px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+        }
+
+        .puzzles {
+            padding: 80px 0;
+            background: var(--surface);
+        }
+
+        .puzzles h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 50px;
+        }
+
+        .puzzle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .puzzle-item {
+            text-align: center;
+            padding: 20px;
+            background: var(--bg);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .puzzle-item span {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+            margin: 0 15px;
+        }
+
+        footer a:hover {
+            color: var(--primary);
+        }
+
+        .copyright {
+            margin-top: 20px;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            .hero p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">The Dailies</div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Daily Puzzle Games</h1>
+            <p>Challenge yourself with fresh puzzles every day. From classic Sudoku to creative Word Forge, there's something for everyone.</p>
+            <div class="app-badges">
+                <span class="coming-soon">Coming Soon to App Store</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <h2>Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>New Puzzles Daily</h3>
+                    <p>Wake up to fresh challenges every day. Build your streak and track your progress.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>12 Puzzle Types</h3>
+                    <p>Sudoku, Crossword, Word Forge, Nonogram, Connections, and more variety to keep you engaged.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Track Your Stats</h3>
+                    <p>See your completion times, scores, and streaks. Compare with friends and climb the leaderboard.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Play Offline</h3>
+                    <p>Download puzzles and play anywhere, anytime. No internet required.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="puzzles">
+        <div class="container">
+            <h2>Puzzle Collection</h2>
+            <div class="puzzle-grid">
+                <div class="puzzle-item">
+                    <span>9</span>
+                    Sudoku
+                </div>
+                <div class="puzzle-item">
+                    <span>+</span>
+                    Killer Sudoku
+                </div>
+                <div class="puzzle-item">
+                    <span>A</span>
+                    Crossword
+                </div>
+                <div class="puzzle-item">
+                    <span>W</span>
+                    Word Forge
+                </div>
+                <div class="puzzle-item">
+                    <span>#</span>
+                    Nonogram
+                </div>
+                <div class="puzzle-item">
+                    <span>=</span>
+                    Number Target
+                </div>
+                <div class="puzzle-item">
+                    <span>O</span>
+                    Ball Sort
+                </div>
+                <div class="puzzle-item">
+                    <span>|</span>
+                    Pipes
+                </div>
+                <div class="puzzle-item">
+                    <span>*</span>
+                    Lights Out
+                </div>
+                <div class="puzzle-item">
+                    <span>></span>
+                    Word Ladder
+                </div>
+                <div class="puzzle-item">
+                    <span>4</span>
+                    Connections
+                </div>
+                <div class="puzzle-item">
+                    <span>x</span>
+                    Mathora
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <nav>
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="terms.html">Terms of Service</a>
+                <a href="support.html">Support</a>
+            </nav>
+            <p class="copyright">&copy; 2025 Dohbelisk. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

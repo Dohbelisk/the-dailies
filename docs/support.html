@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support - The Dailies</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f0f1a;
+            --surface: #1a1a2e;
+            --text: #ffffff;
+            --text-muted: #a0a0b0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.8;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        main {
+            padding: 60px 0;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .intro {
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-top: 40px;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        p {
+            margin-bottom: 15px;
+            color: var(--text-muted);
+        }
+
+        .contact-card {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+
+        .contact-card h3 {
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .contact-card a {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .faq-item {
+            background: var(--surface);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 15px;
+        }
+
+        .faq-item h3 {
+            color: var(--text);
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .faq-item p {
+            margin-bottom: 0;
+        }
+
+        a {
+            color: var(--primary);
+        }
+
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+            margin: 0 15px;
+        }
+
+        footer a:hover {
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="index.html" class="logo">The Dailies</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h1>Support</h1>
+            <p class="intro">We're here to help! If you have questions, feedback, or need assistance with The Dailies, please reach out.</p>
+
+            <div class="contact-card">
+                <h3>Email Support</h3>
+                <p>For general inquiries and support:</p>
+                <a href="mailto:support@dohbelisk.com">support@dohbelisk.com</a>
+            </div>
+
+            <div class="contact-card">
+                <h3>Report a Bug</h3>
+                <p>Found a bug? You can report it directly in the app via Settings > Send Feedback, or email us:</p>
+                <a href="mailto:bugs@dohbelisk.com">bugs@dohbelisk.com</a>
+            </div>
+
+            <h2>Frequently Asked Questions</h2>
+
+            <div class="faq-item">
+                <h3>How do I restore my purchases?</h3>
+                <p>Go to Settings in the app and tap "Restore Purchases". This will restore any premium subscriptions linked to your Apple ID.</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>Why can't I see today's puzzles?</h3>
+                <p>New puzzles are released daily at midnight in your local timezone. Make sure you have an internet connection to download the latest puzzles. You can also try pulling down to refresh on the home screen.</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>How do I cancel my subscription?</h3>
+                <p>Subscriptions are managed through the App Store. Go to Settings on your iPhone > tap your name > Subscriptions > The Dailies > Cancel Subscription.</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>Is my progress saved?</h3>
+                <p>Yes! Your progress is saved locally on your device and synced to our servers when you're signed in. Create an account to ensure your progress is backed up.</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>How do hints work?</h3>
+                <p>You get 3 free hints per day. You can earn additional hints by watching a short video ad, or get unlimited hints with a premium subscription.</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>Can I play past puzzles?</h3>
+                <p>Yes! Access the Archive from the home screen. Free users can access limited past puzzles using tokens, while premium users have unlimited archive access.</p>
+            </div>
+
+            <h2>Response Time</h2>
+            <p>We typically respond to support requests within 24-48 hours. For urgent issues, please include "URGENT" in your email subject line.</p>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="terms.html">Terms of Service</a>
+                <a href="support.html">Support</a>
+            </nav>
+        </div>
+    </footer>
+</body>
+</html>

@@ -159,6 +159,12 @@ class GameProvider extends ChangeNotifier {
     if (_numberTargetPuzzle != null) {
       state['numberTargetExpression'] = _currentExpression;
       state['numberTargetUserExpression'] = _numberTargetPuzzle!.userExpression;
+      // Save which targets have been completed
+      if (_numberTargetPuzzle!.targets.isNotEmpty) {
+        state['numberTargetCompletedTargets'] = _numberTargetPuzzle!.targets
+            .map((t) => t.completed)
+            .toList();
+      }
     }
 
     if (_ballSortPuzzle != null) {
@@ -285,6 +291,13 @@ class GameProvider extends ChangeNotifier {
     if (_numberTargetPuzzle != null) {
       _currentExpression = state['numberTargetExpression'] ?? '';
       _numberTargetPuzzle!.userExpression = state['numberTargetUserExpression'];
+      // Restore which targets have been completed
+      if (state['numberTargetCompletedTargets'] != null && _numberTargetPuzzle!.targets.isNotEmpty) {
+        final completedList = List<bool>.from(state['numberTargetCompletedTargets'] as List);
+        for (int i = 0; i < completedList.length && i < _numberTargetPuzzle!.targets.length; i++) {
+          _numberTargetPuzzle!.targets[i].completed = completedList[i];
+        }
+      }
     }
 
     if (_ballSortPuzzle != null && state['ballSortCurrentState'] != null) {
@@ -350,6 +363,100 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  /// Apply the solution to the current puzzle (for viewing completed games)
+  void _applySolution() {
+    if (_sudokuPuzzle != null) {
+      // Copy solution to grid (grid is the current state)
+      for (int r = 0; r < 9; r++) {
+        for (int c = 0; c < 9; c++) {
+          _sudokuPuzzle!.grid[r][c] = _sudokuPuzzle!.solution[r][c];
+        }
+      }
+    }
+
+    if (_killerSudokuPuzzle != null) {
+      // Copy solution to grid
+      for (int r = 0; r < 9; r++) {
+        for (int c = 0; c < 9; c++) {
+          _killerSudokuPuzzle!.grid[r][c] = _killerSudokuPuzzle!.solution[r][c];
+        }
+      }
+    }
+
+    if (_crosswordPuzzle != null) {
+      // Copy solution to user grid
+      for (int r = 0; r < _crosswordPuzzle!.rows; r++) {
+        for (int c = 0; c < _crosswordPuzzle!.cols; c++) {
+          _crosswordPuzzle!.userGrid[r][c] = _crosswordPuzzle!.grid[r][c];
+        }
+      }
+    }
+
+    if (_wordSearchPuzzle != null) {
+      // Mark all words as found
+      for (final word in _wordSearchPuzzle!.words) {
+        word.found = true;
+      }
+    }
+
+    if (_wordForgePuzzle != null) {
+      // Add all valid words to found words
+      _wordForgePuzzle!.foundWords.addAll(_wordForgePuzzle!.validWords);
+    }
+
+    if (_nonogramPuzzle != null) {
+      // Copy solution to user grid
+      for (int r = 0; r < _nonogramPuzzle!.rows; r++) {
+        for (int c = 0; c < _nonogramPuzzle!.cols; c++) {
+          _nonogramPuzzle!.userGrid[r][c] = _nonogramPuzzle!.solution[r][c];
+        }
+      }
+    }
+
+    if (_numberTargetPuzzle != null) {
+      // Mark all targets as complete
+      for (final target in _numberTargetPuzzle!.targets) {
+        target.completed = true;
+      }
+      _currentExpression = _numberTargetPuzzle!.solution;
+    }
+
+    if (_ballSortPuzzle != null) {
+      // Set to solved state - all balls sorted by color
+      // The puzzle tracks its own isComplete state
+    }
+
+    if (_pipesPuzzle != null) {
+      // Pipes doesn't need special handling - solution is the paths
+    }
+
+    if (_lightsOutPuzzle != null) {
+      // Set all lights to off (solved state)
+      for (int r = 0; r < _lightsOutPuzzle!.rows; r++) {
+        for (int c = 0; c < _lightsOutPuzzle!.cols; c++) {
+          _lightsOutPuzzle!.currentState[r][c] = false;
+        }
+      }
+    }
+
+    if (_wordLadderPuzzle != null) {
+      // Show the solution path
+      if (_wordLadderPuzzle!.solutionPath.isNotEmpty) {
+        _wordLadderPuzzle!.pathFromStart = List.from(_wordLadderPuzzle!.solutionPath);
+      }
+    }
+
+    if (_connectionsPuzzle != null) {
+      // Mark all categories as found
+      _connectionsPuzzle!.foundCategories = List.from(_connectionsPuzzle!.categories);
+    }
+
+    if (_mathoraPuzzle != null) {
+      // Set current value to target (marks as solved)
+      _mathoraPuzzle!.currentValue = _mathoraPuzzle!.targetNumber;
+    }
+  }
+
   /// Save current game state to persistent storage
   Future<void> saveState() async {
     if (_currentPuzzle == null || _currentPuzzleDate == null) return;
@@ -362,13 +469,14 @@ class GameProvider extends ChangeNotifier {
   }
 
   /// Load a puzzle and optionally restore saved state
-  Future<void> loadPuzzle(DailyPuzzle puzzle, {bool restoreSavedState = true}) async {
+  /// If showSolution is true, display the solved puzzle (for viewing completed games)
+  Future<void> loadPuzzle(DailyPuzzle puzzle, {bool restoreSavedState = true, bool showSolution = false}) async {
     _currentPuzzle = puzzle;
     _currentPuzzleDate = puzzle.date;
     _elapsedSeconds = 0;
     _mistakes = 0;
     _hintsUsed = 0;
-    _isPlaying = true;
+    _isPlaying = !showSolution; // Don't allow interaction when viewing solution
     _selectedRow = null;
     _selectedCol = null;
     _notesMode = false;
@@ -449,6 +557,11 @@ class GameProvider extends ChangeNotifier {
           puzzle.solution as Map<String, dynamic>?,
         );
         break;
+    }
+
+    // If showing solution, apply solved state to each puzzle type
+    if (showSolution) {
+      _applySolution();
     }
 
     // Try to restore saved state if requested
@@ -832,6 +945,12 @@ class GameProvider extends ChangeNotifier {
       return true;
     }
     return false;
+  }
+
+  /// Returns true if the crossword is completely filled but has errors
+  bool get isCrosswordFilledButIncorrect {
+    if (_crosswordPuzzle == null) return false;
+    return _crosswordPuzzle!.isFilledButIncorrect;
   }
 
   // Word Search methods
@@ -1446,8 +1565,47 @@ class GameProvider extends ChangeNotifier {
         return NumberTargetResult(success: false, message: 'Invalid expression');
       }
 
-      final target = _numberTargetPuzzle!.target;
       final intResult = result.round();
+
+      // Check against all targets if available
+      if (_numberTargetPuzzle!.targets.isNotEmpty) {
+        for (final target in _numberTargetPuzzle!.targets) {
+          if (!target.completed && (result - target.target).abs() < 0.0001) {
+            target.completed = true;
+            _numberTargetPuzzle!.userExpression = _currentExpression;
+
+            // Check if all targets are complete
+            if (_numberTargetPuzzle!.allTargetsComplete) {
+              _isPlaying = false;
+            }
+
+            // Clear expression for next target
+            _currentExpression = '';
+            _usedNumberIndices.clear();
+
+            notifyListeners();
+            return NumberTargetResult(
+                success: true,
+                message: '${target.difficulty.toUpperCase()} target complete!',
+                value: intResult);
+          }
+        }
+
+        // No matching target
+        _mistakes++;
+        notifyListeners();
+        final targetsList = _numberTargetPuzzle!.targets
+            .where((t) => !t.completed)
+            .map((t) => t.target)
+            .join(', ');
+        return NumberTargetResult(
+            success: false,
+            message: '= $intResult (targets: $targetsList)',
+            value: intResult);
+      }
+
+      // Fallback to single target logic
+      final target = _numberTargetPuzzle!.target;
       if ((result - target).abs() < 0.0001) {
         _numberTargetPuzzle!.userExpression = _currentExpression;
         _isPlaying = false;
@@ -1470,6 +1628,18 @@ class GameProvider extends ChangeNotifier {
   Future<bool> checkNumberTargetComplete() async {
     if (_numberTargetPuzzle == null) return false;
 
+    // Check if all targets are complete (if using multi-target mode)
+    if (_numberTargetPuzzle!.targets.isNotEmpty) {
+      if (_numberTargetPuzzle!.allTargetsComplete) {
+        _isPlaying = false;
+        await _markAsCompleted();
+        notifyListeners();
+        return true;
+      }
+      return false;
+    }
+
+    // Fallback to single target
     if (_numberTargetPuzzle!.isComplete) {
       _isPlaying = false;
       await _markAsCompleted();
