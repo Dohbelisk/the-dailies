@@ -54,7 +54,7 @@ export class NotificationsService implements OnModuleInit {
           const resolvedPath = path.isAbsolute(serviceAccountPath)
             ? serviceAccountPath
             : path.resolve(process.cwd(), serviceAccountPath);
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
           const serviceAccount = require(resolvedPath);
           this.logger.log(
             `Initializing Firebase from file with project: ${serviceAccount.project_id}`,
