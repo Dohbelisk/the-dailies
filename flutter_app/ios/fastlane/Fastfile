@@ -62,6 +62,24 @@ platform :ios do
     )
   end
 
+  desc "Upload pre-built IPA to TestFlight (for CI - skips build)"
+  lane :upload_ci do
+    # Use App Store Connect API Key for CI/CD
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY_KEY"],
+      is_key_content_base64: true
+    )
+
+    # Upload to TestFlight with API key (IPA already built by workflow)
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      ipa: "../build/ios/ipa/The Dailies.ipa"
+    )
+  end
+
   # ==========================================
   # BUILD LANES
   # ==========================================
