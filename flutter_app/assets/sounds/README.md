@@ -1,40 +1,41 @@
 # Sound Assets
 
-Place your sound files in this directory. The app expects the following audio files:
+This directory contains the audio files used in The Dailies app.
 
-## Required Sound Effects (MP3 format recommended)
+## Sound Effects
 
 | File | Description | Duration | Use Case |
 |------|-------------|----------|----------|
 | `tap.mp3` | Short click/tap sound | ~50ms | Cell selection, button taps |
 | `success.mp3` | Positive feedback sound | ~200ms | Correct answer, valid entry |
 | `error.mp3` | Negative feedback sound | ~200ms | Wrong answer, invalid entry |
-| `complete.mp3` | Victory fanfare | ~1-2s | Puzzle completion |
+| `complete.mp3` | Victory fanfare | ~1s | Puzzle completion |
 | `word_found.mp3` | Word discovery sound | ~300ms | Word search word found |
 | `hint.mp3` | Hint reveal sound | ~200ms | When hint is used |
 
-## Optional Background Music
+## Background Music
 
 | File | Description | Duration | Notes |
 |------|-------------|----------|-------|
-| `background.mp3` | Ambient/relaxing music | Any | Loops automatically |
+| `background.mp3` | Relaxing puzzle music | ~2 min | Loops automatically |
 
-## Recommendations
+## Attribution
 
-- **Format**: MP3 is recommended for best compatibility
-- **Quality**: 128-192 kbps is sufficient
-- **Volume**: Normalize sounds to similar levels (the app handles volume control)
-- **Style**: Keep sounds subtle and non-intrusive for a puzzle game
+### Sound Effects
+Sound effects from "The Essential Retro Video Game Sound Effects Collection" by Juhani Junkala.
+- **Source**: [OpenGameArt.org](https://opengameart.org/content/512-sound-effects-8-bit-style)
+- **License**: CC0 (Public Domain) - No attribution required
+- **Files**: tap.mp3, success.mp3, error.mp3, complete.mp3, word_found.mp3, hint.mp3
 
-## Free Sound Resources
+### Background Music
+"Cozy Puzzle Title" by MintoDog.
+- **Source**: [OpenGameArt.org](https://opengameart.org/content/cozy-puzzle-title)
+- **License**: CC0 (Public Domain) - No attribution required
+- **File**: background.mp3
 
-- [Freesound.org](https://freesound.org) - CC licensed sounds
-- [OpenGameArt.org](https://opengameart.org) - Game-specific assets
-- [Mixkit.co](https://mixkit.co/free-sound-effects/) - Royalty-free sounds
-- [Zapsplat.com](https://www.zapsplat.com) - Free sound effects
+## Technical Notes
 
-## Notes
-
-- If sound files are missing, the app will continue without errors
-- Sounds are optional - the app works fine without them
+- **Format**: MP3 (128-192 kbps)
+- **Sample Rate**: 44.1 kHz
 - All sounds respect the user's volume settings in Settings
+- If sound files are missing, the app will continue without errors
