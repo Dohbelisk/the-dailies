@@ -208,7 +208,7 @@ jobs:
           APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
         run: |
           cd ios
-          bundle exec fastlane beta_ci
+          bundle exec fastlane upload_ci
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
