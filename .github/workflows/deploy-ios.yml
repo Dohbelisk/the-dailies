@@ -36,6 +36,9 @@ jobs:
           bundler-cache: true
           working-directory: flutter_app/ios
 
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
       - name: Install CocoaPods
         run: |
           cd ios
@@ -49,9 +52,7 @@ jobs:
           echo "$APP_STORE_CONNECT_API_KEY_KEY" | base64 --decode > ~/private_keys/AuthKey.p8
 
       - name: Build Flutter iOS
-        run: |
-          flutter pub get
-          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload to TestFlight
         env:
