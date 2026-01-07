@@ -436,17 +436,30 @@ export class CrosswordGenerator {
       .map(() => Array(cols).fill(null));
     this.placedWords = [];
 
-    // Sort words by length (longer first for better placement)
-    const sorted = [...wordsWithClues].sort(
-      (a, b) => b.word.length - a.word.length,
-    );
+    // Shuffle words first, then sort by length (preserves randomness for same-length words)
+    const shuffled = this.shuffleArray([...wordsWithClues]);
+    const sorted = shuffled.sort((a, b) => b.word.length - a.word.length);
 
-    // Place first word horizontally in the middle
+    // Randomly choose starting direction
+    const startDirection: "across" | "down" =
+      Math.random() < 0.5 ? "across" : "down";
+
+    // Place first word with random offset from center
     if (sorted.length > 0) {
       const firstWord = sorted[0].word.toUpperCase();
-      const startRow = Math.floor(rows / 2);
-      const startCol = Math.floor((cols - firstWord.length) / 2);
-      this.placeWord(firstWord, startRow, startCol, "across");
+      const offsetRange = 2;
+      const randomOffset =
+        Math.floor(Math.random() * (offsetRange * 2 + 1)) - offsetRange;
+
+      if (startDirection === "across") {
+        const startRow = Math.floor(rows / 2) + randomOffset;
+        const startCol = Math.floor((cols - firstWord.length) / 2);
+        this.placeWord(firstWord, startRow, startCol, "across");
+      } else {
+        const startRow = Math.floor((rows - firstWord.length) / 2);
+        const startCol = Math.floor(cols / 2) + randomOffset;
+        this.placeWord(firstWord, startRow, startCol, "down");
+      }
     }
 
     // Place remaining words - only if they connect to existing words
@@ -474,41 +487,70 @@ export class CrosswordGenerator {
   }
 
   private findAndPlaceWord(word: string): boolean {
-    const attempts = 100;
+    // Collect all valid placements first
+    const validPlacements: Array<{
+      row: number;
+      col: number;
+      direction: "across" | "down";
+    }> = [];
 
-    for (let attempt = 0; attempt < attempts; attempt++) {
-      // Try to find an intersection with existing words
-      for (const placed of this.placedWords) {
-        for (let i = 0; i < placed.word.length; i++) {
-          for (let j = 0; j < word.length; j++) {
-            if (placed.word[i] === word[j]) {
-              // Found a potential intersection
-              let newRow: number, newCol: number;
-              let newDir: "across" | "down";
+    // Shuffle placed words to check intersections in random order
+    const shuffledPlaced = this.shuffleArray([...this.placedWords]);
 
-              if (placed.direction === "across") {
-                // Place new word vertically
-                newDir = "down";
-                newRow = placed.row - j;
-                newCol = placed.col + i;
-              } else {
-                // Place new word horizontally
-                newDir = "across";
-                newRow = placed.row + i;
-                newCol = placed.col - j;
-              }
+    for (const placed of shuffledPlaced) {
+      // Create shuffled indices for both loops
+      const iIndices = this.shuffleArray(
+        Array.from({ length: placed.word.length }, (_, i) => i),
+      );
+      const jIndices = this.shuffleArray(
+        Array.from({ length: word.length }, (_, j) => j),
+      );
 
-              if (this.canPlaceWord(word, newRow, newCol, newDir)) {
-                this.placeWord(word, newRow, newCol, newDir);
-                return true;
-              }
+      for (const i of iIndices) {
+        for (const j of jIndices) {
+          if (placed.word[i] === word[j]) {
+            // Found a potential intersection
+            let newRow: number, newCol: number;
+            let newDir: "across" | "down";
+
+            if (placed.direction === "across") {
+              // Place new word vertically
+              newDir = "down";
+              newRow = placed.row - j;
+              newCol = placed.col + i;
+            } else {
+              // Place new word horizontally
+              newDir = "across";
+              newRow = placed.row + i;
+              newCol = placed.col - j;
+            }
+
+            if (this.canPlaceWord(word, newRow, newCol, newDir)) {
+              validPlacements.push({ row: newRow, col: newCol, direction: newDir });
             }
           }
         }
       }
     }
 
+    // Pick a random valid placement if any exist
+    if (validPlacements.length > 0) {
+      const chosen =
+        validPlacements[Math.floor(Math.random() * validPlacements.length)];
+      this.placeWord(word, chosen.row, chosen.col, chosen.direction);
+      return true;
+    }
+
     return false;
+  }
+
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   }
 
   private canPlaceWord(

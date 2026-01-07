@@ -548,78 +548,111 @@ class _WordForgeHintsSheetState extends State<WordForgeHintsSheet> {
 
               // Revealed words section (if any)
               if (widget.revealedWords.isNotEmpty) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.purple.shade300,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                Builder(
+                  builder: (context) {
+                    final isDark = theme.brightness == Brightness.dark;
+                    final clueBgColor = isDark
+                        ? Colors.purple.shade900.withValues(alpha: 0.3)
+                        : Colors.purple.shade50;
+                    final clueBorderColor = isDark
+                        ? Colors.purple.shade700
+                        : Colors.purple.shade300;
+                    final clueIconColor = isDark
+                        ? Colors.purple.shade300
+                        : Colors.purple.shade700;
+                    final clueTitleColor = isDark
+                        ? Colors.purple.shade200
+                        : Colors.purple.shade800;
+                    final wordBgColor = isDark
+                        ? Colors.purple.shade800.withValues(alpha: 0.5)
+                        : Colors.purple.shade100;
+                    final wordTextColor = isDark
+                        ? Colors.purple.shade100
+                        : Colors.purple.shade900;
+                    final pangramWordBgColor = isDark
+                        ? Colors.amber.shade800.withValues(alpha: 0.5)
+                        : Colors.amber.shade200;
+                    final pangramWordBorderColor = isDark
+                        ? Colors.amber.shade600
+                        : Colors.amber.shade400;
+                    final pangramWordTextColor = isDark
+                        ? Colors.amber.shade100
+                        : Colors.amber.shade900;
+
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: clueBgColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: clueBorderColor,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.lightbulb,
-                            color: Colors.purple.shade700,
-                            size: 20,
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.lightbulb,
+                                color: clueIconColor,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Clues',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: clueTitleColor,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Clues',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.purple.shade800,
+                          const SizedBox(height: 12),
+                          ...widget.revealedWords.map((word) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: word.isPangram
+                                        ? pangramWordBgColor
+                                        : wordBgColor,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: word.isPangram
+                                        ? Border.all(color: pangramWordBorderColor)
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    // Show prefix + length hint instead of full word
+                                    '${word.word.substring(0, 2)}... (${word.word.length} letters)',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: word.isPangram
+                                          ? pangramWordTextColor
+                                          : wordTextColor,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    word.clue.isNotEmpty ? word.clue : 'No clue available',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontStyle: word.clue.isEmpty ? FontStyle.italic : null,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
+                          )),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      ...widget.revealedWords.map((word) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: word.isPangram
-                                    ? Colors.amber.shade200
-                                    : Colors.purple.shade100,
-                                borderRadius: BorderRadius.circular(8),
-                                border: word.isPangram
-                                    ? Border.all(color: Colors.amber.shade400)
-                                    : null,
-                              ),
-                              child: Text(
-                                // Show prefix + length hint instead of full word
-                                '${word.word.substring(0, 2)}... (${word.word.length} letters)',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: word.isPangram
-                                      ? Colors.amber.shade900
-                                      : Colors.purple.shade900,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                word.clue.isNotEmpty ? word.clue : 'No clue available',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  fontStyle: word.clue.isEmpty ? FontStyle.italic : null,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
               ],
@@ -690,78 +723,103 @@ class _WordForgeHintsSheetState extends State<WordForgeHintsSheet> {
 
               // Pangram hint (only if hasn't found one yet)
               if (widget.hasUnfoundPangrams)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.amber.shade300,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                Builder(
+                  builder: (context) {
+                    final isDark = theme.brightness == Brightness.dark;
+                    final pangramBgColor = isDark
+                        ? Colors.amber.shade900.withValues(alpha: 0.3)
+                        : Colors.amber.shade50;
+                    final pangramBorderColor = isDark
+                        ? Colors.amber.shade700
+                        : Colors.amber.shade300;
+                    final pangramIconColor = isDark
+                        ? Colors.amber.shade400
+                        : Colors.amber.shade700;
+                    final pangramTextColor = isDark
+                        ? Colors.amber.shade300
+                        : Colors.amber.shade800;
+                    final pangramBadgeBgColor = isDark
+                        ? Colors.amber.shade800
+                        : Colors.amber.shade200;
+                    final pangramBadgeTextColor = isDark
+                        ? Colors.amber.shade100
+                        : Colors.amber.shade900;
+
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: pangramBgColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: pangramBorderColor,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.star,
-                            color: Colors.amber.shade700,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Pangram Hint',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.amber.shade800,
-                            ),
-                          ),
-                          const Spacer(),
-                          if (!widget.pangramHintUsed)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.shade200,
-                                borderRadius: BorderRadius.circular(8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.star,
+                                color: pangramIconColor,
+                                size: 20,
                               ),
-                              child: Text(
-                                '1 HINT',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: Colors.amber.shade900,
+                              const SizedBox(width: 8),
+                              Text(
+                                'Pangram Hint',
+                                style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
+                                  color: pangramTextColor,
                                 ),
                               ),
+                              const Spacer(),
+                              if (!widget.pangramHintUsed)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: pangramBadgeBgColor,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '1 HINT',
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: pangramBadgeTextColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (widget.pangramHintUsed && widget.pangramHint != null)
+                            Text(
+                              'Pangram starts with "${widget.pangramHint!['firstLetter']}" and is ${widget.pangramHint!['length']} letters long',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: pangramTextColor,
+                              ),
+                            )
+                          else
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Get a hint for an unfound pangram (7-letter word using all letters)',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                FilledButton.tonal(
+                                  onPressed: widget.onUsePangramHint,
+                                  child: const Text('Reveal Pangram Hint'),
+                                ),
+                              ],
                             ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      if (widget.pangramHintUsed && widget.pangramHint != null)
-                        Text(
-                          'Pangram starts with "${widget.pangramHint!['firstLetter']}" and is ${widget.pangramHint!['length']} letters long',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Get a hint for an unfound pangram (7-letter word using all letters)',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            FilledButton.tonal(
-                              onPressed: widget.onUsePangramHint,
-                              child: const Text('Reveal Pangram Hint'),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               if (widget.hasUnfoundPangrams) const SizedBox(height: 16),
 
@@ -906,33 +964,48 @@ class WordForgeWordList extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         // Words list
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: sortedWords.map((word) {
-            final isPangram = puzzle.pangrams.contains(word);
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: isPangram
-                    ? Colors.amber.shade100
-                    : theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(16),
-                border: isPangram
-                    ? Border.all(color: Colors.amber.shade400, width: 2)
-                    : null,
-              ),
-              child: Text(
-                word.toLowerCase(),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: isPangram ? FontWeight.bold : FontWeight.normal,
-                  color: isPangram
-                      ? Colors.amber.shade900
-                      : theme.colorScheme.onSurface,
-                ),
-              ),
+        Builder(
+          builder: (context) {
+            final isDark = theme.brightness == Brightness.dark;
+            final pangramBgColor = isDark
+                ? Colors.amber.shade800.withValues(alpha: 0.4)
+                : Colors.amber.shade100;
+            final pangramBorderColor = isDark
+                ? Colors.amber.shade600
+                : Colors.amber.shade400;
+            final pangramTextColor = isDark
+                ? Colors.amber.shade200
+                : Colors.amber.shade900;
+
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: sortedWords.map((word) {
+                final isPangram = puzzle.pangrams.contains(word);
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isPangram
+                        ? pangramBgColor
+                        : theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(16),
+                    border: isPangram
+                        ? Border.all(color: pangramBorderColor, width: 2)
+                        : null,
+                  ),
+                  child: Text(
+                    word.toLowerCase(),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: isPangram ? FontWeight.bold : FontWeight.normal,
+                      color: isPangram
+                          ? pangramTextColor
+                          : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                );
+              }).toList(),
             );
-          }).toList(),
+          },
         ),
       ],
     );

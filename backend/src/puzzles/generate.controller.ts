@@ -788,6 +788,7 @@ export class GenerateController {
     ];
 
     const crosswordData = [
+      // Technology
       {
         words: [
           { word: "FLUTTER", clue: "Google UI toolkit for mobile apps" },
@@ -795,8 +796,28 @@ export class GenerateController {
           { word: "CODE", clue: "What programmers write" },
           { word: "DEBUG", clue: "Find and fix errors" },
           { word: "API", clue: "Application Programming Interface" },
+          { word: "SERVER", clue: "Computer that serves data" },
         ],
       },
+      {
+        words: [
+          { word: "DATABASE", clue: "Organized collection of data" },
+          { word: "QUERY", clue: "Database request" },
+          { word: "TABLE", clue: "Database structure" },
+          { word: "INDEX", clue: "Speeds up searches" },
+          { word: "CACHE", clue: "Temporary storage" },
+        ],
+      },
+      {
+        words: [
+          { word: "PYTHON", clue: "Snake or programming language" },
+          { word: "JAVA", clue: "Island or programming language" },
+          { word: "SWIFT", clue: "Apple programming language" },
+          { word: "RUST", clue: "Systems programming language" },
+          { word: "RUBY", clue: "Gem or programming language" },
+        ],
+      },
+      // Science
       {
         words: [
           { word: "SCIENCE", clue: "Study of the natural world" },
@@ -808,6 +829,26 @@ export class GenerateController {
       },
       {
         words: [
+          { word: "GRAVITY", clue: "Force that pulls things down" },
+          { word: "ORBIT", clue: "Path around a planet" },
+          { word: "PLANET", clue: "Celestial body" },
+          { word: "STAR", clue: "Burning ball of gas" },
+          { word: "MOON", clue: "Natural satellite" },
+          { word: "COMET", clue: "Icy space traveler" },
+        ],
+      },
+      {
+        words: [
+          { word: "EVOLUTION", clue: "Change over generations" },
+          { word: "SPECIES", clue: "Group of similar organisms" },
+          { word: "GENE", clue: "Unit of heredity" },
+          { word: "CELL", clue: "Basic unit of life" },
+          { word: "DNA", clue: "Genetic code carrier" },
+        ],
+      },
+      // Travel & Geography
+      {
+        words: [
           { word: "TRAVEL", clue: "Journey to distant places" },
           { word: "VACATION", clue: "Holiday or time off" },
           { word: "HOTEL", clue: "Place to stay overnight" },
@@ -815,6 +856,25 @@ export class GenerateController {
           { word: "TOURIST", clue: "Person visiting places" },
         ],
       },
+      {
+        words: [
+          { word: "AIRPORT", clue: "Planes take off here" },
+          { word: "FLIGHT", clue: "Air travel" },
+          { word: "PASSPORT", clue: "Travel document" },
+          { word: "LUGGAGE", clue: "Travel bags" },
+          { word: "TICKET", clue: "Proof of booking" },
+        ],
+      },
+      {
+        words: [
+          { word: "CONTINENT", clue: "Large landmass" },
+          { word: "ISLAND", clue: "Land surrounded by water" },
+          { word: "DESERT", clue: "Dry sandy region" },
+          { word: "JUNGLE", clue: "Dense tropical forest" },
+          { word: "GLACIER", clue: "Slow moving ice" },
+        ],
+      },
+      // Music
       {
         words: [
           { word: "MUSIC", clue: "Art of sound" },
@@ -826,6 +886,26 @@ export class GenerateController {
       },
       {
         words: [
+          { word: "CONCERT", clue: "Live music performance" },
+          { word: "ORCHESTRA", clue: "Large musical group" },
+          { word: "CONDUCTOR", clue: "Leads the musicians" },
+          { word: "SYMPHONY", clue: "Long orchestral piece" },
+          { word: "VIOLIN", clue: "Stringed instrument with bow" },
+        ],
+      },
+      {
+        words: [
+          { word: "JAZZ", clue: "Improvisational music genre" },
+          { word: "BLUES", clue: "Sad music genre" },
+          { word: "ROCK", clue: "Loud guitar music" },
+          { word: "DRUM", clue: "Percussion instrument" },
+          { word: "BASS", clue: "Low frequency instrument" },
+          { word: "TEMPO", clue: "Speed of music" },
+        ],
+      },
+      // Nature
+      {
+        words: [
           { word: "NATURE", clue: "The natural world" },
           { word: "FOREST", clue: "Dense woods" },
           { word: "MOUNTAIN", clue: "High elevation" },
@@ -833,6 +913,27 @@ export class GenerateController {
           { word: "OCEAN", clue: "Large body of salt water" },
         ],
       },
+      {
+        words: [
+          { word: "WILDLIFE", clue: "Animals in nature" },
+          { word: "EAGLE", clue: "Bird of prey" },
+          { word: "WOLF", clue: "Pack animal" },
+          { word: "BEAR", clue: "Large furry mammal" },
+          { word: "DEER", clue: "Animal with antlers" },
+          { word: "FOX", clue: "Clever canine" },
+        ],
+      },
+      {
+        words: [
+          { word: "GARDEN", clue: "Cultivated outdoor space" },
+          { word: "FLOWER", clue: "Blooming plant" },
+          { word: "TREE", clue: "Tall woody plant" },
+          { word: "SEED", clue: "Plant embryo" },
+          { word: "SOIL", clue: "Earth for planting" },
+          { word: "ROOT", clue: "Underground plant part" },
+        ],
+      },
+      // Sports
       {
         words: [
           { word: "SPORTS", clue: "Physical activities" },
@@ -844,6 +945,25 @@ export class GenerateController {
       },
       {
         words: [
+          { word: "BASKETBALL", clue: "Hoop sport" },
+          { word: "COURT", clue: "Playing surface" },
+          { word: "SCORE", clue: "Points earned" },
+          { word: "TEAM", clue: "Group of players" },
+          { word: "COACH", clue: "Team leader" },
+        ],
+      },
+      {
+        words: [
+          { word: "OLYMPICS", clue: "International sports event" },
+          { word: "MEDAL", clue: "Prize for winners" },
+          { word: "GOLD", clue: "First place color" },
+          { word: "ATHLETE", clue: "Sports competitor" },
+          { word: "STADIUM", clue: "Sports venue" },
+        ],
+      },
+      // Food & Cooking
+      {
+        words: [
           { word: "FOOD", clue: "What we eat" },
           { word: "PIZZA", clue: "Italian flatbread with toppings" },
           { word: "PASTA", clue: "Italian noodles" },
@@ -851,7 +971,116 @@ export class GenerateController {
           { word: "DESSERT", clue: "Sweet course" },
         ],
       },
+      {
+        words: [
+          { word: "KITCHEN", clue: "Room for cooking" },
+          { word: "RECIPE", clue: "Cooking instructions" },
+          { word: "CHEF", clue: "Professional cook" },
+          { word: "OVEN", clue: "Baking appliance" },
+          { word: "STOVE", clue: "Cooking surface" },
+          { word: "PAN", clue: "Cooking vessel" },
+        ],
+      },
+      {
+        words: [
+          { word: "BREAKFAST", clue: "Morning meal" },
+          { word: "LUNCH", clue: "Midday meal" },
+          { word: "DINNER", clue: "Evening meal" },
+          { word: "SNACK", clue: "Small bite to eat" },
+          { word: "BRUNCH", clue: "Late morning meal" },
+        ],
+      },
+      // Arts & Literature
+      {
+        words: [
+          { word: "PAINTING", clue: "Artwork on canvas" },
+          { word: "ARTIST", clue: "Creator of art" },
+          { word: "BRUSH", clue: "Painting tool" },
+          { word: "CANVAS", clue: "Painting surface" },
+          { word: "GALLERY", clue: "Art display space" },
+        ],
+      },
+      {
+        words: [
+          { word: "NOVEL", clue: "Long fictional book" },
+          { word: "AUTHOR", clue: "Book writer" },
+          { word: "CHAPTER", clue: "Book section" },
+          { word: "PLOT", clue: "Story events" },
+          { word: "CHARACTER", clue: "Story person" },
+        ],
+      },
+      {
+        words: [
+          { word: "THEATER", clue: "Stage performance venue" },
+          { word: "ACTOR", clue: "Stage performer" },
+          { word: "SCRIPT", clue: "Play text" },
+          { word: "DRAMA", clue: "Serious play" },
+          { word: "COMEDY", clue: "Funny play" },
+          { word: "SCENE", clue: "Part of a play" },
+        ],
+      },
+      // Weather & Seasons
+      {
+        words: [
+          { word: "WEATHER", clue: "Atmospheric conditions" },
+          { word: "STORM", clue: "Violent weather" },
+          { word: "THUNDER", clue: "Sound after lightning" },
+          { word: "RAIN", clue: "Water from clouds" },
+          { word: "CLOUD", clue: "Floating water vapor" },
+        ],
+      },
+      {
+        words: [
+          { word: "SUMMER", clue: "Warm season" },
+          { word: "WINTER", clue: "Cold season" },
+          { word: "SPRING", clue: "Blooming season" },
+          { word: "AUTUMN", clue: "Falling leaves season" },
+          { word: "SEASON", clue: "Part of the year" },
+        ],
+      },
+      // Architecture & Buildings
+      {
+        words: [
+          { word: "BUILDING", clue: "Structure with walls and roof" },
+          { word: "ARCHITECT", clue: "Building designer" },
+          { word: "TOWER", clue: "Tall structure" },
+          { word: "BRIDGE", clue: "Spans over water" },
+          { word: "DOME", clue: "Rounded roof" },
+        ],
+      },
+      // Health & Medicine
+      {
+        words: [
+          { word: "DOCTOR", clue: "Medical professional" },
+          { word: "HOSPITAL", clue: "Medical facility" },
+          { word: "MEDICINE", clue: "Treatment substance" },
+          { word: "HEALTH", clue: "State of wellbeing" },
+          { word: "NURSE", clue: "Patient caregiver" },
+        ],
+      },
+      // History
+      {
+        words: [
+          { word: "HISTORY", clue: "Study of the past" },
+          { word: "ANCIENT", clue: "Very old" },
+          { word: "EMPIRE", clue: "Large territory under one ruler" },
+          { word: "KING", clue: "Male monarch" },
+          { word: "QUEEN", clue: "Female monarch" },
+          { word: "CASTLE", clue: "Medieval fortress" },
+        ],
+      },
     ];
+
+    // Randomly select a word set for more variety
+    const shuffleArray = <T>(arr: T[]): T[] => {
+      const shuffled = [...arr];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    };
+    const shuffledCrosswordData = shuffleArray(crosswordData);
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(startDate);
@@ -897,7 +1126,7 @@ export class GenerateController {
 
       // Generate Crossword if requested
       if (dto.gameTypes.includes("crossword")) {
-        const cwData = crosswordData[i % crosswordData.length];
+        const cwData = shuffledCrosswordData[i % shuffledCrosswordData.length];
         const crosswordPuzzle = generateCrossword(cwData.words, 10, 10);
         const crossword = await this.puzzlesService.create({
           gameType: GameType.CROSSWORD,
