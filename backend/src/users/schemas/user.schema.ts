@@ -9,6 +9,12 @@ export enum UserRole {
   ADMIN = "admin",
 }
 
+export enum AuthProvider {
+  LOCAL = "local",
+  GOOGLE = "google",
+  BOTH = "both",
+}
+
 @Schema({ timestamps: true })
 export class User {
   @ApiProperty()
@@ -16,8 +22,8 @@ export class User {
   email: string;
 
   @ApiProperty()
-  @Prop({ required: true })
-  password: string;
+  @Prop({ required: false })
+  password?: string;
 
   @ApiProperty()
   @Prop()
@@ -34,6 +40,18 @@ export class User {
   @ApiProperty()
   @Prop({ default: true })
   isActive: boolean;
+
+  @ApiProperty()
+  @Prop({ unique: true, sparse: true })
+  googleId?: string;
+
+  @ApiProperty()
+  @Prop()
+  profilePicture?: string;
+
+  @ApiProperty({ enum: AuthProvider })
+  @Prop({ type: String, enum: AuthProvider, default: AuthProvider.LOCAL })
+  authProvider: AuthProvider;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

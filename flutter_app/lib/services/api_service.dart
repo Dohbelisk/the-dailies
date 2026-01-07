@@ -216,6 +216,34 @@ class ApiService {
     }
   }
 
+  Future<LoginResult> googleSignIn(String idToken) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/google'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'idToken': idToken}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        final user = User.fromJson(data['user']);
+        final token = data['token'] ?? data['access_token'];
+
+        // Set authenticated user in AuthService
+        if (authService != null) {
+          await authService!.setAuthenticatedUser(token, user);
+        }
+
+        return LoginResult.success(user, token);
+      } else {
+        final data = json.decode(response.body);
+        return LoginResult.failure(data['message'] ?? 'Google Sign-In failed');
+      }
+    } catch (e) {
+      return LoginResult.failure('Google Sign-In failed: $e');
+    }
+  }
+
   Future<User?> getCurrentUser() async {
     try {
       final response = await http.get(
