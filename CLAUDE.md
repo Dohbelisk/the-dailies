@@ -10,7 +10,7 @@ The Dailies is a multi-platform daily puzzle game featuring **13 puzzle types**:
 - **NestJS Backend API** (`backend/`) - RESTful API with MongoDB and JWT authentication
 - **React Admin Portal** (`admin-portal/`) - Web-based puzzle management dashboard
 
-**Current Status:** ~97% complete - All core features implemented
+**Current Status:** ~99% complete - All core features implemented, TestFlight/Firebase deployment ready
 
 ---
 
@@ -146,6 +146,7 @@ flutter analyze           # Analyze code
 - `feedback/` - User feedback and bug reports
 - `config/` - App configuration, feature flags, and version management
 - `email/` - Email notifications (via Nodemailer)
+- `notifications/` - Push notifications via Firebase Cloud Messaging (FCM)
 - `seeds/` - Database seeding scripts
 - `dictionary/` - Word dictionary for Word Forge validation (~370k words)
 - `utils/` - Puzzle generators (Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target)
@@ -264,7 +265,7 @@ FeatureFlag {
 | Service | Purpose |
 |---------|---------|
 | `ApiService` | HTTP client, offline mock data fallback |
-| `AuthService` | JWT auth, token persistence, user state |
+| `AuthService` | JWT auth, token persistence, user state, profile picture |
 | `GameService` | Puzzle fetching and parsing |
 | `GameStateService` | Persistent game state (in-progress detection) |
 | `FavoritesService` | Favorite games pinned to top of home screen |
@@ -277,21 +278,26 @@ FeatureFlag {
 | `FriendsService` | Friend list, requests, search |
 | `ChallengeService` | Multiplayer challenges |
 | `ConsentService` | GDPR consent management |
+| `GoogleSignInService` | Google OAuth authentication |
+| `FirebaseService` | Firebase initialization and push notifications |
+| `AchievementsService` | Achievement tracking and unlocks |
+| `ShakeDetectorService` | Shake-to-undo gesture detection |
 
 **Screens:**
 
 | Screen | Purpose |
 |--------|---------|
 | `HomeScreen` | Today's puzzles, navigation |
-| `GameScreen` | Puzzle gameplay (all 4 types) |
+| `GameScreen` | Puzzle gameplay (all 13 game types) |
 | `ArchiveScreen` | Past puzzles with token access |
 | `StatsScreen` | User statistics |
-| `SettingsScreen` | Audio, theme, privacy, IAP |
+| `SettingsScreen` | Profile section, audio, theme, privacy, IAP, logout |
 | `DebugMenuScreen` | Hidden debug menu for feature flag overrides |
 | `FriendsScreen` | Friend list, requests, search |
 | `FriendProfileScreen` | Friend details, head-to-head stats |
 | `ChallengesScreen` | Pending, active, completed challenges |
-| `LoginScreen` / `RegisterScreen` | Authentication |
+| `AchievementsScreen` | View earned and locked achievements |
+| `LoginScreen` / `RegisterScreen` | Email/password and Google Sign-In auth |
 | `ThemeSelectionScreen` | First-launch theme picker |
 | `TermsOfServiceScreen` / `PrivacyPolicyScreen` | Legal |
 
@@ -302,6 +308,11 @@ FeatureFlag {
 - `CompletionDialog`, `FeedbackDialog`, `ConsentDialog`
 - `ForceUpdateDialog`, `UpdateAvailableDialog`, `MaintenanceDialog`
 - `AnimatedBackground`
+- `GoogleSignInButton` - Google OAuth sign-in button
+- `AchievementUnlockToast` - Achievement notification toast
+- `DailyStatsBanner` - Daily stats display on home screen
+- `HeroPuzzleCard`, `VibrantPuzzleCard` - Enhanced puzzle card variants
+- `GameIcon` - Dynamic game type icons
 
 **Game-Specific State in GameProvider:**
 - Sudoku/Killer Sudoku: cell selection, notes mode (`Set<int>` per cell), grid validation
@@ -375,6 +386,7 @@ POST /api/feedback                         # Submit feedback (no auth required)
 ```
 POST /api/auth/login                       # Login (returns JWT)
 POST /api/auth/register                    # Register new user
+POST /api/auth/google                      # Google OAuth login/register
 GET  /api/auth/me                          # Get current user (requires JWT)
 ```
 
@@ -459,6 +471,13 @@ POST /api/dictionary/validate-many         # Check multiple words
 POST /api/dictionary/validate-for-puzzle   # Check word is valid for puzzle letters
 GET  /api/dictionary/count                 # Get total word count
 GET  /api/dictionary/status                # Get dictionary status
+```
+
+### Push Notifications Routes (require JWT)
+```
+POST /api/notifications/register           # Register device FCM token
+POST /api/notifications/send               # Send notification (admin only)
+DELETE /api/notifications/unregister       # Unregister device token
 ```
 
 ---
@@ -678,6 +697,32 @@ The app uses a **freemium model** with AdMob advertising, token-based archive ac
 - Environment: `flutter_app/lib/config/environment.dart`
 
 **Test Ad Units:** Must be replaced with production IDs before release. See `MONETIZATION.md` and `ADS_IMPLEMENTATION.md`.
+
+---
+
+## Sound Assets
+
+Sound effects and background music are located in `flutter_app/assets/sounds/`:
+
+| File | Description | Duration | Use Case |
+|------|-------------|----------|----------|
+| `tap.mp3` | Short click sound | ~50ms | Cell selection, button taps |
+| `success.mp3` | Positive feedback | ~200ms | Correct answer, valid entry |
+| `error.mp3` | Negative feedback | ~200ms | Wrong answer, invalid entry |
+| `complete.mp3` | Victory fanfare | ~1s | Puzzle completion |
+| `word_found.mp3` | Word discovery | ~300ms | Word search word found |
+| `hint.mp3` | Hint reveal | ~200ms | When hint is used |
+| `background.mp3` | Relaxing puzzle music | ~2 min | Loops automatically |
+
+**Attribution (CC0 Public Domain):**
+- Sound effects: "The Essential Retro Video Game Sound Effects Collection" by Juhani Junkala ([OpenGameArt.org](https://opengameart.org/content/512-sound-effects-8-bit-style))
+- Background music: "Cozy Puzzle Title" by MintoDog ([OpenGameArt.org](https://opengameart.org/content/cozy-puzzle-title))
+
+**Technical Notes:**
+- Format: MP3 (64-128 kbps)
+- Sample Rate: 44.1 kHz
+- Total size: ~536 KB
+- Controlled via `AudioService` singleton
 
 ---
 
@@ -906,10 +951,31 @@ Automated CI/CD pipelines in `.github/workflows/`:
 | `ci.yml` | PRs to develop/main, push to develop | Runs tests for backend, admin portal, and Flutter |
 | `deploy-api.yml` | Push to main (backend changes) | Deploys API to Render |
 | `deploy-admin.yml` | Push to main (admin-portal changes) | Deploys Admin Portal to Render |
+| `release.yml` | Push to main, manual dispatch | Auto-bumps version, builds iOS/Android, deploys to TestFlight & Firebase |
+| `deploy-ios.yml` | Manual dispatch | Manual iOS TestFlight deployment |
+| `deploy-android.yml` | Manual dispatch | Manual Android Firebase deployment |
 
 **Required GitHub Secrets:**
+
+Backend/Admin:
 - `RENDER_DEPLOY_HOOK_URL` - Render deploy hook URL for the API service
 - `RENDER_ADMIN_DEPLOY_HOOK_URL` - Render deploy hook URL for the Admin Portal
+
+iOS Code Signing:
+- `IOS_CERTIFICATE_BASE64` - Base64-encoded .p12 distribution certificate
+- `IOS_CERTIFICATE_PASSWORD` - Password for the .p12 certificate
+- `IOS_PROVISIONING_PROFILE_BASE64` - Base64-encoded .mobileprovision file
+- `KEYCHAIN_PASSWORD` - Password for temporary CI keychain
+- `APP_STORE_CONNECT_API_KEY_KEY` - Base64-encoded App Store Connect API key (.p8)
+- `APP_STORE_CONNECT_API_KEY_KEY_ID` - App Store Connect API key ID
+- `APP_STORE_CONNECT_API_KEY_ISSUER_ID` - App Store Connect API issuer ID
+
+Android Code Signing:
+- `ANDROID_KEYSTORE_BASE64` - Base64-encoded .jks keystore
+- `ANDROID_KEYSTORE_PASSWORD` - Keystore password
+- `ANDROID_KEY_ALIAS` - Key alias
+- `ANDROID_KEY_PASSWORD` - Key password
+- `FIREBASE_SERVICE_ACCOUNT` - Firebase service account JSON for App Distribution
 
 **Required GitHub Variables:**
 - `API_URL` - Production API URL (for environment display)
@@ -921,6 +987,13 @@ Automated CI/CD pipelines in `.github/workflows/`:
 2. Navigate to Settings → Deploy Hook
 3. Copy the hook URL
 4. Add it as a secret in GitHub: Settings → Secrets and variables → Actions
+
+**Setting up iOS Code Signing:**
+1. Create Apple Distribution certificate in Apple Developer portal
+2. Export as .p12 with password
+3. Download App Store provisioning profile (.mobileprovision)
+4. Base64 encode both: `base64 -i certificate.p12` and `base64 -i profile.mobileprovision`
+5. Create App Store Connect API key for Fastlane upload
 
 ### Docker
 ```bash
@@ -1035,22 +1108,35 @@ For each game type, verify both sections:
 2. [ ] Test IAP on physical devices (Apple/Google)
 3. [ ] Replace test ad IDs with production IDs
 4. [ ] Configure IAP products in App Store Connect / Google Play Console
+5. [x] Set up iOS TestFlight CI/CD deployment
+6. [x] Set up Android Firebase App Distribution CI/CD
 
 ### High Priority (Post-Launch)
-5. [ ] Add leaderboard UI to admin portal
-6. [ ] Add user management to admin portal
-7. [ ] Add feature flag management UI to admin portal
-8. [ ] Add app config management UI to admin portal
+7. [ ] Add leaderboard UI to admin portal
+8. [ ] Add user management to admin portal
+9. [ ] Add feature flag management UI to admin portal
+10. [ ] Add app config management UI to admin portal
 
 ### Medium Priority
-9. [ ] Implement push notifications for challenges
-10. [ ] Add analytics dashboard
-11. [ ] Performance testing with large datasets
-12. [ ] Seed initial feature flags (debug_menu_enabled, display_inactive_games)
+11. [x] Implement push notifications backend (Firebase Cloud Messaging)
+12. [ ] Implement push notification triggers (challenge received, daily reminder)
+13. [ ] Add analytics dashboard
+14. [ ] Performance testing with large datasets
+15. [ ] Seed initial feature flags (debug_menu_enabled, display_inactive_games)
 
 ### Low Priority / Future
-13. [ ] Add visual editors for remaining puzzle types (Killer Sudoku, Crossword, etc.)
-14. [ ] Word Search quality improvements (reactivate game)
-15. [ ] Word Ladder optimal path calculation for bidirectional solving
-16. [ ] Add reset/undo for Nonogram
-17. [ ] Generate real clues for dictionary words (Word Forge enhancement)
+16. [ ] Add visual editors for remaining puzzle types (Killer Sudoku, Crossword, etc.)
+17. [ ] Word Search quality improvements (reactivate game)
+18. [ ] Word Ladder optimal path calculation for bidirectional solving
+19. [ ] Add reset/undo for Nonogram
+20. [ ] Generate real clues for dictionary words (Word Forge enhancement)
+
+### Recently Completed
+- [x] Google Sign-In authentication (iOS and Android)
+- [x] Profile section in Settings (avatar, username, email, friend code, logout)
+- [x] Sound effects and background music (CC0 licensed)
+- [x] Push notifications backend module
+- [x] Achievements system (models and service)
+- [x] iOS CI/CD with code signing
+- [x] Android CI/CD with Firebase App Distribution
+- [x] Unified release workflow with auto version bumping

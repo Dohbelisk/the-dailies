@@ -18,6 +18,11 @@ A comprehensive daily puzzle game featuring **13 puzzle types**: Sudoku, Killer 
 - **Note Mode**: Pencil marks for Sudoku puzzles
 - **Hints**: Get help when stuck
 - **Token System**: Access archive puzzles
+- **Authentication**: Email/password and Google Sign-In
+- **User Profile**: Avatar, friend code, account management
+- **Push Notifications**: Firebase Cloud Messaging
+- **Sound Effects & Music**: CC0 licensed audio
+- **Achievements**: Track progress with unlockable achievements
 
 ### Admin Portal (React)
 - **Puzzle Management**: Create, edit, delete puzzles
@@ -32,9 +37,11 @@ A comprehensive daily puzzle game featuring **13 puzzle types**: Sudoku, Killer 
 
 ### Backend API (NestJS)
 - **RESTful API**: Full CRUD operations
-- **Authentication**: JWT-based auth with admin roles
+- **Authentication**: JWT-based auth with admin roles, Google OAuth
 - **MongoDB**: Flexible document storage
 - **Swagger Docs**: Auto-generated API documentation
+- **Push Notifications**: Firebase Cloud Messaging integration
+- **Email**: Nodemailer for transactional emails
 
 ## 📁 Project Structure
 
@@ -292,13 +299,16 @@ static const String baseUrl = 'http://YOUR_SERVER_IP:3000/api';
 
 ## 🔮 Future Improvements
 
-- [ ] Push notifications for daily puzzles
+- [x] Push notifications for daily puzzles (Firebase Cloud Messaging)
 - [x] Multiplayer/competitive mode (Friend Challenges)
 - [x] Puzzle generator algorithms (All 13 types)
 - [ ] Social sharing
 - [ ] Leaderboards UI
-- [ ] Achievement system
+- [x] Achievement system (Models and service implemented)
 - [x] More puzzle types (13 total: Sudoku, Killer Sudoku, Crossword, Word Search, Word Forge, Nonogram, Number Target, Ball Sort, Pipes, Lights Out, Word Ladder, Connections, Mathora)
+- [x] Google Sign-In authentication
+- [x] Sound effects and background music
+- [x] CI/CD for iOS (TestFlight) and Android (Firebase App Distribution)
 
 ## 📄 License
 

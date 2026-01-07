@@ -1,7 +1,7 @@
 # The Dailies - Project Status
 
-**Last Updated:** 2025-12-30
-**Overall Completion:** ~99%
+**Last Updated:** 2026-01-07
+**Overall Completion:** ~99% - Production deployment ready
 
 ---
 
@@ -18,7 +18,8 @@ The Dailies is a freemium daily puzzle game with **13 game types** (Sudoku, Kill
 **What Works Now:**
 - All 13 puzzle game types implemented (12 active, 1 inactive)
 - **12 games fully device-tested and ready** (Word Search inactive for improvements)
-- User authentication (login/register)
+- User authentication (login/register + **Google Sign-In**)
+- **User profile section** in Settings (avatar, username, email, friend code, logout)
 - Friends system (add, accept, remove)
 - **Friend challenges (async)** - Challenge friends to same puzzle
 - **Favorites system** - Pin favorite games to top of home screen
@@ -36,6 +37,10 @@ The Dailies is a freemium daily puzzle game with **13 game types** (Sudoku, Kill
 - Feature flags and version checking system
 - Debug menu for development/testing
 - Dictionary management for Word Forge (~370k words)
+- **Push notifications** backend (Firebase Cloud Messaging)
+- **Sound effects and background music** (CC0 licensed)
+- **Achievements system** (models and service)
+- **CI/CD deployment** for iOS (TestFlight) and Android (Firebase App Distribution)
 
 **What's Missing (Before Production):**
 - Production ad unit IDs (currently using test IDs)
@@ -70,11 +75,11 @@ The Dailies is a freemium daily puzzle game with **13 game types** (Sudoku, Kill
 | Privacy Policy | `screens/legal/privacy_policy_screen.dart` | Complete | GDPR-compliant privacy policy |
 | Terms of Service | `screens/legal/terms_of_service_screen.dart` | Complete | App terms of service |
 
-#### Services (13 total)
+#### Services (18 total)
 | Service | File | Status | Notes |
 |---------|------|--------|-------|
 | ApiService | `services/api_service.dart` | Complete | REST client + mock fallback, uses env config |
-| AuthService | `services/auth_service.dart` | Complete | JWT token management |
+| AuthService | `services/auth_service.dart` | Complete | JWT token management, profile picture |
 | GameService | `services/game_service.dart` | Complete | Puzzle fetching wrapper |
 | GameStateService | `services/game_state_service.dart` | Complete | Persistent game state, in-progress detection |
 | FavoritesService | `services/favorites_service.dart` | Complete | Favorite games pinned to top |
@@ -86,6 +91,11 @@ The Dailies is a freemium daily puzzle game with **13 game types** (Sudoku, Kill
 | FriendsService | `services/friends_service.dart` | Complete | Friend operations |
 | ChallengeService | `services/challenge_service.dart` | Complete | Challenge CRUD + result submission |
 | ConsentService | `services/consent_service.dart` | Complete | GDPR consent management |
+| GoogleSignInService | `services/google_sign_in_service.dart` | Complete | Google OAuth authentication |
+| FirebaseService | `services/firebase_service.dart` | Complete | Firebase init + push notifications |
+| AchievementsService | `services/achievements_service.dart` | Complete | Achievement tracking and unlocks |
+| ShakeDetectorService | `services/shake_detector_service.dart` | Complete | Shake-to-undo gesture |
+| DictionaryService | `services/dictionary_service.dart` | Complete | Word Forge word validation |
 
 #### Providers
 | Provider | File | Status |
@@ -95,16 +105,20 @@ The Dailies is a freemium daily puzzle game with **13 game types** (Sudoku, Kill
 
 #### Key Models
 - `game_models.dart` - DailyPuzzle, SudokuPuzzle, KillerSudokuPuzzle, CrosswordPuzzle, WordSearchPuzzle
-- `user_models.dart` - User, LoginResult, RegisterResult
+- `user_models.dart` - User, LoginResult, RegisterResult (includes profilePicture)
 - `friend_models.dart` - Friend, FriendRequest, FriendStats
 - `challenge_models.dart` - Challenge, ChallengeStatus, ChallengeStats, CreateChallengeRequest
+- `achievement_models.dart` - Achievement, AchievementProgress, AchievementCategory
 
-#### Widgets (19 total)
+#### Widgets (25+ total)
 - SudokuGrid, KillerSudokuGrid, CrosswordGrid, WordSearchGrid, WordForgeGrid, NonogramGrid, NumberTargetGrid
-- BallSortGrid, PipesGrid, LightsOutGrid, WordLadderGrid, ConnectionsGrid
-- PuzzleCard, TokenBalanceWidget, CompletionDialog
+- BallSortGrid, PipesGrid, LightsOutGrid, WordLadderGrid, ConnectionsGrid, MathoraGrid
+- PuzzleCard, HeroPuzzleCard, VibrantPuzzleCard, GameIcon
+- TokenBalanceWidget, CompletionDialog, DailyStatsBanner
 - GameTimer, NumberPad, KeyboardInput, AnimatedBackground
 - ConsentDialog (GDPR consent modal)
+- GoogleSignInButton (OAuth button)
+- AchievementUnlockToast (achievement notifications)
 
 #### Dependencies (key ones)
 ```yaml
@@ -114,24 +128,30 @@ shared_preferences: ^2.2.2 # Local storage
 google_mobile_ads: ^5.1.0  # AdMob
 flutter_animate: ^4.3.0    # Animations
 confetti: ^0.7.0          # Celebrations
-audioplayers: ^5.2.1      # Sound (not used)
-vibration: ^2.0.0         # Haptics (not used)
-in_app_purchase: ^3.2.0   # IAP (not integrated)
+audioplayers: ^5.2.1      # Sound effects and music
+in_app_purchase: ^3.2.0   # IAP integration
+google_sign_in: ^6.1.6    # Google OAuth
+firebase_core: ^2.24.2    # Firebase initialization
+firebase_messaging: ^14.7.10 # Push notifications
+sensors_plus: ^4.0.2      # Shake detection
 ```
 
 ---
 
 ### 2. Backend API (`backend/`)
 
-#### Modules (6 total)
+#### Modules (9 total)
 | Module | Status | Description |
 |--------|--------|-------------|
 | PuzzlesModule | Complete | CRUD + generation |
 | ScoresModule | Complete | Score tracking |
-| AuthModule | Complete | JWT authentication |
+| AuthModule | Complete | JWT authentication + Google OAuth |
 | UsersModule | Complete | User management |
 | FriendsModule | Complete | Friend system |
 | ChallengesModule | Complete | Async friend challenges |
+| FeedbackModule | Complete | User feedback management |
+| ConfigModule | Complete | Feature flags + app config |
+| NotificationsModule | Complete | Firebase Cloud Messaging |
 
 #### API Endpoints
 
@@ -145,6 +165,7 @@ POST /api/scores                     - Submit score
 GET  /api/scores/stats               - User statistics
 POST /api/auth/login                 - Login
 POST /api/auth/register              - Register
+POST /api/auth/google                - Google OAuth login/register
 GET  /api/auth/me                    - Current user (JWT)
 ```
 
@@ -293,11 +314,12 @@ Premium users: Bypass all token requirements
 2. **`archive_screen.dart:139`** - Premium subscription screen navigation
 
 ### Missing Features
-1. ~~**AudioService** - All methods stubbed, no sound files~~ **DONE** - Complete with volume controls
+1. ~~**AudioService** - All methods stubbed, no sound files~~ **DONE** - Complete with volume controls and CC0 licensed sounds
 2. ~~**Vibration** - Toggle exists, no service integration~~ **DONE** - Integrated via HapticFeedback
 3. ~~**SubscriptionService**~~ N/A - Using one-time purchase (PurchaseService)
 4. **Analytics** - No tracking implementation
-5. **Push notifications** - Not implemented
+5. ~~**Push notifications** - Not implemented~~ **DONE** - Firebase Cloud Messaging backend complete
+6. ~~**Google Sign-In** - Not implemented~~ **DONE** - Full OAuth flow for iOS and Android
 
 ### Configuration Issues
 1. ~~**API URL** - Hardcoded to `localhost:3000` in Flutter app~~ **FIXED** - Now uses environment config
@@ -478,20 +500,26 @@ Password: 5nifrenypro
 3. [ ] Replace test ad IDs with production IDs (use `--dart-define`)
 4. [x] Add privacy policy and terms of service - **DONE** (`screens/legal/`)
 5. [x] Implement GDPR consent dialog - **DONE** (`widgets/consent_dialog.dart`, `services/consent_service.dart`)
+6. [ ] Test IAP on physical devices (Apple/Google)
+7. [ ] Configure IAP products in App Store Connect / Google Play Console
 
 ### Medium Priority
-6. [x] Implement `AudioService` with actual sound files - **DONE** (add sound files to `assets/sounds/`)
-7. [x] Add vibration feedback integration - **DONE** (uses HapticFeedback)
-8. [ ] Implement retry system with rewarded ads
-9. [ ] Add analytics/tracking
-10. [x] Configure environment-based API URLs - **DONE** (`lib/config/environment.dart`)
+8. [x] Implement `AudioService` with actual sound files - **DONE** (CC0 licensed sounds in `assets/sounds/`)
+9. [x] Add vibration feedback integration - **DONE** (uses HapticFeedback)
+10. [ ] Implement retry system with rewarded ads
+11. [ ] Add analytics/tracking
+12. [x] Configure environment-based API URLs - **DONE** (`lib/config/environment.dart`)
+13. [x] Google Sign-In authentication - **DONE** (iOS and Android)
+14. [x] Push notifications backend - **DONE** (Firebase Cloud Messaging)
+15. [ ] Push notification triggers (challenge received, daily reminder)
 
 ### Low Priority
-11. [ ] Build revenue analytics dashboard
-12. [ ] Add push notifications
-13. [ ] Implement offline mode improvements
-14. [ ] Add more themes/customization
-15. [x] Challenge/competition features - **DONE** (async challenges implemented)
+16. [ ] Build revenue analytics dashboard
+17. [ ] Implement offline mode improvements
+18. [ ] Add more themes/customization
+19. [x] Challenge/competition features - **DONE** (async challenges implemented)
+20. [x] CI/CD for iOS (TestFlight) - **DONE** (`release.yml`, `deploy-ios.yml`)
+21. [x] CI/CD for Android (Firebase App Distribution) - **DONE** (`release.yml`, `deploy-android.yml`)
 
 ---
 
