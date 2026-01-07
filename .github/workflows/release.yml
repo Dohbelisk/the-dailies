@@ -1,0 +1,349 @@
+# Unified Release Workflow
+# Triggers on push to main branch
+# Auto-increments build number, builds both platforms, deploys to TestFlight and Firebase
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'flutter_app/**'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: false
+        default: 'build'
+        type: choice
+        options:
+          - build    # Just increment build number (1.0.0+1 -> 1.0.0+2)
+          - patch    # Increment patch version (1.0.0 -> 1.0.1)
+          - minor    # Increment minor version (1.0.0 -> 1.1.0)
+          - major    # Increment major version (1.0.0 -> 2.0.0)
+      release_notes:
+        description: 'Release notes for testers'
+        required: false
+        default: 'Bug fixes and improvements'
+
+env:
+  FLUTTER_VERSION: '3.38.5'
+  JAVA_VERSION: '17'
+
+jobs:
+  # ============================================
+  # Version Bump Job
+  # ============================================
+  version-bump:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.bump.outputs.new_version }}
+      build_number: ${{ steps.bump.outputs.build_number }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Get current version
+        id: current
+        run: |
+          VERSION=$(grep "^version:" flutter_app/pubspec.yaml | sed 's/version: //')
+          echo "Current version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump version
+        id: bump
+        run: |
+          CURRENT="${{ steps.current.outputs.version }}"
+          BUMP_TYPE="${{ github.event.inputs.version_bump || 'build' }}"
+
+          # Parse version (format: X.Y.Z+BUILD)
+          SEMVER=$(echo $CURRENT | cut -d'+' -f1)
+          BUILD=$(echo $CURRENT | cut -d'+' -f2)
+          MAJOR=$(echo $SEMVER | cut -d'.' -f1)
+          MINOR=$(echo $SEMVER | cut -d'.' -f2)
+          PATCH=$(echo $SEMVER | cut -d'.' -f3)
+
+          # Increment based on bump type
+          case $BUMP_TYPE in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              BUILD=$((BUILD + 1))
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              BUILD=$((BUILD + 1))
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              BUILD=$((BUILD + 1))
+              ;;
+            build)
+              BUILD=$((BUILD + 1))
+              ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH+$BUILD"
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD" >> $GITHUB_OUTPUT
+
+      - name: Update pubspec.yaml
+        run: |
+          sed -i "s/^version: .*/version: ${{ steps.bump.outputs.new_version }}/" flutter_app/pubspec.yaml
+          cat flutter_app/pubspec.yaml | grep "^version:"
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add flutter_app/pubspec.yaml
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }} [skip ci]"
+          git push
+
+  # ============================================
+  # iOS Build and Deploy Job
+  # ============================================
+  deploy-ios:
+    name: Deploy iOS to TestFlight
+    needs: version-bump
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: flutter_app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main  # Get the version-bumped commit
+
+      - name: Pull latest changes
+        run: |
+          cd ..
+          git pull origin main
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: flutter_app/ios
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install
+
+      - name: Setup App Store Connect API Key
+        env:
+          APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$APP_STORE_CONNECT_API_KEY_KEY" | base64 --decode > ~/private_keys/AuthKey.p8
+
+      - name: Build Flutter iOS
+        run: |
+          flutter pub get
+          flutter build ipa --release \
+            --build-number=${{ needs.version-bump.outputs.build_number }} \
+            --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+        run: |
+          cd ios
+          bundle exec fastlane beta_ci
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-${{ needs.version-bump.outputs.new_version }}
+          path: flutter_app/build/ios/ipa/*.ipa
+          retention-days: 30
+
+  # ============================================
+  # Android Build and Deploy Job
+  # ============================================
+  deploy-android:
+    name: Deploy Android to Firebase
+    needs: version-bump
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter_app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main  # Get the version-bumped commit
+
+      - name: Pull latest changes
+        run: |
+          cd ..
+          git pull origin main
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+
+      - name: Create key.properties
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cat > android/key.properties << EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+
+      - name: Build APK
+        run: |
+          flutter build apk --release \
+            --build-number=${{ needs.version-bump.outputs.build_number }}
+
+      - name: Build App Bundle
+        run: |
+          flutter build appbundle --release \
+            --build-number=${{ needs.version-bump.outputs.build_number }}
+
+      - name: Setup Firebase CLI
+        run: curl -sL https://firebase.tools | bash
+
+      - name: Deploy to Firebase App Distribution
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          # Write service account to file
+          echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > /tmp/firebase-sa.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-sa.json
+
+          # Get release notes
+          NOTES="${{ github.event.inputs.release_notes || 'Bug fixes and improvements' }}"
+          VERSION="${{ needs.version-bump.outputs.new_version }}"
+
+          # Deploy APK to Firebase App Distribution
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+            --app "1:476194139682:android:e0b084a1040290ed87a47b" \
+            --groups "testers" \
+            --release-notes "Version $VERSION - $NOTES"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ needs.version-bump.outputs.new_version }}
+          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Upload App Bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab-${{ needs.version-bump.outputs.new_version }}
+          path: flutter_app/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      - name: Cleanup sensitive files
+        if: always()
+        run: |
+          rm -f android/app/upload-keystore.jks
+          rm -f android/key.properties
+          rm -f /tmp/firebase-sa.json
+
+  # ============================================
+  # Create GitHub Release
+  # ============================================
+  create-release:
+    name: Create GitHub Release
+    needs: [version-bump, deploy-ios, deploy-android]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download iOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-ipa-${{ needs.version-bump.outputs.new_version }}
+          path: artifacts/ios
+
+      - name: Download Android APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk-${{ needs.version-bump.outputs.new_version }}
+          path: artifacts/android
+
+      - name: Download Android AAB artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-aab-${{ needs.version-bump.outputs.new_version }}
+          path: artifacts/android
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.version-bump.outputs.new_version }}
+          name: Release ${{ needs.version-bump.outputs.new_version }}
+          body: |
+            ## The Dailies v${{ needs.version-bump.outputs.new_version }}
+
+            ${{ github.event.inputs.release_notes || 'Bug fixes and improvements' }}
+
+            ### Downloads
+            - **iOS**: Available on TestFlight
+            - **Android**: Available on Firebase App Distribution
+
+            ### Artifacts
+            - iOS IPA
+            - Android APK
+            - Android App Bundle (AAB)
+          files: |
+            artifacts/ios/*.ipa
+            artifacts/android/*.apk
+            artifacts/android/*.aab
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

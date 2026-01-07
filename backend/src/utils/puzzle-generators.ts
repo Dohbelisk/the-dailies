@@ -526,7 +526,11 @@ export class CrosswordGenerator {
             }
 
             if (this.canPlaceWord(word, newRow, newCol, newDir)) {
-              validPlacements.push({ row: newRow, col: newCol, direction: newDir });
+              validPlacements.push({
+                row: newRow,
+                col: newCol,
+                direction: newDir,
+              });
             }
           }
         }
@@ -4513,7 +4517,8 @@ export class PipesGenerator {
     const pathsRecord: Record<string, Array<{ row: number; col: number }>> = {};
 
     for (let i = 0; i < colors.length; i++) {
-      if (paths[i].length >= 2) {
+      // Require at least 3 cells per path so endpoints aren't adjacent (trivial puzzle)
+      if (paths[i].length >= 3) {
         pathsRecord[colors[i]] = paths[i];
         endpoints.push({
           color: colors[i],
@@ -4556,8 +4561,9 @@ export class PipesGenerator {
     }
 
     // If no empty cell, check all paths are valid
+    // Require at least 3 cells per path so endpoints aren't adjacent (trivial puzzle)
     if (emptyRow === -1) {
-      return paths.every((p) => p.length >= 2);
+      return paths.every((p) => p.length >= 3);
     }
 
     // Shuffle color order for randomness
@@ -4644,7 +4650,8 @@ export class PipesGenerator {
       const segmentLength = isLast ? allCells.length - idx : cellsPerColor;
       const path = allCells.slice(idx, idx + segmentLength);
 
-      if (path.length >= 2) {
+      // Require at least 3 cells per path so endpoints aren't adjacent (trivial puzzle)
+      if (path.length >= 3) {
         paths[colors[i]] = path;
         endpoints.push({ color: colors[i], ...path[0] });
         endpoints.push({ color: colors[i], ...path[path.length - 1] });
@@ -5266,6 +5273,22 @@ export class ConnectionsGenerator {
       });
       usedCategories.add(selected.name);
       selected.words.forEach((w) => usedWords.add(w));
+    }
+
+    // IMPORTANT: Ensure each category has a unique difficulty (1-4) for unique colors
+    // This prevents duplicate colors when fallback selects categories with same base difficulty
+    const usedDifficulties = new Set<number>();
+    for (const category of selectedCategories) {
+      if (usedDifficulties.has(category.difficulty)) {
+        // Find an unused difficulty level
+        for (let d = 1; d <= 4; d++) {
+          if (!usedDifficulties.has(d)) {
+            category.difficulty = d;
+            break;
+          }
+        }
+      }
+      usedDifficulties.add(category.difficulty);
     }
 
     // Collect all words and shuffle

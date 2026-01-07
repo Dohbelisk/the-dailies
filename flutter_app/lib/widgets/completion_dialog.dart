@@ -154,29 +154,36 @@ class CompletionDialog extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Stats row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildStat(
-                  context,
-                  icon: Icons.timer_outlined,
-                  label: 'Time',
-                  value: '${minutes}m ${seconds}s',
-                ),
-                _buildStat(
-                  context,
-                  icon: Icons.close_rounded,
-                  label: 'Mistakes',
-                  value: '$mistakes',
-                  isNegative: mistakes > 0,
-                ),
-                _buildStat(
-                  context,
-                  icon: Icons.lightbulb_outline_rounded,
-                  label: 'Hints',
-                  value: '$hintsUsed',
-                ),
-              ],
+            // Only show mistakes for games where it's relevant
+            Builder(
+              builder: (context) {
+                final showMistakes = _shouldShowMistakes(puzzle.gameType);
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStat(
+                      context,
+                      icon: Icons.timer_outlined,
+                      label: 'Time',
+                      value: '${minutes}m ${seconds}s',
+                    ),
+                    if (showMistakes)
+                      _buildStat(
+                        context,
+                        icon: Icons.close_rounded,
+                        label: 'Mistakes',
+                        value: '$mistakes',
+                        isNegative: mistakes > 0,
+                      ),
+                    _buildStat(
+                      context,
+                      icon: Icons.lightbulb_outline_rounded,
+                      label: 'Hints',
+                      value: '$hintsUsed',
+                    ),
+                  ],
+                );
+              },
             ).animate().fadeIn(delay: 500.ms),
 
             const SizedBox(height: 32),
@@ -256,6 +263,29 @@ class CompletionDialog extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Determines if mistakes should be shown for a given game type.
+  /// Some games don't track mistakes (e.g., Pipes, Lights Out, Ball Sort)
+  /// because there's no concept of a "wrong" move.
+  bool _shouldShowMistakes(GameType gameType) {
+    switch (gameType) {
+      case GameType.sudoku:
+      case GameType.killerSudoku:
+      case GameType.crossword:
+      case GameType.wordForge:
+      case GameType.numberTarget:
+      case GameType.connections:
+      case GameType.mathora:
+        return true; // These games track mistakes
+      case GameType.pipes:
+      case GameType.lightsOut:
+      case GameType.ballSort:
+      case GameType.wordSearch:
+      case GameType.wordLadder:
+      case GameType.nonogram:
+        return false; // These games don't have a mistake concept
+    }
   }
 
   Widget _buildStat(

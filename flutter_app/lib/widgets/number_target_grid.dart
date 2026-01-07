@@ -11,6 +11,7 @@ class NumberTargetGrid extends StatelessWidget {
   final String? resultMessage;
   final bool? lastResultSuccess;
   final Set<int> usedNumberIndices;
+  final int? runningTotal;
 
   const NumberTargetGrid({
     super.key,
@@ -23,6 +24,7 @@ class NumberTargetGrid extends StatelessWidget {
     this.resultMessage,
     this.lastResultSuccess,
     this.usedNumberIndices = const {},
+    this.runningTotal,
   });
 
   @override
@@ -39,10 +41,10 @@ class NumberTargetGrid extends StatelessWidget {
           _buildSingleTarget(theme),
         const SizedBox(height: 24),
 
-        // Expression display
+        // Expression display with running total
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
@@ -56,20 +58,43 @@ class NumberTargetGrid extends StatelessWidget {
             ),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                currentExpression.isEmpty ? 'Build your expression' : currentExpression,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: currentExpression.isEmpty
-                      ? theme.colorScheme.onSurfaceVariant
-                      : theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'monospace',
-                ),
-                textAlign: TextAlign.center,
+              // Expression with running total inline
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Flexible(
+                    child: Text(
+                      currentExpression.isEmpty ? 'Build your expression' : currentExpression,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: currentExpression.isEmpty
+                            ? theme.colorScheme.onSurfaceVariant
+                            : theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'monospace',
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  // Show running total inline if available
+                  if (runningTotal != null && resultMessage == null) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      '= $runningTotal',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ],
               ),
               if (resultMessage != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
                   resultMessage!,
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -83,23 +108,15 @@ class NumberTargetGrid extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
-        // Numbers
-        Text(
-          'NUMBERS',
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            letterSpacing: 2,
-          ),
-        ),
-        const SizedBox(height: 12),
+        // Numbers row
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: puzzle.numbers.asMap().entries.map((entry) {
             final isUsed = usedNumberIndices.contains(entry.key);
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: _NumberButton(
                 number: entry.value,
                 onTap: isUsed ? null : () => onTokenTap('${entry.value}', numberIndex: entry.key),
@@ -109,69 +126,58 @@ class NumberTargetGrid extends StatelessWidget {
             );
           }).toList(),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
-        // Operators
-        Text(
-          'OPERATORS',
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            letterSpacing: 2,
-          ),
-        ),
-        const SizedBox(height: 12),
+        // Operators - all in one row
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _OperatorButton(operator: '+', onTap: () => onTokenTap('+'), theme: theme),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             _OperatorButton(operator: '-', onTap: () => onTokenTap('-'), theme: theme),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             _OperatorButton(operator: '×', onTap: () => onTokenTap('×'), theme: theme),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             _OperatorButton(operator: '÷', onTap: () => onTokenTap('÷'), theme: theme),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+            const SizedBox(width: 8),
             _OperatorButton(operator: '(', onTap: () => onTokenTap('('), theme: theme),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             _OperatorButton(operator: ')', onTap: () => onTokenTap(')'), theme: theme),
           ],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
-        // Action buttons
+        // Action buttons - use icons to prevent text wrapping
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Clear button
-            OutlinedButton(
+            // Clear button with icon
+            OutlinedButton.icon(
               onPressed: onClear,
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
-              child: const Text('Clear'),
+              icon: const Icon(Icons.clear, size: 18),
+              label: const Text('Clear'),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             // Backspace button
             OutlinedButton(
               onPressed: onBackspace,
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
-              child: const Icon(Icons.backspace_outlined),
+              child: const Icon(Icons.backspace_outlined, size: 20),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             // Submit button
-            FilledButton(
+            FilledButton.icon(
               onPressed: currentExpression.isNotEmpty ? onSubmit : null,
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
-              child: const Text('Calculate'),
+              icon: const Icon(Icons.calculate, size: 18),
+              label: const Text('Check'),
             ),
           ],
         ),

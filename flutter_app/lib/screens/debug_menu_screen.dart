@@ -210,6 +210,27 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
           fcmToken != null ? '${fcmToken.substring(0, 20)}...' : 'Not Available',
           copyable: fcmToken != null,
         ),
+        if (fcmToken != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _copyToClipboard(fcmToken),
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('Copy Full FCM Token'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Use this token to send test notifications from the backend or Firebase Console.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+        ],
       ],
     );
   }

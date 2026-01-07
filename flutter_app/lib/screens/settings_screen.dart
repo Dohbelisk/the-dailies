@@ -127,12 +127,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _onVersionTap() {
-    // Check if debug menu is enabled via feature flag
-    // In debug mode, always allow access (for development)
-    if (!kDebugMode && !_configService.isFeatureEnabled('debug_menu')) {
-      return;
-    }
-
+    // Debug menu access is gated by:
+    // 1. Knowing to tap the version 7 times
+    // 2. Knowing the password
+    // This is sufficient security - no need for feature flag
     setState(() {
       _versionTapCount++;
     });

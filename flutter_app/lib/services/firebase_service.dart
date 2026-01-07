@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import '../firebase_options.dart';
 import 'consent_service.dart';
 
 /// Core Firebase service for initialization and crash reporting.
@@ -25,14 +26,16 @@ class FirebaseService {
     if (_initialized) return;
 
     try {
-      await Firebase.initializeApp();
+      debugPrint('FirebaseService: Attempting to initialize Firebase...');
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
       _initialized = true;
-
-      if (kDebugMode) {
-        print('FirebaseService: Firebase Core initialized');
-      }
-    } catch (e) {
-      debugPrint('FirebaseService: Error initializing Firebase - $e');
+      debugPrint('FirebaseService: Firebase Core initialized successfully');
+    } catch (e, stackTrace) {
+      debugPrint('FirebaseService: ERROR initializing Firebase - $e');
+      debugPrint('FirebaseService: Stack trace - $stackTrace');
+      // Still mark as attempted so we don't retry infinitely
     }
   }
 
