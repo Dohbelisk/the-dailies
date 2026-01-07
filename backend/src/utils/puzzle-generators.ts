@@ -359,6 +359,9 @@ export class KillerSudokuGenerator {
     const cells: number[][] = [[startRow, startCol]];
     used[startRow][startCol] = true;
 
+    // Track values already in this cage to prevent duplicates
+    const valuesInCage = new Set<number>([this.solution[startRow][startCol]]);
+
     // Grow cage by adding adjacent cells
     while (cells.length < targetSize) {
       const candidates: number[][] = [];
@@ -374,19 +377,23 @@ export class KillerSudokuGenerator {
 
         for (const [nr, nc] of neighbors) {
           if (nr >= 0 && nr < 9 && nc >= 0 && nc < 9 && !used[nr][nc]) {
-            // Ensure cage doesn't span multiple 3x3 boxes too much (optional constraint)
-            candidates.push([nr, nc]);
+            // Check that adding this cell won't create a duplicate value in the cage
+            const cellValue = this.solution[nr][nc];
+            if (!valuesInCage.has(cellValue)) {
+              candidates.push([nr, nc]);
+            }
           }
         }
       }
 
-      if (candidates.length === 0) break; // Can't grow anymore
+      if (candidates.length === 0) break; // Can't grow anymore (no valid candidates without duplicates)
 
       // Pick a random candidate
       const [newRow, newCol] =
         candidates[Math.floor(Math.random() * candidates.length)];
       cells.push([newRow, newCol]);
       used[newRow][newCol] = true;
+      valuesInCage.add(this.solution[newRow][newCol]);
     }
 
     return cells;
