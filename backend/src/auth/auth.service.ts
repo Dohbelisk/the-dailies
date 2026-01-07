@@ -1,15 +1,47 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as admin from "firebase-admin";
+import * as path from "path";
 import { UsersService } from "../users/users.service";
 import { UserDocument } from "../users/schemas/user.schema";
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
   ) {}
+
+  private ensureFirebaseInitialized() {
+    if (admin.apps.length > 0) return;
+
+    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+    if (!serviceAccountPath && !serviceAccountJson) {
+      throw new Error("Firebase service account not configured");
+    }
+
+    let credential: admin.credential.Credential;
+
+    if (serviceAccountPath) {
+      const resolvedPath = path.isAbsolute(serviceAccountPath)
+        ? serviceAccountPath
+        : path.resolve(process.cwd(), serviceAccountPath);
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const serviceAccount = require(resolvedPath);
+      this.logger.log(`Initializing Firebase from file: ${serviceAccount.project_id}`);
+      credential = admin.credential.cert(serviceAccount);
+    } else {
+      const serviceAccount = JSON.parse(serviceAccountJson);
+      this.logger.log(`Initializing Firebase from JSON: ${serviceAccount.project_id}`);
+      credential = admin.credential.cert(serviceAccount);
+    }
+
+    admin.initializeApp({ credential });
+  }
 
   async validateUser(
     email: string,
@@ -63,6 +95,9 @@ export class AuthService {
 
   async googleSignIn(idToken: string) {
     try {
+      // Ensure Firebase is initialized before verifying token
+      this.ensureFirebaseInitialized();
+
       // Verify the Google ID token using Firebase Admin
       const decodedToken = await admin.auth().verifyIdToken(idToken);
 
