@@ -1,4 +1,4 @@
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -31,6 +31,8 @@ extension GameTypeExtension on GameType {
         return 'Mathora';
       case GameType.mobius:
         return 'Möbius';
+      case GameType.slidingPuzzle:
+        return 'Sliding Puzzle';
     }
   }
 
@@ -64,6 +66,8 @@ extension GameTypeExtension on GameType {
         return '🧮';
       case GameType.mobius:
         return '♾️';
+      case GameType.slidingPuzzle:
+        return '🧩';
     }
   }
 
@@ -2359,5 +2363,150 @@ class MobiusPuzzle {
       startNodeId: 0,
       goalNodeId: 7,
     );
+  }
+}
+
+// ======================================
+// SLIDING PUZZLE MODEL
+// ======================================
+
+/// Classic sliding tile puzzle (15-puzzle, 8-puzzle, etc.)
+class SlidingPuzzle {
+  final int size; // 3x3, 4x4, or 5x5
+  List<int?> tiles; // null = empty space, 1-based numbers
+  final List<int?> solution; // Target configuration
+  int moveCount;
+  List<int> moveHistory; // Indices of tiles that were moved
+
+  SlidingPuzzle({
+    required this.size,
+    required this.tiles,
+    required this.solution,
+    this.moveCount = 0,
+    List<int>? moveHistory,
+  }) : moveHistory = moveHistory ?? [];
+
+  /// Get the index of the empty space
+  int get emptyIndex => tiles.indexOf(null);
+
+  /// Get row and column from index
+  int getRow(int index) => index ~/ size;
+  int getCol(int index) => index % size;
+
+  /// Get index from row and column
+  int getIndex(int row, int col) => row * size + col;
+
+  /// Check if a tile at the given index can be moved
+  bool canMove(int index) {
+    if (index < 0 || index >= tiles.length) return false;
+    if (tiles[index] == null) return false; // Can't move empty space
+
+    final emptyIdx = emptyIndex;
+    final tileRow = getRow(index);
+    final tileCol = getCol(index);
+    final emptyRow = getRow(emptyIdx);
+    final emptyCol = getCol(emptyIdx);
+
+    // Can move if adjacent (not diagonal) to empty space
+    final rowDiff = (tileRow - emptyRow).abs();
+    final colDiff = (tileCol - emptyCol).abs();
+
+    return (rowDiff == 1 && colDiff == 0) || (rowDiff == 0 && colDiff == 1);
+  }
+
+  /// Move the tile at the given index into the empty space
+  bool moveTile(int index) {
+    if (!canMove(index)) return false;
+
+    final emptyIdx = emptyIndex;
+    tiles[emptyIdx] = tiles[index];
+    tiles[index] = null;
+    moveCount++;
+    moveHistory.add(index);
+    return true;
+  }
+
+  /// Undo the last move
+  bool undoMove() {
+    if (moveHistory.isEmpty) return false;
+
+    // Find where the tile that was last moved is now (the current empty space)
+    // and move it back to where it came from
+    final lastMovedFromIndex = moveHistory.removeLast();
+    final emptyIdx = emptyIndex;
+
+    tiles[lastMovedFromIndex] = tiles[emptyIdx];
+    tiles[emptyIdx] = null;
+    moveCount--;
+    return true;
+  }
+
+  /// Check if puzzle is solved
+  bool get isComplete {
+    for (int i = 0; i < tiles.length; i++) {
+      if (tiles[i] != solution[i]) return false;
+    }
+    return true;
+  }
+
+  /// Reset to initial scrambled state
+  void reset() {
+    // Reverse all moves
+    while (moveHistory.isNotEmpty) {
+      undoMove();
+    }
+    moveCount = 0;
+  }
+
+  /// Get all indices that can currently be moved
+  List<int> get movableTiles {
+    final result = <int>[];
+    for (int i = 0; i < tiles.length; i++) {
+      if (canMove(i)) result.add(i);
+    }
+    return result;
+  }
+
+  // ======================================
+  // SAMPLE LEVELS
+  // ======================================
+
+  /// 3x3 (8-puzzle) - Easy
+  static SlidingPuzzle sampleLevel1() {
+    // Solution: 1,2,3,4,5,6,7,8,null
+    final solution = <int?>[1, 2, 3, 4, 5, 6, 7, 8, null];
+    // Scrambled (solvable)
+    final tiles = <int?>[1, 2, 3, 4, 5, null, 7, 8, 6];
+    return SlidingPuzzle(size: 3, tiles: tiles, solution: solution);
+  }
+
+  /// 4x4 (15-puzzle) - Medium
+  static SlidingPuzzle sampleLevel2() {
+    // Solution: 1-15, null
+    final solution = <int?>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, null];
+    // Scrambled (solvable)
+    final tiles = <int?>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, null, 13, 14, 15, 12];
+    return SlidingPuzzle(size: 4, tiles: tiles, solution: solution);
+  }
+
+  /// 5x5 (24-puzzle) - Hard
+  static SlidingPuzzle sampleLevel3() {
+    // Solution: 1-24, null
+    final solution = <int?>[
+      1, 2, 3, 4, 5,
+      6, 7, 8, 9, 10,
+      11, 12, 13, 14, 15,
+      16, 17, 18, 19, 20,
+      21, 22, 23, 24, null
+    ];
+    // Scrambled (solvable)
+    final tiles = <int?>[
+      1, 2, 3, 4, 5,
+      6, 7, 8, 9, 10,
+      11, 12, 13, 14, 15,
+      16, 17, 18, 19, null,
+      21, 22, 23, 24, 20
+    ];
+    return SlidingPuzzle(size: 5, tiles: tiles, solution: solution);
   }
 }

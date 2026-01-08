@@ -2,14 +2,32 @@ import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { Score, ScoreDocument } from "./schemas/score.schema";
+import { IsString, IsNumber, IsOptional } from "class-validator";
 
 export class CreateScoreDto {
+  @IsString()
   puzzleId: string;
+
+  @IsOptional()
+  @IsString()
   userId?: string;
+
+  @IsOptional()
+  @IsString()
   deviceId?: string;
+
+  @IsNumber()
   time: number;
+
+  @IsNumber()
   score: number;
+
+  @IsOptional()
+  @IsNumber()
   mistakes?: number;
+
+  @IsOptional()
+  @IsNumber()
   hintsUsed?: number;
 }
 

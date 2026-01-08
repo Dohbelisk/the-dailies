@@ -60,6 +60,9 @@ class GameProvider extends ChangeNotifier {
   // Mathora specific state
   MathoraPuzzle? _mathoraPuzzle;
 
+  // Mobius specific state
+  MobiusPuzzle? _mobiusPuzzle;
+
   // Getters
   DailyPuzzle? get currentPuzzle => _currentPuzzle;
   int get elapsedSeconds => _elapsedSeconds;
@@ -127,6 +130,7 @@ class GameProvider extends ChangeNotifier {
 
   ConnectionsPuzzle? get connectionsPuzzle => _connectionsPuzzle;
   MathoraPuzzle? get mathoraPuzzle => _mathoraPuzzle;
+  MobiusPuzzle? get mobiusPuzzle => _mobiusPuzzle;
 
   /// Serialize current game state to a map for persistence
   Map<String, dynamic> _serializeState() {
@@ -223,6 +227,12 @@ class GameProvider extends ChangeNotifier {
         (c) => {'name': c.name, 'words': c.words, 'difficulty': c.difficulty}
       ).toList();
       state['connectionsMistakesRemaining'] = _connectionsPuzzle!.mistakesRemaining;
+    }
+
+    if (_mobiusPuzzle != null) {
+      state['mobiusCurrentNodeId'] = _mobiusPuzzle!.currentNodeId;
+      state['mobiusMoveCount'] = _mobiusPuzzle!.moveCount;
+      state['mobiusMoveHistory'] = _mobiusPuzzle!.moveHistory.toList();
     }
 
     return state;
@@ -384,6 +394,14 @@ class GameProvider extends ChangeNotifier {
             difficulty: c['difficulty'] as int,
           )
         ).toList();
+      }
+    }
+
+    if (_mobiusPuzzle != null && state['mobiusCurrentNodeId'] != null) {
+      _mobiusPuzzle!.currentNodeId = state['mobiusCurrentNodeId'] as int;
+      _mobiusPuzzle!.moveCount = state['mobiusMoveCount'] ?? 0;
+      if (state['mobiusMoveHistory'] != null) {
+        _mobiusPuzzle!.moveHistory = List<int>.from(state['mobiusMoveHistory'] as List);
       }
     }
   }
@@ -581,6 +599,12 @@ class GameProvider extends ChangeNotifier {
           puzzleDataWithSolution,
           puzzle.solution as Map<String, dynamic>?,
         );
+        break;
+      case GameType.mobius:
+        _mobiusPuzzle = MobiusPuzzle.fromJson(puzzleDataWithSolution);
+        break;
+      case GameType.slidingPuzzle:
+        // Sliding puzzle is prototype only - not yet integrated
         break;
     }
 
@@ -2343,6 +2367,57 @@ class GameProvider extends ChangeNotifier {
     if (_mathoraPuzzle == null) return false;
 
     if (_mathoraPuzzle!.isSolved) {
+      _isPlaying = false;
+      await _markAsCompleted();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  // ========================================
+  // Mobius methods
+  // ========================================
+
+  /// Try to move in a direction in Mobius puzzle
+  /// Returns the target node ID if successful, null otherwise
+  int? mobiusMove(SwipeDirection direction) {
+    if (_mobiusPuzzle == null) return null;
+
+    final targetId = _mobiusPuzzle!.tryMove(direction);
+    if (targetId != null) {
+      saveState();
+      notifyListeners();
+    }
+    return targetId;
+  }
+
+  /// Undo last Mobius move
+  bool mobiusUndo() {
+    if (_mobiusPuzzle == null) return false;
+
+    final success = _mobiusPuzzle!.undoMove();
+    if (success) {
+      saveState();
+      notifyListeners();
+    }
+    return success;
+  }
+
+  /// Reset Mobius puzzle to start
+  void mobiusReset() {
+    if (_mobiusPuzzle == null) return;
+
+    _mobiusPuzzle!.reset();
+    saveState();
+    notifyListeners();
+  }
+
+  /// Check if Mobius puzzle is complete
+  Future<bool> checkMobiusComplete() async {
+    if (_mobiusPuzzle == null) return false;
+
+    if (_mobiusPuzzle!.isComplete) {
       _isPlaying = false;
       await _markAsCompleted();
       notifyListeners();

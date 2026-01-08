@@ -219,6 +219,10 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.link_rounded;
       case GameType.mathora:
         return Icons.calculate_outlined;
+      case GameType.mobius:
+        return Icons.all_inclusive;
+      case GameType.slidingPuzzle:
+        return Icons.grid_view_rounded;
     }
   }
 
@@ -250,6 +254,10 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Connections';
       case GameType.mathora:
         return 'Mathora';
+      case GameType.mobius:
+        return 'Mobius';
+      case GameType.slidingPuzzle:
+        return 'Sliding Puzzle';
     }
   }
 

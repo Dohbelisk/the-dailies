@@ -130,6 +130,44 @@ platform :ios do
   end
 
   # ==========================================
+  # SCREENSHOT LANES
+  # ==========================================
+
+  desc "Capture App Store screenshots (interactive mode)"
+  lane :screenshots do
+    # Use custom screenshot script for Flutter apps
+    sh("./screenshots.sh all")
+  end
+
+  desc "Capture screenshots for a specific device"
+  lane :screenshot_device do |options|
+    device = options[:device] || "iPhone 16 Pro Max"
+    sh("./screenshots.sh device '#{device}'")
+  end
+
+  desc "Quick screenshot of current simulator"
+  lane :screenshot_quick do |options|
+    name = options[:name] || "screenshot"
+    folder = options[:folder] || "quick"
+    sh("./screenshots.sh quick #{name} #{folder}")
+  end
+
+  desc "List available devices for screenshots"
+  lane :screenshot_list do
+    sh("./screenshots.sh list")
+  end
+
+  desc "Upload screenshots to App Store Connect"
+  lane :upload_screenshots do
+    deliver(
+      skip_binary_upload: true,
+      skip_metadata: true,
+      screenshots_path: "./screenshots",
+      overwrite_screenshots: true
+    )
+  end
+
+  # ==========================================
   # ERROR HANDLING
   # ==========================================
 

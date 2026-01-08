@@ -25,6 +25,7 @@ import '../widgets/lights_out_grid.dart';
 import '../widgets/word_ladder_grid.dart';
 import '../widgets/connections_grid.dart';
 import '../widgets/mathora_grid.dart';
+import '../widgets/mobius_grid.dart';
 import '../widgets/number_pad.dart';
 import '../widgets/keyboard_input.dart';
 import '../widgets/game_timer.dart';
@@ -74,6 +75,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+
+    // Start background music if enabled
+    _audioService.startMusic();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializePuzzle();
@@ -215,6 +219,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _cluesTabController?.dispose();
     _acrossScrollController.dispose();
     _downScrollController.dispose();
+    // Stop background music when leaving game
+    _audioService.stopMusic();
     super.dispose();
   }
 
@@ -279,6 +285,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         break;
       case GameType.mathora:
         isComplete = await gameProvider.checkMathoraComplete();
+        break;
+      case GameType.mobius:
+        isComplete = await gameProvider.checkMobiusComplete();
+        break;
+      case GameType.slidingPuzzle:
+        // Sliding puzzle is prototype only - not yet integrated
         break;
     }
 
@@ -620,6 +632,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             'Use Undo to try different operation sequences',
           ],
           tips: 'Sometimes you need to go away from the target before getting closer. Think about what operations are available.',
+        );
+      case GameType.mobius:
+        return _GameInstructions(
+          objective: 'Navigate your cube through an impossible 3D structure to reach the goal.',
+          steps: [
+            'Swipe up, down, left, or right to move your cube',
+            'Find a path from the start node to the goal (marked with a star)',
+            'Some paths may seem impossible - that\'s the Möbius twist!',
+          ],
+          tips: 'The arrows at the bottom show which directions are available. Sometimes you need to explore to find the right path.',
+        );
+      case GameType.slidingPuzzle:
+        return _GameInstructions(
+          objective: 'Arrange the numbered tiles in order by sliding them into the empty space.',
+          steps: [
+            'Tap a tile adjacent to the empty space to slide it',
+            'Arrange tiles in order from 1 to N',
+            'The empty space should end up in the bottom-right corner',
+          ],
+          tips: 'Work on solving one row at a time, starting from the top.',
         );
     }
   }
@@ -1016,7 +1048,31 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return _buildConnectionsContent(context);
       case GameType.mathora:
         return _buildMathoraContent(context);
+      case GameType.mobius:
+        return _buildMobiusContent(context);
+      case GameType.slidingPuzzle:
+        return const Center(child: Text('Sliding Puzzle - Available in Debug Menu'));
     }
+  }
+
+  Widget _buildMobiusContent(BuildContext context) {
+    final gameProvider = context.watch<GameProvider>();
+    final puzzle = gameProvider.mobiusPuzzle;
+
+    if (puzzle == null) {
+      return const Center(child: Text('Loading Möbius puzzle...'));
+    }
+
+    return MobiusGrid(
+      puzzle: puzzle,
+      onComplete: () {
+        _checkCompletion();
+      },
+      onMove: () {
+        _audioService.playTap();
+        // State is managed internally by MobiusGrid
+      },
+    );
   }
 
   Widget _buildSudokuContent(BuildContext context) {

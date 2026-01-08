@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../config/environment.dart';
 import '../models/game_models.dart';
 import '../widgets/mobius_grid.dart';
+import '../widgets/sliding_puzzle_grid.dart';
 
 /// Hidden debug menu for developers and testers
 class DebugMenuScreen extends StatefulWidget {
@@ -466,6 +467,33 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             );
           },
         ),
+        ListTile(
+          leading: const Icon(Icons.grid_view, color: Colors.teal),
+          title: const Text('Sliding Puzzle'),
+          subtitle: const Text('Classic 15-puzzle prototype'),
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange),
+            ),
+            child: const Text(
+              'WIP',
+              style: TextStyle(
+                color: Colors.orange,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SlidingPuzzleTestScreen()),
+            );
+          },
+        ),
         const Padding(
           padding: EdgeInsets.all(16),
           child: Text(
@@ -745,6 +773,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         return Icons.functions;
       case GameType.mobius:
         return Icons.all_inclusive;
+      case GameType.slidingPuzzle:
+        return Icons.grid_view;
     }
   }
 

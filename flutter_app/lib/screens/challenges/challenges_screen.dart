@@ -656,6 +656,14 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.calculate_outlined;
         label = 'Mathora';
         break;
+      case GameType.mobius:
+        icon = Icons.all_inclusive;
+        label = 'Mobius';
+        break;
+      case GameType.slidingPuzzle:
+        icon = Icons.grid_view_rounded;
+        label = 'Sliding';
+        break;
     }
 
     if (small) {

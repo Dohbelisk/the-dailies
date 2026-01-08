@@ -80,6 +80,10 @@ class GameIcon extends StatelessWidget {
         return (const Color(0xFFF43F5E), const Color(0xFFEC4899));
       case GameType.mathora:
         return (const Color(0xFF10B981), const Color(0xFF059669));
+      case GameType.mobius:
+        return (const Color(0xFF06B6D4), const Color(0xFF0891B2)); // Cyan/Teal
+      case GameType.slidingPuzzle:
+        return (const Color(0xFF14B8A6), const Color(0xFF0D9488)); // Teal
     }
   }
 }
@@ -143,6 +147,32 @@ class _GameIconPainter extends CustomPainter {
       case GameType.mathora:
         _drawMathoraIcon(canvas, canvasSize, paint, fillPaint);
         break;
+      case GameType.mobius:
+        _drawMobiusIcon(canvas, canvasSize, paint, fillPaint);
+        break;
+      case GameType.slidingPuzzle:
+        _drawSlidingPuzzleIcon(canvas, canvasSize, paint, fillPaint);
+        break;
+    }
+  }
+
+  void _drawSlidingPuzzleIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {
+    final unit = size.width / 3;
+    // Draw 3x3 grid of tiles with one missing
+    for (int row = 0; row < 3; row++) {
+      for (int col = 0; col < 3; col++) {
+        if (row == 2 && col == 2) continue; // Empty space
+        final rect = Rect.fromLTWH(
+          col * unit + 2,
+          row * unit + 2,
+          unit - 4,
+          unit - 4,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+          fill,
+        );
+      }
     }
   }
 
@@ -406,6 +436,30 @@ class _GameIconPainter extends CustomPainter {
         i == 0 ? fill : stroke,
       );
     }
+  }
+
+  void _drawMobiusIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {
+    // Draw an infinity/mobius symbol
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+    final loopWidth = size.width * 0.35;
+    final loopHeight = size.height * 0.25;
+
+    final path = Path();
+    // Left loop
+    path.addOval(Rect.fromCenter(
+      center: Offset(centerX - loopWidth * 0.5, centerY),
+      width: loopWidth,
+      height: loopHeight * 2,
+    ));
+    // Right loop
+    path.addOval(Rect.fromCenter(
+      center: Offset(centerX + loopWidth * 0.5, centerY),
+      width: loopWidth,
+      height: loopHeight * 2,
+    ));
+
+    canvas.drawPath(path, stroke);
   }
 
   void _drawHexagon(Canvas canvas, Offset center, double radius, Paint paint) {
