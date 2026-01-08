@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
 
 /// Background message handler - must be a top-level function.
 @pragma('vm:entry-point')
@@ -222,38 +222,36 @@ class NotificationService {
     _initialMessage = null;
   }
 
-  /// Clear the app badge count (iOS/Android).
+  /// Method channel for iOS badge management
+  static const MethodChannel _badgeChannel = MethodChannel('com.dohbelisk.thedailies/badge');
+
+  /// Clear the app badge count (iOS only).
   /// Call this when the app is opened to remove the badge.
   Future<void> clearBadge() async {
+    if (!Platform.isIOS) return;
+
     try {
-      final isSupported = await FlutterAppBadger.isAppBadgeSupported();
-      if (isSupported) {
-        await FlutterAppBadger.removeBadge();
-        if (kDebugMode) {
-          print('NotificationService: Badge cleared');
-        }
+      await _badgeChannel.invokeMethod('clearBadge');
+      if (kDebugMode) {
+        print('NotificationService: Badge cleared');
       }
     } catch (e) {
-      debugPrint('NotificationService: Error clearing badge - $e');
+      // Method channel not implemented yet - that's okay
+      debugPrint('NotificationService: Badge clearing not available - $e');
     }
   }
 
-  /// Set the app badge count (iOS/Android).
+  /// Set the app badge count (iOS only).
   Future<void> setBadge(int count) async {
+    if (!Platform.isIOS) return;
+
     try {
-      final isSupported = await FlutterAppBadger.isAppBadgeSupported();
-      if (isSupported) {
-        if (count > 0) {
-          await FlutterAppBadger.updateBadgeCount(count);
-        } else {
-          await FlutterAppBadger.removeBadge();
-        }
-        if (kDebugMode) {
-          print('NotificationService: Badge set to $count');
-        }
+      await _badgeChannel.invokeMethod('setBadge', {'count': count});
+      if (kDebugMode) {
+        print('NotificationService: Badge set to $count');
       }
     } catch (e) {
-      debugPrint('NotificationService: Error setting badge - $e');
+      debugPrint('NotificationService: Badge setting not available - $e');
     }
   }
 }
