@@ -11,6 +11,8 @@ import {
   Hash,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  Upload,
 } from 'lucide-react'
 import { dictionaryApi } from '../lib/api'
 import DictionaryEditModal from '../components/DictionaryEditModal'
@@ -38,6 +40,11 @@ export default function Dictionary() {
   const [page, setPage] = useState(1)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [editingWord, setEditingWord] = useState<DictionaryWord | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showBulkModal, setShowBulkModal] = useState(false)
+  const [newWord, setNewWord] = useState('')
+  const [newWordClue, setNewWordClue] = useState('')
+  const [bulkWords, setBulkWords] = useState('')
 
   const queryClient = useQueryClient()
 
@@ -83,6 +90,36 @@ export default function Dictionary() {
     },
   })
 
+  const addWordMutation = useMutation({
+    mutationFn: ({ word, clue }: { word: string; clue?: string }) =>
+      dictionaryApi.addWord(word, clue),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dictionary'] })
+      queryClient.invalidateQueries({ queryKey: ['dictionary-status'] })
+      toast.success('Word added to dictionary')
+      setShowAddModal(false)
+      setNewWord('')
+      setNewWordClue('')
+    },
+    onError: () => {
+      toast.error('Failed to add word')
+    },
+  })
+
+  const bulkAddMutation = useMutation({
+    mutationFn: (words: string[]) => dictionaryApi.bulkAddWords(words),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['dictionary'] })
+      queryClient.invalidateQueries({ queryKey: ['dictionary-status'] })
+      toast.success(`Added ${data.data.added} words to dictionary`)
+      setShowBulkModal(false)
+      setBulkWords('')
+    },
+    onError: () => {
+      toast.error('Failed to add words')
+    },
+  })
+
   const words: DictionaryWord[] = data?.words || []
   const pagination: PaginationInfo = data?.pagination || { page: 1, limit: 50, total: 0, totalPages: 0 }
 
@@ -115,6 +152,22 @@ export default function Dictionary() {
               {status.wordCount?.toLocaleString()} words
             </p>
           )}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowBulkModal(true)}
+            className="btn btn-secondary flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Bulk Add
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="btn btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Word
+          </button>
         </div>
       </div>
 
@@ -347,6 +400,147 @@ export default function Dictionary() {
           onSave={(clue) => updateClueMutation.mutate({ word: editingWord.word, clue })}
           isSaving={updateClueMutation.isPending}
         />
+      )}
+
+      {/* Add Word Modal */}
+      {showAddModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setShowAddModal(false)}
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+              <div className="p-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Add Word to Dictionary
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Word (min 4 letters)
+                    </label>
+                    <input
+                      type="text"
+                      value={newWord}
+                      onChange={(e) => setNewWord(e.target.value.toUpperCase())}
+                      className="input w-full font-mono"
+                      placeholder="EXAMPLE"
+                      minLength={4}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Clue (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={newWordClue}
+                      onChange={(e) => setNewWordClue(e.target.value)}
+                      className="input w-full"
+                      placeholder="Definition or clue for crosswords"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowAddModal(false)
+                      setNewWord('')
+                      setNewWordClue('')
+                    }}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (newWord.length >= 4) {
+                        addWordMutation.mutate({
+                          word: newWord,
+                          clue: newWordClue || undefined,
+                        })
+                      }
+                    }}
+                    disabled={newWord.length < 4 || addWordMutation.isPending}
+                    className="btn btn-primary"
+                  >
+                    {addWordMutation.isPending ? 'Adding...' : 'Add Word'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Bulk Add Modal */}
+      {showBulkModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setShowBulkModal(false)}
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg">
+              <div className="p-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Bulk Add Words
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Words (one per line, min 4 letters each)
+                    </label>
+                    <textarea
+                      value={bulkWords}
+                      onChange={(e) => setBulkWords(e.target.value.toUpperCase())}
+                      className="input w-full font-mono h-48 resize-none"
+                      placeholder={"EXAMPLE\nWORDS\nHERE"}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {bulkWords
+                      .split('\n')
+                      .filter((w) => w.trim().length >= 4).length}{' '}
+                    valid words detected
+                  </p>
+                </div>
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowBulkModal(false)
+                      setBulkWords('')
+                    }}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      const words = bulkWords
+                        .split('\n')
+                        .map((w) => w.trim())
+                        .filter((w) => w.length >= 4)
+                      if (words.length > 0) {
+                        bulkAddMutation.mutate(words)
+                      }
+                    }}
+                    disabled={
+                      bulkWords.split('\n').filter((w) => w.trim().length >= 4)
+                        .length === 0 || bulkAddMutation.isPending
+                    }
+                    className="btn btn-primary"
+                  >
+                    {bulkAddMutation.isPending
+                      ? 'Adding...'
+                      : `Add ${bulkWords.split('\n').filter((w) => w.trim().length >= 4).length} Words`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

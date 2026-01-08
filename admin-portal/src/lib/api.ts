@@ -140,6 +140,10 @@ export const dictionaryApi = {
     api.delete(`/dictionary/word/${word}`),
   getStatus: () =>
     api.get('/dictionary/status'),
+  addWord: (word: string, clue?: string) =>
+    api.post('/dictionary/word', { word, clue }),
+  bulkAddWords: (words: string[]) =>
+    api.post('/dictionary/words/bulk', { words }),
 }
 
 // Generate
