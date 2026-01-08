@@ -1,15 +1,13 @@
 # Unified Release Workflow
 # Triggers on push to main branch
 # Auto-increments build number, builds both platforms, deploys to TestFlight and Firebase
+# Only deploys iOS/Android when flutter_app changes are detected
 
 name: Release
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'flutter_app/**'
-      - '.github/workflows/release.yml'
   workflow_dispatch:
     inputs:
       version_bump:
@@ -26,6 +24,11 @@ on:
         description: 'Release notes for testers'
         required: false
         default: 'Bug fixes and improvements'
+      force_deploy:
+        description: 'Force deploy even without flutter changes'
+        required: false
+        default: false
+        type: boolean
 
 env:
   FLUTTER_VERSION: '3.38.5'
@@ -36,10 +39,51 @@ permissions:
 
 jobs:
   # ============================================
+  # Detect Changes Job
+  # ============================================
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      flutter_changed: ${{ steps.filter.outputs.flutter }}
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            flutter:
+              - 'flutter_app/**'
+
+      - name: Determine if should deploy
+        id: check
+        run: |
+          # Deploy if flutter changed, or if manually triggered with force_deploy, or if workflow_dispatch without force check
+          if [[ "${{ steps.filter.outputs.flutter }}" == "true" ]]; then
+            echo "Flutter app changes detected"
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Manual trigger - deploying"
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "No flutter changes detected - skipping app deploy"
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+  # ============================================
   # Version Bump Job
   # ============================================
   version-bump:
     name: Bump Version
+    needs: detect-changes
+    if: needs.detect-changes.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     outputs:
       new_version: ${{ steps.bump.outputs.new_version }}
@@ -117,7 +161,8 @@ jobs:
   # ============================================
   deploy-ios:
     name: Deploy iOS to TestFlight
-    needs: version-bump
+    needs: [detect-changes, version-bump]
+    if: needs.detect-changes.outputs.should_deploy == 'true'
     runs-on: macos-latest
     defaults:
       run:
@@ -229,7 +274,8 @@ jobs:
   # ============================================
   deploy-android:
     name: Deploy Android to Firebase
-    needs: version-bump
+    needs: [detect-changes, version-bump]
+    if: needs.detect-changes.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -339,7 +385,8 @@ jobs:
   # ============================================
   create-release:
     name: Create GitHub Release
-    needs: [version-bump, deploy-ios, deploy-android]
+    needs: [detect-changes, version-bump, deploy-ios, deploy-android]
+    if: needs.detect-changes.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
 
     steps:
