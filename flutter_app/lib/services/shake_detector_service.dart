@@ -25,19 +25,19 @@ class ShakeDetectorService {
 
   /// Minimum acceleration force to consider as a shake (in m/s^2)
   /// Default gravity is ~9.8, so we want noticeable movement above that
-  /// Lowered from 15.0 to 12.0 for better sensitivity
-  double shakeThreshold = 12.0;
+  /// Lowered to 8.0 for easier activation on different devices
+  double shakeThreshold = 8.0;
 
   /// Minimum time between shake detections (prevents rapid-fire triggers)
   Duration shakeCooldown = const Duration(seconds: 2);
 
   /// Number of shake movements required to trigger
-  /// Lowered from 3 to 2 for easier activation
+  /// Only need 2 shakes for easier activation
   int shakeCountThreshold = 2;
 
   /// Time window in which shakeCountThreshold shakes must occur
-  /// Increased from 800ms to 1000ms for more forgiving timing
-  Duration shakeTimeWindow = const Duration(milliseconds: 1000);
+  /// 1.5 seconds for more forgiving timing
+  Duration shakeTimeWindow = const Duration(milliseconds: 1500);
 
   StreamSubscription<AccelerometerEvent>? _subscription;
   DateTime? _lastShakeTime;
