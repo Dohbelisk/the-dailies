@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { X, Loader2, Sparkles, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
-import { generateApi, GAME_TYPES, GAME_TYPE_LABELS, GameType, Difficulty } from '../lib/api'
+import { X, Loader2, Sparkles, CheckCircle, XCircle, AlertTriangle, Trash2 } from 'lucide-react'
+import { generateApi, puzzlesApi, GAME_TYPES, GAME_TYPE_LABELS, GameType, Difficulty } from '../lib/api'
 
 interface GeneratePuzzlesModalProps {
   isOpen: boolean
@@ -70,6 +70,8 @@ export default function GeneratePuzzlesModal({
 
   const [status, setStatus] = useState<GenerateStatus>('idle')
   const [results, setResults] = useState<GenerationResult[]>([])
+  const [removeExisting, setRemoveExisting] = useState(false)
+  const [deletedCount, setDeletedCount] = useState(0)
 
   const toggleGame = (gameType: GameType) => {
     setConfigs((prev) => ({
@@ -115,6 +117,23 @@ export default function GeneratePuzzlesModal({
 
     setStatus('generating')
     setResults([])
+    setDeletedCount(0)
+
+    // If removeExisting is checked, delete existing puzzles for the selected game types on this date
+    if (removeExisting) {
+      try {
+        const response = await puzzlesApi.getByDateRange(date, date)
+        const existingPuzzles = response.data as { _id: string; gameType: GameType }[]
+        const puzzlesToDelete = existingPuzzles.filter((p) => enabledGames.includes(p.gameType))
+
+        for (const puzzle of puzzlesToDelete) {
+          await puzzlesApi.delete(puzzle._id)
+        }
+        setDeletedCount(puzzlesToDelete.length)
+      } catch (error) {
+        console.error('Error deleting existing puzzles:', error)
+      }
+    }
 
     const generationResults: GenerationResult[] = []
 
@@ -168,6 +187,8 @@ export default function GeneratePuzzlesModal({
     if (status !== 'generating') {
       setStatus('idle')
       setResults([])
+      setRemoveExisting(false)
+      setDeletedCount(0)
       onClose()
     }
   }
@@ -315,11 +336,40 @@ export default function GeneratePuzzlesModal({
                     puzzles are generated as inactive.
                   </p>
                 </div>
+
+                {/* Remove existing option */}
+                <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={removeExisting}
+                      onChange={(e) => setRemoveExisting(e.target.checked)}
+                      className="w-4 h-4 mt-0.5 text-orange-600 rounded border-orange-300 focus:ring-orange-500"
+                    />
+                    <div>
+                      <span className="flex items-center gap-2 font-medium text-orange-800 dark:text-orange-300">
+                        <Trash2 className="w-4 h-4" />
+                        Remove existing puzzles
+                      </span>
+                      <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">
+                        Delete existing puzzles for the selected game types on this date before generating new ones.
+                      </p>
+                    </div>
+                  </label>
+                </div>
               </>
             )}
 
             {(status === 'generating' || status === 'success' || status === 'error') && (
               <div className="space-y-3">
+                {deletedCount > 0 && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20">
+                    <Trash2 className="w-5 h-5 text-orange-500" />
+                    <span className="text-orange-700 dark:text-orange-300">
+                      Removed {deletedCount} existing puzzle{deletedCount !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
                 {results.map((result) => (
                   <div
                     key={result.gameType}
