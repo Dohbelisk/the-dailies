@@ -668,6 +668,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.flip_rounded;
         label = 'Memory';
         break;
+      case GameType.game2048:
+        icon = Icons.grid_4x4_rounded;
+        label = '2048';
+        break;
     }
 
     if (small) {

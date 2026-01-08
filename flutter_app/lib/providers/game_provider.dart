@@ -609,6 +609,9 @@ class GameProvider extends ChangeNotifier {
       case GameType.memoryMatch:
         // Memory match is prototype only - not yet integrated
         break;
+      case GameType.game2048:
+        // 2048 is prototype only - not yet integrated
+        break;
     }
 
     // If showing solution, apply solved state to each puzzle type

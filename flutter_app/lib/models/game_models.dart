@@ -1,4 +1,4 @@
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048 }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -35,6 +35,8 @@ extension GameTypeExtension on GameType {
         return 'Sliding Puzzle';
       case GameType.memoryMatch:
         return 'Memory Match';
+      case GameType.game2048:
+        return '2048';
     }
   }
 
@@ -72,6 +74,8 @@ extension GameTypeExtension on GameType {
         return '🧩';
       case GameType.memoryMatch:
         return '🃏';
+      case GameType.game2048:
+        return '🔢';
     }
   }
 
@@ -2697,5 +2701,271 @@ class MemoryMatchPuzzle {
       cardValues: _emojis.take(10).toList(),
       board: board,
     );
+  }
+}
+
+// ======================================
+// 2048 PUZZLE MODEL
+// ======================================
+
+/// Classic 2048 sliding tile game
+class Game2048Puzzle {
+  static const int gridSize = 4;
+
+  List<List<int>> board; // 0 = empty, other values are powers of 2
+  int score;
+  int bestTile;
+  int moveCount;
+  bool isGameOver;
+  bool hasWon;
+
+  Game2048Puzzle({
+    List<List<int>>? board,
+    this.score = 0,
+    this.bestTile = 0,
+    this.moveCount = 0,
+    this.isGameOver = false,
+    this.hasWon = false,
+  }) : board = board ?? List.generate(gridSize, (_) => List.filled(gridSize, 0));
+
+  /// Check if the board has any empty cells
+  bool get hasEmptyCell {
+    for (int r = 0; r < gridSize; r++) {
+      for (int c = 0; c < gridSize; c++) {
+        if (board[r][c] == 0) return true;
+      }
+    }
+    return false;
+  }
+
+  /// Check if any moves are possible
+  bool get canMove {
+    if (hasEmptyCell) return true;
+
+    // Check for possible merges
+    for (int r = 0; r < gridSize; r++) {
+      for (int c = 0; c < gridSize; c++) {
+        final val = board[r][c];
+        if (r > 0 && board[r - 1][c] == val) return true;
+        if (r < gridSize - 1 && board[r + 1][c] == val) return true;
+        if (c > 0 && board[r][c - 1] == val) return true;
+        if (c < gridSize - 1 && board[r][c + 1] == val) return true;
+      }
+    }
+    return false;
+  }
+
+  /// Add a random tile (2 or 4) to an empty cell
+  void addRandomTile() {
+    final emptyCells = <(int, int)>[];
+    for (int r = 0; r < gridSize; r++) {
+      for (int c = 0; c < gridSize; c++) {
+        if (board[r][c] == 0) emptyCells.add((r, c));
+      }
+    }
+
+    if (emptyCells.isEmpty) return;
+
+    emptyCells.shuffle();
+    final (row, col) = emptyCells.first;
+    // 90% chance for 2, 10% chance for 4
+    board[row][col] = (DateTime.now().millisecond % 10 == 0) ? 4 : 2;
+  }
+
+  /// Slide and merge tiles in a direction
+  /// Returns true if any tile moved
+  bool move(SwipeDirection direction) {
+    bool moved = false;
+    final oldBoard = board.map((row) => row.toList()).toList();
+
+    switch (direction) {
+      case SwipeDirection.up:
+        for (int c = 0; c < gridSize; c++) {
+          moved = _slideColumn(c, -1) || moved;
+        }
+        break;
+      case SwipeDirection.down:
+        for (int c = 0; c < gridSize; c++) {
+          moved = _slideColumn(c, 1) || moved;
+        }
+        break;
+      case SwipeDirection.left:
+        for (int r = 0; r < gridSize; r++) {
+          moved = _slideRow(r, -1) || moved;
+        }
+        break;
+      case SwipeDirection.right:
+        for (int r = 0; r < gridSize; r++) {
+          moved = _slideRow(r, 1) || moved;
+        }
+        break;
+    }
+
+    // Check if board actually changed
+    bool boardChanged = false;
+    for (int r = 0; r < gridSize && !boardChanged; r++) {
+      for (int c = 0; c < gridSize && !boardChanged; c++) {
+        if (board[r][c] != oldBoard[r][c]) boardChanged = true;
+      }
+    }
+
+    if (boardChanged) {
+      moveCount++;
+      addRandomTile();
+
+      // Update best tile
+      for (int r = 0; r < gridSize; r++) {
+        for (int c = 0; c < gridSize; c++) {
+          if (board[r][c] > bestTile) bestTile = board[r][c];
+        }
+      }
+
+      // Check for win
+      if (bestTile >= 2048 && !hasWon) {
+        hasWon = true;
+      }
+
+      // Check for game over
+      if (!canMove) {
+        isGameOver = true;
+      }
+    }
+
+    return boardChanged;
+  }
+
+  /// Slide a row in direction (-1 = left, 1 = right)
+  bool _slideRow(int row, int direction) {
+    final line = board[row].toList();
+    final newLine = _slideLine(line, direction);
+    board[row] = newLine;
+    return !_listsEqual(line, newLine);
+  }
+
+  /// Slide a column in direction (-1 = up, 1 = down)
+  bool _slideColumn(int col, int direction) {
+    final line = <int>[];
+    for (int r = 0; r < gridSize; r++) {
+      line.add(board[r][col]);
+    }
+    final newLine = _slideLine(line, direction);
+    for (int r = 0; r < gridSize; r++) {
+      board[r][col] = newLine[r];
+    }
+    return !_listsEqual(line, newLine);
+  }
+
+  /// Slide and merge a line in direction (-1 = toward start, 1 = toward end)
+  List<int> _slideLine(List<int> line, int direction) {
+    // Remove zeros and collect non-zero values
+    final nonZero = line.where((v) => v != 0).toList();
+    if (nonZero.isEmpty) return List.filled(gridSize, 0);
+
+    // If moving toward end, reverse
+    if (direction == 1) {
+      nonZero.reversed.toList();
+    }
+
+    // Work from the target end
+    final result = <int>[];
+    int i = direction == -1 ? 0 : nonZero.length - 1;
+    final step = direction == -1 ? 1 : -1;
+    final end = direction == -1 ? nonZero.length : -1;
+
+    while (i != end) {
+      final current = nonZero[i];
+      final nextI = i + step;
+
+      if (nextI != end && nonZero[nextI] == current) {
+        // Merge
+        final merged = current * 2;
+        result.add(merged);
+        score += merged;
+        i = nextI + step; // Skip the merged tile
+      } else {
+        result.add(current);
+        i = nextI;
+      }
+    }
+
+    // Pad with zeros
+    while (result.length < gridSize) {
+      result.add(0);
+    }
+
+    // If moving toward end, reverse back
+    if (direction == 1) {
+      return result.reversed.toList();
+    }
+    return result;
+  }
+
+  bool _listsEqual(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  /// Reset to initial state
+  void reset() {
+    for (int r = 0; r < gridSize; r++) {
+      for (int c = 0; c < gridSize; c++) {
+        board[r][c] = 0;
+      }
+    }
+    score = 0;
+    bestTile = 0;
+    moveCount = 0;
+    isGameOver = false;
+    hasWon = false;
+    addRandomTile();
+    addRandomTile();
+  }
+
+  /// Check if complete (reached 2048)
+  bool get isComplete => hasWon;
+
+  // ======================================
+  // SAMPLE LEVELS
+  // ======================================
+
+  /// Fresh game - Easy start
+  static Game2048Puzzle sampleLevel1() {
+    final puzzle = Game2048Puzzle();
+    puzzle.addRandomTile();
+    puzzle.addRandomTile();
+    return puzzle;
+  }
+
+  /// Pre-started game - Medium
+  static Game2048Puzzle sampleLevel2() {
+    final puzzle = Game2048Puzzle(
+      board: [
+        [2, 4, 8, 2],
+        [0, 2, 4, 0],
+        [0, 0, 2, 0],
+        [0, 0, 0, 0],
+      ],
+      score: 32,
+      bestTile: 8,
+    );
+    return puzzle;
+  }
+
+  /// Advanced game - Hard
+  static Game2048Puzzle sampleLevel3() {
+    final puzzle = Game2048Puzzle(
+      board: [
+        [64, 32, 16, 8],
+        [32, 16, 8, 4],
+        [16, 8, 4, 2],
+        [4, 2, 0, 0],
+      ],
+      score: 512,
+      bestTile: 64,
+    );
+    return puzzle;
   }
 }

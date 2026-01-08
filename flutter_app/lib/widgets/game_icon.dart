@@ -86,6 +86,8 @@ class GameIcon extends StatelessWidget {
         return (const Color(0xFF14B8A6), const Color(0xFF0D9488)); // Teal
       case GameType.memoryMatch:
         return (const Color(0xFFEC4899), const Color(0xFFDB2777)); // Pink
+      case GameType.game2048:
+        return (const Color(0xFFEAB308), const Color(0xFFCA8A04)); // Yellow/Amber
     }
   }
 }
@@ -158,6 +160,29 @@ class _GameIconPainter extends CustomPainter {
       case GameType.memoryMatch:
         _drawMemoryMatchIcon(canvas, canvasSize, paint, fillPaint);
         break;
+      case GameType.game2048:
+        _draw2048Icon(canvas, canvasSize, paint, fillPaint);
+        break;
+    }
+  }
+
+  void _draw2048Icon(Canvas canvas, Size size, Paint stroke, Paint fill) {
+    final unit = size.width / 2;
+    // Draw 2x2 grid with different sized tiles
+    final tiles = [
+      (0.0, 0.0, 0.45),
+      (unit, 0.0, 0.45),
+      (0.0, unit, 0.45),
+      (unit, unit, 0.45),
+    ];
+    for (final (x, y, s) in tiles) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x + 2, y + 2, unit * s, unit * s),
+          const Radius.circular(4),
+        ),
+        fill,
+      );
     }
   }
 

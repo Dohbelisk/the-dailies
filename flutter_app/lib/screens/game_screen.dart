@@ -295,6 +295,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case GameType.memoryMatch:
         // Memory match is prototype only - not yet integrated
         break;
+      case GameType.game2048:
+        // 2048 is prototype only - not yet integrated
+        break;
     }
 
     if (isComplete) {
@@ -666,6 +669,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             'Non-matching pairs flip back after a moment',
           ],
           tips: 'Try to remember where you saw each symbol. Focus on one area at a time.',
+        );
+      case GameType.game2048:
+        return _GameInstructions(
+          objective: 'Slide tiles to combine matching numbers and reach 2048.',
+          steps: [
+            'Swipe up, down, left, or right to slide all tiles',
+            'Tiles with the same number merge into one',
+            'A new tile appears after each move',
+            'Reach 2048 to win!',
+          ],
+          tips: 'Keep your highest tile in a corner. Build chains of tiles to set up merges.',
         );
     }
   }
@@ -1068,6 +1082,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return const Center(child: Text('Sliding Puzzle - Available in Debug Menu'));
       case GameType.memoryMatch:
         return const Center(child: Text('Memory Match - Available in Debug Menu'));
+      case GameType.game2048:
+        return const Center(child: Text('2048 - Available in Debug Menu'));
     }
   }
 

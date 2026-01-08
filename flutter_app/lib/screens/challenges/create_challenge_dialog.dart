@@ -225,6 +225,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.grid_view_rounded;
       case GameType.memoryMatch:
         return Icons.flip_rounded;
+      case GameType.game2048:
+        return Icons.grid_4x4_rounded;
     }
   }
 
@@ -262,6 +264,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Sliding Puzzle';
       case GameType.memoryMatch:
         return 'Memory Match';
+      case GameType.game2048:
+        return '2048';
     }
   }
 
