@@ -680,6 +680,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.stacked_bar_chart_rounded;
         label = 'Hanoi';
         break;
+      case GameType.minesweeper:
+        icon = Icons.grid_goldenratio_rounded;
+        label = 'Mines';
+        break;
     }
 
     if (small) {

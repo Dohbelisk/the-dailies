@@ -231,6 +231,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.music_note_rounded;
       case GameType.towerOfHanoi:
         return Icons.stacked_bar_chart_rounded;
+      case GameType.minesweeper:
+        return Icons.grid_goldenratio_rounded;
     }
   }
 
@@ -274,6 +276,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Simon';
       case GameType.towerOfHanoi:
         return 'Tower of Hanoi';
+      case GameType.minesweeper:
+        return 'Minesweeper';
     }
   }
 

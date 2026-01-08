@@ -348,6 +348,8 @@ class PuzzleCard extends StatelessWidget {
         return (const Color(0xFF7C3AED), const Color(0xFF6D28D9)); // Purple
       case GameType.towerOfHanoi:
         return (const Color(0xFF92400E), const Color(0xFFB45309)); // Brown/Amber
+      case GameType.minesweeper:
+        return (const Color(0xFF475569), const Color(0xFF64748B)); // Slate/Gray
     }
   }
 }

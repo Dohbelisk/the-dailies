@@ -12,6 +12,7 @@ import '../widgets/memory_match_grid.dart';
 import '../widgets/game_2048_grid.dart';
 import '../widgets/simon_grid.dart';
 import '../widgets/tower_of_hanoi_grid.dart';
+import '../widgets/minesweeper_grid.dart';
 
 /// Hidden debug menu for developers and testers
 class DebugMenuScreen extends StatefulWidget {
@@ -606,6 +607,18 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             );
           },
         ),
+        ListTile(
+          leading: Icon(_getGameTypeIcon(GameType.minesweeper)),
+          title: const Text('Minesweeper'),
+          subtitle: const Text('Classic mine-clearing puzzle'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MinesweeperTestScreen()),
+            );
+          },
+        ),
         const Padding(
           padding: EdgeInsets.all(16),
           child: Text(
@@ -895,6 +908,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         return Icons.music_note;
       case GameType.towerOfHanoi:
         return Icons.stacked_bar_chart;
+      case GameType.minesweeper:
+        return Icons.grid_goldenratio;
     }
   }
 

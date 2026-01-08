@@ -92,6 +92,8 @@ class GameIcon extends StatelessWidget {
         return (const Color(0xFF7C3AED), const Color(0xFF6D28D9)); // Purple
       case GameType.towerOfHanoi:
         return (const Color(0xFF92400E), const Color(0xFFB45309)); // Brown/Amber
+      case GameType.minesweeper:
+        return (const Color(0xFF475569), const Color(0xFF64748B)); // Slate/Gray
     }
   }
 }
@@ -173,6 +175,43 @@ class _GameIconPainter extends CustomPainter {
       case GameType.towerOfHanoi:
         _drawTowerOfHanoiIcon(canvas, canvasSize, paint, fillPaint);
         break;
+      case GameType.minesweeper:
+        _drawMinesweeperIcon(canvas, canvasSize, paint, fillPaint);
+        break;
+    }
+  }
+
+  void _drawMinesweeperIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {
+    final unit = size.width / 3;
+    // Draw 3x3 grid
+    for (int r = 0; r < 3; r++) {
+      for (int c = 0; c < 3; c++) {
+        final rect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(c * unit + 1, r * unit + 1, unit - 2, unit - 2),
+          const Radius.circular(2),
+        );
+        if (r == 1 && c == 1) {
+          // Draw mine in center
+          canvas.drawRRect(rect, fill);
+          // Draw mine spikes
+          final center = Offset(size.width / 2, size.height / 2);
+          final mineRadius = unit * 0.25;
+          canvas.drawCircle(center, mineRadius, Paint()..color = Colors.white);
+          for (int i = 0; i < 4; i++) {
+            final angle = i * 0.785; // 45 degrees
+            canvas.drawLine(
+              center,
+              Offset(
+                center.dx + mineRadius * 1.5 * math.cos(angle),
+                center.dy + mineRadius * 1.5 * math.sin(angle),
+              ),
+              Paint()..color = Colors.white..strokeWidth = 2,
+            );
+          }
+        } else {
+          canvas.drawRRect(rect, stroke);
+        }
+      }
     }
   }
 

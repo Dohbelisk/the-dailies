@@ -304,6 +304,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case GameType.towerOfHanoi:
         // Tower of Hanoi is prototype only - not yet integrated
         break;
+      case GameType.minesweeper:
+        // Minesweeper is prototype only - not yet integrated
+        break;
     }
 
     if (isComplete) {
@@ -708,6 +711,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             'Move all disks to the rightmost peg to win',
           ],
           tips: 'The minimum moves for N disks is 2^N - 1. Try to achieve optimal!',
+        );
+      case GameType.minesweeper:
+        return _GameInstructions(
+          objective: 'Reveal all safe cells without hitting any mines.',
+          steps: [
+            'Tap a cell to reveal it',
+            'Numbers show how many adjacent cells contain mines',
+            'Long-press to flag a cell you think contains a mine',
+            'The first tap is always safe',
+            'Reveal all non-mine cells to win!',
+          ],
+          tips: 'Use logic! If a "1" cell has only one hidden neighbor, that neighbor must be a mine.',
         );
     }
   }
@@ -1116,6 +1131,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return const Center(child: Text('Simon - Available in Debug Menu'));
       case GameType.towerOfHanoi:
         return const Center(child: Text('Tower of Hanoi - Available in Debug Menu'));
+      case GameType.minesweeper:
+        return const Center(child: Text('Minesweeper - Available in Debug Menu'));
     }
   }
 

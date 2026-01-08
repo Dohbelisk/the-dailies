@@ -290,6 +290,7 @@ class CompletionDialog extends StatelessWidget {
       case GameType.game2048:
       case GameType.simon:
       case GameType.towerOfHanoi:
+      case GameType.minesweeper:
         return false; // These games don't have a mistake concept
     }
   }

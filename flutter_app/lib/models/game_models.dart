@@ -1,4 +1,4 @@
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon, towerOfHanoi }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon, towerOfHanoi, minesweeper }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -41,6 +41,8 @@ extension GameTypeExtension on GameType {
         return 'Simon';
       case GameType.towerOfHanoi:
         return 'Tower of Hanoi';
+      case GameType.minesweeper:
+        return 'Minesweeper';
     }
   }
 
@@ -84,6 +86,8 @@ extension GameTypeExtension on GameType {
         return '🎵';
       case GameType.towerOfHanoi:
         return '🗼';
+      case GameType.minesweeper:
+        return '💣';
     }
   }
 
@@ -3191,5 +3195,234 @@ class TowerOfHanoiPuzzle {
   /// Hard - 5 disks
   static TowerOfHanoiPuzzle sampleLevel3() {
     return TowerOfHanoiPuzzle(diskCount: 5);
+  }
+}
+
+// ============================================================================
+// MINESWEEPER PUZZLE
+// ============================================================================
+
+/// Cell state for Minesweeper
+enum MinesweeperCellState { hidden, revealed, flagged }
+
+/// Minesweeper puzzle - reveal all safe cells without hitting mines
+class MinesweeperPuzzle {
+  final int rows;
+  final int cols;
+  final int mineCount;
+
+  // Mine locations - true means mine
+  late List<List<bool>> mines;
+
+  // Pre-calculated adjacent mine counts
+  late List<List<int>> adjacentCounts;
+
+  // Current cell states
+  late List<List<MinesweeperCellState>> cellStates;
+
+  // Game state
+  bool isGameOver = false;
+  bool isWon = false;
+  bool isFirstTap = true;
+  int revealedCount = 0;
+  int flagCount = 0;
+
+  MinesweeperPuzzle({
+    required this.rows,
+    required this.cols,
+    required this.mineCount,
+    List<List<bool>>? initialMines,
+  }) {
+    cellStates = List.generate(rows, (_) =>
+      List.generate(cols, (_) => MinesweeperCellState.hidden));
+
+    if (initialMines != null) {
+      mines = initialMines;
+      isFirstTap = false;
+      _calculateAdjacentCounts();
+    } else {
+      mines = List.generate(rows, (_) => List.generate(cols, (_) => false));
+      adjacentCounts = List.generate(rows, (_) => List.generate(cols, (_) => 0));
+    }
+  }
+
+  /// Generate mines, avoiding the first tapped cell and its neighbors
+  void _generateMines(int safeRow, int safeCol) {
+    final random = DateTime.now().millisecondsSinceEpoch;
+    final rng = _SimpleRandom(random);
+
+    // Create list of all valid positions (excluding safe zone)
+    final validPositions = <(int, int)>[];
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        // Exclude the safe cell and its neighbors
+        if ((r - safeRow).abs() <= 1 && (c - safeCol).abs() <= 1) continue;
+        validPositions.add((r, c));
+      }
+    }
+
+    // Shuffle and pick first mineCount positions
+    for (int i = validPositions.length - 1; i > 0; i--) {
+      final j = rng.nextInt(i + 1);
+      final temp = validPositions[i];
+      validPositions[i] = validPositions[j];
+      validPositions[j] = temp;
+    }
+
+    for (int i = 0; i < mineCount && i < validPositions.length; i++) {
+      final pos = validPositions[i];
+      mines[pos.$1][pos.$2] = true;
+    }
+
+    _calculateAdjacentCounts();
+  }
+
+  void _calculateAdjacentCounts() {
+    adjacentCounts = List.generate(rows, (r) => List.generate(cols, (c) {
+      if (mines[r][c]) return -1; // Mine cell
+      int count = 0;
+      for (int dr = -1; dr <= 1; dr++) {
+        for (int dc = -1; dc <= 1; dc++) {
+          if (dr == 0 && dc == 0) continue;
+          final nr = r + dr;
+          final nc = c + dc;
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && mines[nr][nc]) {
+            count++;
+          }
+        }
+      }
+      return count;
+    }));
+  }
+
+  /// Reveal a cell - returns true if game should continue
+  bool reveal(int row, int col) {
+    if (isGameOver || isWon) return false;
+    if (cellStates[row][col] != MinesweeperCellState.hidden) return true;
+
+    // First tap - generate mines avoiding this cell
+    if (isFirstTap) {
+      _generateMines(row, col);
+      isFirstTap = false;
+    }
+
+    // Hit a mine - game over
+    if (mines[row][col]) {
+      isGameOver = true;
+      // Reveal all mines
+      for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+          if (mines[r][c]) {
+            cellStates[r][c] = MinesweeperCellState.revealed;
+          }
+        }
+      }
+      return false;
+    }
+
+    // Flood fill reveal for empty cells
+    _floodReveal(row, col);
+
+    // Check win condition
+    _checkWin();
+
+    return true;
+  }
+
+  void _floodReveal(int row, int col) {
+    if (row < 0 || row >= rows || col < 0 || col >= cols) return;
+    if (cellStates[row][col] != MinesweeperCellState.hidden) return;
+    if (mines[row][col]) return;
+
+    cellStates[row][col] = MinesweeperCellState.revealed;
+    revealedCount++;
+
+    // If empty cell (no adjacent mines), reveal neighbors
+    if (adjacentCounts[row][col] == 0) {
+      for (int dr = -1; dr <= 1; dr++) {
+        for (int dc = -1; dc <= 1; dc++) {
+          if (dr == 0 && dc == 0) continue;
+          _floodReveal(row + dr, col + dc);
+        }
+      }
+    }
+  }
+
+  /// Toggle flag on a cell
+  void toggleFlag(int row, int col) {
+    if (isGameOver || isWon) return;
+    if (cellStates[row][col] == MinesweeperCellState.revealed) return;
+
+    if (cellStates[row][col] == MinesweeperCellState.flagged) {
+      cellStates[row][col] = MinesweeperCellState.hidden;
+      flagCount--;
+    } else {
+      cellStates[row][col] = MinesweeperCellState.flagged;
+      flagCount++;
+    }
+  }
+
+  void _checkWin() {
+    // Win when all non-mine cells are revealed
+    final safeCells = rows * cols - mineCount;
+    if (revealedCount >= safeCells) {
+      isWon = true;
+      // Auto-flag remaining mines
+      for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+          if (mines[r][c] && cellStates[r][c] == MinesweeperCellState.hidden) {
+            cellStates[r][c] = MinesweeperCellState.flagged;
+            flagCount++;
+          }
+        }
+      }
+    }
+  }
+
+  /// Reset the puzzle
+  void reset() {
+    cellStates = List.generate(rows, (_) =>
+      List.generate(cols, (_) => MinesweeperCellState.hidden));
+    mines = List.generate(rows, (_) => List.generate(cols, (_) => false));
+    adjacentCounts = List.generate(rows, (_) => List.generate(cols, (_) => 0));
+    isGameOver = false;
+    isWon = false;
+    isFirstTap = true;
+    revealedCount = 0;
+    flagCount = 0;
+  }
+
+  /// Remaining unflagged mines
+  int get remainingMines => mineCount - flagCount;
+
+  // ======================================
+  // SAMPLE LEVELS
+  // ======================================
+
+  /// Easy - 9x9, 10 mines
+  static MinesweeperPuzzle sampleLevel1() {
+    return MinesweeperPuzzle(rows: 9, cols: 9, mineCount: 10);
+  }
+
+  /// Medium - 12x12, 25 mines
+  static MinesweeperPuzzle sampleLevel2() {
+    return MinesweeperPuzzle(rows: 12, cols: 12, mineCount: 25);
+  }
+
+  /// Hard - 16x16, 40 mines
+  static MinesweeperPuzzle sampleLevel3() {
+    return MinesweeperPuzzle(rows: 16, cols: 16, mineCount: 40);
+  }
+}
+
+/// Simple random number generator
+class _SimpleRandom {
+  int _seed;
+
+  _SimpleRandom(this._seed);
+
+  int nextInt(int max) {
+    _seed = (_seed * 1103515245 + 12345) & 0x7FFFFFFF;
+    return _seed % max;
   }
 }
