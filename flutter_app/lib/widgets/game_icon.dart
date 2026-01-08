@@ -88,6 +88,8 @@ class GameIcon extends StatelessWidget {
         return (const Color(0xFFEC4899), const Color(0xFFDB2777)); // Pink
       case GameType.game2048:
         return (const Color(0xFFEAB308), const Color(0xFFCA8A04)); // Yellow/Amber
+      case GameType.simon:
+        return (const Color(0xFF7C3AED), const Color(0xFF6D28D9)); // Purple
     }
   }
 }
@@ -163,6 +165,28 @@ class _GameIconPainter extends CustomPainter {
       case GameType.game2048:
         _draw2048Icon(canvas, canvasSize, paint, fillPaint);
         break;
+      case GameType.simon:
+        _drawSimonIcon(canvas, canvasSize, paint, fillPaint);
+        break;
+    }
+  }
+
+  void _drawSimonIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width * 0.4;
+    // Draw 4 quadrant arcs
+    final colors = [Colors.red, Colors.blue, Colors.green, Colors.yellow];
+    for (int i = 0; i < 4; i++) {
+      final arcPaint = Paint()
+        ..color = colors[i]
+        ..style = PaintingStyle.fill;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        i * 1.57,
+        1.47,
+        true,
+        arcPaint,
+      );
     }
   }
 

@@ -10,6 +10,7 @@ import '../widgets/mobius_grid.dart';
 import '../widgets/sliding_puzzle_grid.dart';
 import '../widgets/memory_match_grid.dart';
 import '../widgets/game_2048_grid.dart';
+import '../widgets/simon_grid.dart';
 
 /// Hidden debug menu for developers and testers
 class DebugMenuScreen extends StatefulWidget {
@@ -550,6 +551,33 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             );
           },
         ),
+        ListTile(
+          leading: const Icon(Icons.music_note, color: Colors.deepPurple),
+          title: const Text('Simon'),
+          subtitle: const Text('Pattern memory game prototype'),
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange),
+            ),
+            child: const Text(
+              'WIP',
+              style: TextStyle(
+                color: Colors.orange,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SimonTestScreen()),
+            );
+          },
+        ),
         const Padding(
           padding: EdgeInsets.all(16),
           child: Text(
@@ -835,6 +863,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         return Icons.flip;
       case GameType.game2048:
         return Icons.grid_4x4;
+      case GameType.simon:
+        return Icons.music_note;
     }
   }
 

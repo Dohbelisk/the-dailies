@@ -1,4 +1,4 @@
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048 }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -37,6 +37,8 @@ extension GameTypeExtension on GameType {
         return 'Memory Match';
       case GameType.game2048:
         return '2048';
+      case GameType.simon:
+        return 'Simon';
     }
   }
 
@@ -76,6 +78,8 @@ extension GameTypeExtension on GameType {
         return '🃏';
       case GameType.game2048:
         return '🔢';
+      case GameType.simon:
+        return '🎵';
     }
   }
 
@@ -2967,5 +2971,116 @@ class Game2048Puzzle {
       bestTile: 64,
     );
     return puzzle;
+  }
+}
+
+// ======================================
+// SIMON PUZZLE MODEL
+// ======================================
+
+/// Color indices for Simon game
+enum SimonColor { red, blue, green, yellow }
+
+/// Classic Simon memory game
+class SimonPuzzle {
+  List<SimonColor> sequence;
+  int currentIndex; // Current position in player's input
+  int level; // Current level (sequence length)
+  int highScore;
+  bool isPlayerTurn;
+  bool isGameOver;
+  int targetLevel; // Win condition
+
+  SimonPuzzle({
+    List<SimonColor>? sequence,
+    this.currentIndex = 0,
+    this.level = 0,
+    this.highScore = 0,
+    this.isPlayerTurn = false,
+    this.isGameOver = false,
+    this.targetLevel = 10,
+  }) : sequence = sequence ?? [];
+
+  /// Start a new game
+  void startNewGame() {
+    sequence.clear();
+    currentIndex = 0;
+    level = 0;
+    isPlayerTurn = false;
+    isGameOver = false;
+    addToSequence();
+  }
+
+  /// Add a random color to the sequence
+  void addToSequence() {
+    final colors = SimonColor.values;
+    sequence.add(colors[DateTime.now().millisecondsSinceEpoch % colors.length]);
+    level = sequence.length;
+    currentIndex = 0;
+    isPlayerTurn = false; // Sequence will be shown first
+  }
+
+  /// Begin player's turn (called after sequence is shown)
+  void beginPlayerTurn() {
+    isPlayerTurn = true;
+    currentIndex = 0;
+  }
+
+  /// Process player input
+  /// Returns: 'correct' if matches sequence, 'wrong' if doesn't match,
+  /// 'complete' if finished current sequence, 'win' if reached target
+  String processInput(SimonColor color) {
+    if (!isPlayerTurn || isGameOver) return 'invalid';
+
+    if (color != sequence[currentIndex]) {
+      isGameOver = true;
+      if (level > highScore) highScore = level;
+      return 'wrong';
+    }
+
+    currentIndex++;
+
+    if (currentIndex >= sequence.length) {
+      // Completed current sequence
+      if (level >= targetLevel) {
+        if (level > highScore) highScore = level;
+        return 'win';
+      }
+      isPlayerTurn = false;
+      return 'complete';
+    }
+
+    return 'correct';
+  }
+
+  /// Check if the game is complete (won)
+  bool get isComplete => level >= targetLevel && !isGameOver;
+
+  /// Reset to initial state
+  void reset() {
+    sequence.clear();
+    currentIndex = 0;
+    level = 0;
+    isPlayerTurn = false;
+    isGameOver = false;
+  }
+
+  // ======================================
+  // SAMPLE LEVELS
+  // ======================================
+
+  /// Easy - reach level 5
+  static SimonPuzzle sampleLevel1() {
+    return SimonPuzzle(targetLevel: 5);
+  }
+
+  /// Medium - reach level 10
+  static SimonPuzzle sampleLevel2() {
+    return SimonPuzzle(targetLevel: 10);
+  }
+
+  /// Hard - reach level 15
+  static SimonPuzzle sampleLevel3() {
+    return SimonPuzzle(targetLevel: 15);
   }
 }

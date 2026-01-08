@@ -298,6 +298,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case GameType.game2048:
         // 2048 is prototype only - not yet integrated
         break;
+      case GameType.simon:
+        // Simon is prototype only - not yet integrated
+        break;
     }
 
     if (isComplete) {
@@ -680,6 +683,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             'Reach 2048 to win!',
           ],
           tips: 'Keep your highest tile in a corner. Build chains of tiles to set up merges.',
+        );
+      case GameType.simon:
+        return _GameInstructions(
+          objective: 'Repeat the sequence of colors shown to you.',
+          steps: [
+            'Watch the sequence of colored buttons light up',
+            'Repeat the sequence by tapping the buttons in order',
+            'Each round adds one more color to the sequence',
+            'Complete the target number of rounds to win!',
+          ],
+          tips: 'Say the colors out loud as you watch. Focus on patterns.',
         );
     }
   }
@@ -1084,6 +1098,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return const Center(child: Text('Memory Match - Available in Debug Menu'));
       case GameType.game2048:
         return const Center(child: Text('2048 - Available in Debug Menu'));
+      case GameType.simon:
+        return const Center(child: Text('Simon - Available in Debug Menu'));
     }
   }
 

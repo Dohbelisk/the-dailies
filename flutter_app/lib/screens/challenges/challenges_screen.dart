@@ -672,6 +672,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.grid_4x4_rounded;
         label = '2048';
         break;
+      case GameType.simon:
+        icon = Icons.music_note_rounded;
+        label = 'Simon';
+        break;
     }
 
     if (small) {
