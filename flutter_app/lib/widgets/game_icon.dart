@@ -90,6 +90,8 @@ class GameIcon extends StatelessWidget {
         return (const Color(0xFFEAB308), const Color(0xFFCA8A04)); // Yellow/Amber
       case GameType.simon:
         return (const Color(0xFF7C3AED), const Color(0xFF6D28D9)); // Purple
+      case GameType.towerOfHanoi:
+        return (const Color(0xFF92400E), const Color(0xFFB45309)); // Brown/Amber
     }
   }
 }
@@ -168,6 +170,36 @@ class _GameIconPainter extends CustomPainter {
       case GameType.simon:
         _drawSimonIcon(canvas, canvasSize, paint, fillPaint);
         break;
+      case GameType.towerOfHanoi:
+        _drawTowerOfHanoiIcon(canvas, canvasSize, paint, fillPaint);
+        break;
+    }
+  }
+
+  void _drawTowerOfHanoiIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {
+    final baseY = size.height * 0.9;
+    // Draw base
+    canvas.drawRect(
+      Rect.fromLTWH(size.width * 0.1, baseY - 4, size.width * 0.8, 4),
+      fill,
+    );
+    // Draw peg
+    canvas.drawRect(
+      Rect.fromLTWH(size.width * 0.47, size.height * 0.3, size.width * 0.06, size.height * 0.6),
+      fill,
+    );
+    // Draw disks
+    final diskWidths = [0.7, 0.5, 0.3];
+    for (int i = 0; i < 3; i++) {
+      final w = size.width * diskWidths[i];
+      final y = baseY - 8 - i * 10;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset(size.width / 2, y), width: w, height: 8),
+          const Radius.circular(2),
+        ),
+        fill,
+      );
     }
   }
 

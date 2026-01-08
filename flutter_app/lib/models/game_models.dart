@@ -1,4 +1,4 @@
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon, towerOfHanoi }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -39,6 +39,8 @@ extension GameTypeExtension on GameType {
         return '2048';
       case GameType.simon:
         return 'Simon';
+      case GameType.towerOfHanoi:
+        return 'Tower of Hanoi';
     }
   }
 
@@ -80,6 +82,8 @@ extension GameTypeExtension on GameType {
         return '🔢';
       case GameType.simon:
         return '🎵';
+      case GameType.towerOfHanoi:
+        return '🗼';
     }
   }
 
@@ -3082,5 +3086,110 @@ class SimonPuzzle {
   /// Hard - reach level 15
   static SimonPuzzle sampleLevel3() {
     return SimonPuzzle(targetLevel: 15);
+  }
+}
+
+// ======================================
+// TOWER OF HANOI PUZZLE MODEL
+// ======================================
+
+/// Classic Tower of Hanoi puzzle
+class TowerOfHanoiPuzzle {
+  final int diskCount;
+  List<List<int>> pegs; // 3 pegs, each with list of disk sizes (larger = bigger)
+  int moveCount;
+  int? selectedPeg; // Currently selected source peg
+  int optimalMoves; // Minimum moves required (2^n - 1)
+
+  TowerOfHanoiPuzzle({
+    required this.diskCount,
+    List<List<int>>? pegs,
+    this.moveCount = 0,
+    this.selectedPeg,
+  })  : pegs = pegs ?? [List.generate(diskCount, (i) => diskCount - i), [], []],
+        optimalMoves = (1 << diskCount) - 1; // 2^n - 1
+
+  /// Check if a move from source to target is valid
+  bool canMove(int fromPeg, int toPeg) {
+    if (fromPeg < 0 || fromPeg >= 3 || toPeg < 0 || toPeg >= 3) return false;
+    if (fromPeg == toPeg) return false;
+    if (pegs[fromPeg].isEmpty) return false;
+
+    final diskToMove = pegs[fromPeg].last;
+    if (pegs[toPeg].isEmpty) return true;
+    return diskToMove < pegs[toPeg].last;
+  }
+
+  /// Move top disk from source to target
+  bool moveDisk(int fromPeg, int toPeg) {
+    if (!canMove(fromPeg, toPeg)) return false;
+
+    final disk = pegs[fromPeg].removeLast();
+    pegs[toPeg].add(disk);
+    moveCount++;
+    return true;
+  }
+
+  /// Select a peg (for UI)
+  void selectPeg(int pegIndex) {
+    if (selectedPeg == null) {
+      // First selection - select if peg has disks
+      if (pegs[pegIndex].isNotEmpty) {
+        selectedPeg = pegIndex;
+      }
+    } else {
+      // Second selection - try to move
+      if (pegIndex == selectedPeg) {
+        // Deselect
+        selectedPeg = null;
+      } else if (canMove(selectedPeg!, pegIndex)) {
+        moveDisk(selectedPeg!, pegIndex);
+        selectedPeg = null;
+      } else {
+        // Invalid move - try selecting new peg
+        if (pegs[pegIndex].isNotEmpty) {
+          selectedPeg = pegIndex;
+        }
+      }
+    }
+  }
+
+  /// Check if puzzle is solved (all disks on last peg)
+  bool get isComplete {
+    return pegs[0].isEmpty && pegs[1].isEmpty && pegs[2].length == diskCount;
+  }
+
+  /// Reset puzzle
+  void reset() {
+    pegs[0] = List.generate(diskCount, (i) => diskCount - i);
+    pegs[1] = [];
+    pegs[2] = [];
+    moveCount = 0;
+    selectedPeg = null;
+  }
+
+  /// Get efficiency rating (optimal / actual moves)
+  double get efficiency {
+    if (moveCount == 0) return 1.0;
+    return optimalMoves / moveCount;
+  }
+
+  // ======================================
+  // SAMPLE LEVELS
+  // ======================================
+
+  /// Easy - 3 disks
+  static TowerOfHanoiPuzzle sampleLevel1() {
+    return TowerOfHanoiPuzzle(diskCount: 3);
+  }
+
+  /// Medium - 4 disks
+  static TowerOfHanoiPuzzle sampleLevel2() {
+    return TowerOfHanoiPuzzle(diskCount: 4);
+  }
+
+  /// Hard - 5 disks
+  static TowerOfHanoiPuzzle sampleLevel3() {
+    return TowerOfHanoiPuzzle(diskCount: 5);
   }
 }

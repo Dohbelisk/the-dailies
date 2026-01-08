@@ -301,6 +301,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case GameType.simon:
         // Simon is prototype only - not yet integrated
         break;
+      case GameType.towerOfHanoi:
+        // Tower of Hanoi is prototype only - not yet integrated
+        break;
     }
 
     if (isComplete) {
@@ -694,6 +697,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             'Complete the target number of rounds to win!',
           ],
           tips: 'Say the colors out loud as you watch. Focus on patterns.',
+        );
+      case GameType.towerOfHanoi:
+        return _GameInstructions(
+          objective: 'Move all disks from the first peg to the last peg.',
+          steps: [
+            'Tap a peg to select the top disk',
+            'Tap another peg to move the disk there',
+            'You can only place smaller disks on larger ones',
+            'Move all disks to the rightmost peg to win',
+          ],
+          tips: 'The minimum moves for N disks is 2^N - 1. Try to achieve optimal!',
         );
     }
   }
@@ -1100,6 +1114,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return const Center(child: Text('2048 - Available in Debug Menu'));
       case GameType.simon:
         return const Center(child: Text('Simon - Available in Debug Menu'));
+      case GameType.towerOfHanoi:
+        return const Center(child: Text('Tower of Hanoi - Available in Debug Menu'));
     }
   }
 

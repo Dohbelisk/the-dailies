@@ -676,6 +676,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.music_note_rounded;
         label = 'Simon';
         break;
+      case GameType.towerOfHanoi:
+        icon = Icons.stacked_bar_chart_rounded;
+        label = 'Hanoi';
+        break;
     }
 
     if (small) {

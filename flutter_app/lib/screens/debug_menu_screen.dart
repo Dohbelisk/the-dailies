@@ -11,6 +11,7 @@ import '../widgets/sliding_puzzle_grid.dart';
 import '../widgets/memory_match_grid.dart';
 import '../widgets/game_2048_grid.dart';
 import '../widgets/simon_grid.dart';
+import '../widgets/tower_of_hanoi_grid.dart';
 
 /// Hidden debug menu for developers and testers
 class DebugMenuScreen extends StatefulWidget {
@@ -578,6 +579,33 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             );
           },
         ),
+        ListTile(
+          leading: const Icon(Icons.stacked_bar_chart, color: Colors.brown),
+          title: const Text('Tower of Hanoi'),
+          subtitle: const Text('Classic disk-moving puzzle prototype'),
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange),
+            ),
+            child: const Text(
+              'WIP',
+              style: TextStyle(
+                color: Colors.orange,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TowerOfHanoiTestScreen()),
+            );
+          },
+        ),
         const Padding(
           padding: EdgeInsets.all(16),
           child: Text(
@@ -865,6 +893,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         return Icons.grid_4x4;
       case GameType.simon:
         return Icons.music_note;
+      case GameType.towerOfHanoi:
+        return Icons.stacked_bar_chart;
     }
   }
 

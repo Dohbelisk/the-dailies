@@ -229,6 +229,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.grid_4x4_rounded;
       case GameType.simon:
         return Icons.music_note_rounded;
+      case GameType.towerOfHanoi:
+        return Icons.stacked_bar_chart_rounded;
     }
   }
 
@@ -270,6 +272,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return '2048';
       case GameType.simon:
         return 'Simon';
+      case GameType.towerOfHanoi:
+        return 'Tower of Hanoi';
     }
   }
 
