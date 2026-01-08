@@ -36,6 +36,10 @@ class _NonogramGridState extends State<NonogramGrid> {
   // Track cells we've already changed in this drag (to avoid re-toggling)
   final Set<String> _changedCells = {};
 
+  // Local visual state for immediate feedback during drag
+  // Maps "row,col" to the visual state to display
+  final Map<String, int> _pendingVisualState = {};
+
   // Grid layout info for drag detection
   double _cellSize = 0;
   double _rowClueWidth = 0;
@@ -55,6 +59,7 @@ class _NonogramGridState extends State<NonogramGrid> {
   void _handleDragStart(DragStartDetails details) {
     _draggedCells.clear();
     _changedCells.clear();
+    _pendingVisualState.clear();
     _dragAction = null;
     _dragIsHorizontal = null;
     _dragStartRow = null;
@@ -69,6 +74,10 @@ class _NonogramGridState extends State<NonogramGrid> {
   }
 
   void _handleDragEnd(DragEndDetails details) {
+    // Clear pending visual state
+    setState(() {
+      _pendingVisualState.clear();
+    });
     // Notify that drag ended so listeners can update
     widget.onDragEnd();
   }
@@ -210,7 +219,12 @@ class _NonogramGridState extends State<NonogramGrid> {
     // Apply the change if needed
     if (newState != null && !_changedCells.contains(cellKey)) {
       _changedCells.add(cellKey);
+      // Update provider state (silent - no rebuild)
       widget.onSetCellState(row, col, newState);
+      // Update local visual state for immediate feedback
+      setState(() {
+        _pendingVisualState[cellKey] = newState!;
+      });
     }
   }
 
@@ -490,7 +504,9 @@ class _NonogramGridState extends State<NonogramGrid> {
 
   Widget _buildCell(BuildContext context, int row, int col, double size) {
     final theme = Theme.of(context);
-    final cellValue = widget.puzzle.userGrid[row][col];
+    final cellKey = '$row,$col';
+    // Use pending visual state during drag for immediate feedback
+    final cellValue = _pendingVisualState[cellKey] ?? widget.puzzle.userGrid[row][col];
 
     Color bgColor;
     Widget? child;

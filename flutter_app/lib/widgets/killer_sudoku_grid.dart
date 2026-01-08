@@ -159,13 +159,13 @@ class KillerSudokuGrid extends StatelessWidget {
     final cageInfo = puzzle.getCageForCell(row, col);
     final notes = puzzle.notes[row][col];
 
-    // Get cage background color
+    // Get cage background color (with transparency to show gridlines through)
     Color? cageColor;
     if (cageInfo != null && cageColorIndices.isNotEmpty) {
       final colorIdx = cageColorIndices[cageInfo[0]];
       cageColor = isDark
           ? _cageColorsDark[colorIdx].withValues(alpha: 0.4)
-          : _cageColors[colorIdx];
+          : _cageColors[colorIdx].withValues(alpha: 0.6);
     }
 
     Color? backgroundColor;
