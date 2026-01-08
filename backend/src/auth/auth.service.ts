@@ -33,16 +33,24 @@ export class AuthService {
         : path.resolve(process.cwd(), serviceAccountPath);
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const serviceAccount = require(resolvedPath);
-      this.logger.log(`Initializing Firebase from file: ${serviceAccount.project_id}`);
+      this.logger.log(
+        `Initializing Firebase from file: ${serviceAccount.project_id}`,
+      );
       credential = admin.credential.cert(serviceAccount);
     } else if (serviceAccountBase64) {
-      const decoded = Buffer.from(serviceAccountBase64, "base64").toString("utf-8");
+      const decoded = Buffer.from(serviceAccountBase64, "base64").toString(
+        "utf-8",
+      );
       const serviceAccount = JSON.parse(decoded);
-      this.logger.log(`Initializing Firebase from base64: ${serviceAccount.project_id}`);
+      this.logger.log(
+        `Initializing Firebase from base64: ${serviceAccount.project_id}`,
+      );
       credential = admin.credential.cert(serviceAccount);
     } else {
       const serviceAccount = JSON.parse(serviceAccountJson);
-      this.logger.log(`Initializing Firebase from JSON: ${serviceAccount.project_id}`);
+      this.logger.log(
+        `Initializing Firebase from JSON: ${serviceAccount.project_id}`,
+      );
       credential = admin.credential.cert(serviceAccount);
     }
 

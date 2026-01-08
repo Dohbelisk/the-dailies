@@ -63,7 +63,9 @@ export class NotificationsService implements OnModuleInit {
           credential = admin.credential.cert(serviceAccount);
         } else if (serviceAccountBase64) {
           // Decode from base64
-          const decoded = Buffer.from(serviceAccountBase64, "base64").toString("utf-8");
+          const decoded = Buffer.from(serviceAccountBase64, "base64").toString(
+            "utf-8",
+          );
           const serviceAccount = JSON.parse(decoded);
           this.logger.log(
             `Initializing Firebase from base64 with project: ${serviceAccount.project_id}`,

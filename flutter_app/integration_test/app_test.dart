@@ -343,7 +343,6 @@ void main() {
                     onTokenTap: provider.addToNumberTargetExpression,
                     onBackspace: provider.backspaceNumberTargetExpression,
                     onClear: provider.clearNumberTargetExpression,
-                    onSubmit: () => provider.evaluateNumberTargetExpression(),
                   ),
                 ),
               ),

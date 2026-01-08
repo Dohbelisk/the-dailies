@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/game_models.dart';
 
 class NonogramGrid extends StatefulWidget {
@@ -225,6 +226,8 @@ class _NonogramGridState extends State<NonogramGrid> {
       setState(() {
         _pendingVisualState[cellKey] = newState!;
       });
+      // Light haptic feedback when cell changes
+      HapticFeedback.selectionClick();
     }
   }
 

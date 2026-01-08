@@ -14,12 +14,16 @@ class ApiService {
 
   ApiService({this.authService});
 
-  // Get headers with auth token if available
+  // Get headers with auth token and device ID
   Map<String, String> _getHeaders() {
     final headers = {'Content-Type': 'application/json'};
 
     if (authService != null && authService!.token != null) {
       headers['Authorization'] = 'Bearer ${authService!.token}';
+    }
+
+    if (authService != null && authService!.deviceId != null) {
+      headers['x-device-id'] = authService!.deviceId!;
     }
 
     return headers;
@@ -31,7 +35,7 @@ class ApiService {
         Uri.parse('$baseUrl/puzzles/today'),
         headers: _getHeaders(),
       );
-      
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => DailyPuzzle.fromJson(json)).toList();
@@ -134,10 +138,10 @@ class ApiService {
   Future<UserStats> getUserStats() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/stats'),
+        Uri.parse('$baseUrl/scores/stats'),
         headers: _getHeaders(),
       );
-      
+
       if (response.statusCode == 200) {
         return UserStats.fromJson(json.decode(response.body));
       }
