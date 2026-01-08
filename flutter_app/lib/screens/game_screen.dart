@@ -1920,6 +1920,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               runningTotal: gameProvider.numberTargetRunningTotal,
               onTokenTap: (token, {int? numberIndex}) {
                 gameProvider.addToNumberTargetExpression(token, numberIndex: numberIndex);
+                // Clear any result message when user starts a new calculation
+                if (_numberTargetMessage != null) {
+                  setState(() {
+                    _numberTargetMessage = null;
+                    _numberTargetSuccess = null;
+                  });
+                }
                 _audioService.playTap();
               },
               onClear: () {
