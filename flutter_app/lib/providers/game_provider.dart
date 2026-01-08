@@ -1549,26 +1549,28 @@ class GameProvider extends ChangeNotifier {
     return expr.substring(i);
   }
 
-  void addToNumberTargetExpression(String token, {int? numberIndex}) {
+  /// Adds a token to the expression and auto-completes if the result matches an unsolved target.
+  /// Returns a NumberTargetResult if auto-completion occurred, null otherwise.
+  NumberTargetResult? addToNumberTargetExpression(String token, {int? numberIndex}) {
     // Validate the token can be added
     final lastToken = _getLastToken();
 
     if (_isOperator(token)) {
       // Can't start with an operator (except could allow '-' for negative, but let's keep it simple)
-      if (_currentExpression.isEmpty) return;
+      if (_currentExpression.isEmpty) return null;
       // Can't have operator after operator
-      if (lastToken != null && _isOperator(lastToken)) return;
+      if (lastToken != null && _isOperator(lastToken)) return null;
       // Can't have operator after opening parenthesis
-      if (lastToken == '(') return;
+      if (lastToken == '(') return null;
     }
 
     // If it's a number, check if it's already used
     if (numberIndex != null) {
-      if (_usedNumberIndices.contains(numberIndex)) return;
+      if (_usedNumberIndices.contains(numberIndex)) return null;
       // Can't add number right after another number (need operator between)
-      if (lastToken != null && RegExp(r'^\d+$').hasMatch(lastToken)) return;
+      if (lastToken != null && RegExp(r'^\d+$').hasMatch(lastToken)) return null;
       // Can't add number right after closing parenthesis
-      if (lastToken == ')') return;
+      if (lastToken == ')') return null;
 
       _usedNumberIndices.add(numberIndex);
     }
@@ -1577,22 +1579,76 @@ class GameProvider extends ChangeNotifier {
     if (token == '(') {
       // Can't add after a number or closing paren without operator
       if (lastToken != null &&
-          (RegExp(r'^\d+$').hasMatch(lastToken) || lastToken == ')')) return;
+          (RegExp(r'^\d+$').hasMatch(lastToken) || lastToken == ')')) return null;
     }
 
     // Closing parenthesis rules
     if (token == ')') {
       // Can't close after operator or opening paren
       if (lastToken != null && (_isOperator(lastToken) || lastToken == '('))
-        return;
+        return null;
       // Must have matching open paren
       final openCount = '('.allMatches(_currentExpression).length;
       final closeCount = ')'.allMatches(_currentExpression).length;
-      if (closeCount >= openCount) return;
+      if (closeCount >= openCount) return null;
     }
 
     _currentExpression += token;
+
+    // Check for auto-completion: if running total matches an unsolved target
+    final autoCompleteResult = _checkAutoComplete();
+
     notifyListeners();
+    return autoCompleteResult;
+  }
+
+  /// Check if the current expression's result matches any unsolved target.
+  /// If so, mark it complete and return the result.
+  NumberTargetResult? _checkAutoComplete() {
+    if (_numberTargetPuzzle == null || _currentExpression.isEmpty) return null;
+
+    // Get the running total (returns null if expression is incomplete)
+    final runningTotal = numberTargetRunningTotal;
+    if (runningTotal == null) return null;
+
+    // Check against all targets if available
+    if (_numberTargetPuzzle!.targets.isNotEmpty) {
+      for (final target in _numberTargetPuzzle!.targets) {
+        if (!target.completed && runningTotal == target.target) {
+          target.completed = true;
+          _numberTargetPuzzle!.userExpression = _currentExpression;
+
+          // Check if all targets are complete
+          if (_numberTargetPuzzle!.allTargetsComplete) {
+            _isPlaying = false;
+          }
+
+          // Clear expression for next target
+          _currentExpression = '';
+          _usedNumberIndices.clear();
+
+          return NumberTargetResult(
+            success: true,
+            message: '${target.difficulty.toUpperCase()} target complete!',
+            value: runningTotal,
+          );
+        }
+      }
+    } else {
+      // Fallback to single target logic
+      final target = _numberTargetPuzzle!.target;
+      if (runningTotal == target) {
+        _numberTargetPuzzle!.userExpression = _currentExpression;
+        _isPlaying = false;
+        return NumberTargetResult(
+          success: true,
+          message: 'Correct!',
+          value: runningTotal,
+        );
+      }
+    }
+
+    return null;
   }
 
   void clearNumberTargetExpression() {

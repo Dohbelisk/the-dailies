@@ -1919,15 +1919,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               usedNumberIndices: gameProvider.usedNumberIndices,
               runningTotal: gameProvider.numberTargetRunningTotal,
               onTokenTap: (token, {int? numberIndex}) {
-                gameProvider.addToNumberTargetExpression(token, numberIndex: numberIndex);
-                // Clear any result message when user starts a new calculation
-                if (_numberTargetMessage != null) {
+                final result = gameProvider.addToNumberTargetExpression(token, numberIndex: numberIndex);
+
+                // Handle auto-completion
+                if (result != null && result.success) {
                   setState(() {
-                    _numberTargetMessage = null;
-                    _numberTargetSuccess = null;
+                    _numberTargetMessage = result.message;
+                    _numberTargetSuccess = true;
                   });
+                  _audioService.playComplete();
+                  _confettiController.play();
+                } else {
+                  // Clear any result message when user starts a new calculation
+                  if (_numberTargetMessage != null) {
+                    setState(() {
+                      _numberTargetMessage = null;
+                      _numberTargetSuccess = null;
+                    });
+                  }
+                  _audioService.playTap();
                 }
-                _audioService.playTap();
               },
               onClear: () {
                 gameProvider.clearNumberTargetExpression();
@@ -1940,19 +1951,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               onBackspace: () {
                 gameProvider.backspaceNumberTargetExpression();
                 _audioService.playTap();
-              },
-              onSubmit: () {
-                final result = gameProvider.evaluateNumberTargetExpression();
-                setState(() {
-                  _numberTargetMessage = result.message;
-                  _numberTargetSuccess = result.success;
-                });
-                if (result.success) {
-                  _audioService.playComplete();
-                  _confettiController.play();
-                } else {
-                  _audioService.playError();
-                }
               },
             ),
           ).animate().fadeIn(delay: 200.ms, duration: 500.ms),

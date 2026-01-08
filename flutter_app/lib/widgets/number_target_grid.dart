@@ -7,7 +7,6 @@ class NumberTargetGrid extends StatelessWidget {
   final Function(String token, {int? numberIndex}) onTokenTap;
   final VoidCallback onClear;
   final VoidCallback onBackspace;
-  final VoidCallback onSubmit;
   final String? resultMessage;
   final bool? lastResultSuccess;
   final Set<int> usedNumberIndices;
@@ -20,7 +19,6 @@ class NumberTargetGrid extends StatelessWidget {
     required this.onTokenTap,
     required this.onClear,
     required this.onBackspace,
-    required this.onSubmit,
     this.resultMessage,
     this.lastResultSuccess,
     this.usedNumberIndices = const {},
@@ -147,7 +145,7 @@ class NumberTargetGrid extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // Action buttons - use icons to prevent text wrapping
+        // Action buttons
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -155,29 +153,20 @@ class NumberTargetGrid extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onClear,
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
               icon: const Icon(Icons.clear, size: 18),
               label: const Text('Clear'),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             // Backspace button
-            OutlinedButton(
+            OutlinedButton.icon(
               onPressed: onBackspace,
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
-              child: const Icon(Icons.backspace_outlined, size: 20),
-            ),
-            const SizedBox(width: 8),
-            // Submit button
-            FilledButton.icon(
-              onPressed: currentExpression.isNotEmpty ? onSubmit : null,
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              ),
-              icon: const Icon(Icons.calculate, size: 18),
-              label: const Text('Check'),
+              icon: const Icon(Icons.backspace_outlined, size: 18),
+              label: const Text('Undo'),
             ),
           ],
         ),
