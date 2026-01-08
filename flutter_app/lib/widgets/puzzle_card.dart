@@ -350,6 +350,8 @@ class PuzzleCard extends StatelessWidget {
         return (const Color(0xFF92400E), const Color(0xFFB45309)); // Brown/Amber
       case GameType.minesweeper:
         return (const Color(0xFF475569), const Color(0xFF64748B)); // Slate/Gray
+      case GameType.sokoban:
+        return (const Color(0xFF78350F), const Color(0xFF92400E)); // Amber/Brown
     }
   }
 }

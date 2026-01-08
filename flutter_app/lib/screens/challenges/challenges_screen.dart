@@ -684,6 +684,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.grid_goldenratio_rounded;
         label = 'Mines';
         break;
+      case GameType.sokoban:
+        icon = Icons.inventory_2_rounded;
+        label = 'Sokoban';
+        break;
     }
 
     if (small) {

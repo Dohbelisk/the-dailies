@@ -307,6 +307,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case GameType.minesweeper:
         // Minesweeper is prototype only - not yet integrated
         break;
+      case GameType.sokoban:
+        // Sokoban is prototype only - not yet integrated
+        break;
     }
 
     if (isComplete) {
@@ -724,6 +727,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ],
           tips: 'Use logic! If a "1" cell has only one hidden neighbor, that neighbor must be a mine.',
         );
+      case GameType.sokoban:
+        return _GameInstructions(
+          objective: 'Push all boxes onto the target spots.',
+          steps: [
+            'Swipe or use arrow buttons to move your character',
+            'Push boxes by walking into them',
+            'You can only push, not pull',
+            'Boxes on targets turn green',
+            'Get all boxes on targets to win!',
+          ],
+          tips: 'Plan ahead! Avoid pushing boxes into corners where you can\'t retrieve them.',
+        );
     }
   }
 
@@ -1133,6 +1148,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return const Center(child: Text('Tower of Hanoi - Available in Debug Menu'));
       case GameType.minesweeper:
         return const Center(child: Text('Minesweeper - Available in Debug Menu'));
+      case GameType.sokoban:
+        return const Center(child: Text('Sokoban - Available in Debug Menu'));
     }
   }
 

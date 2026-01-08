@@ -621,6 +621,9 @@ class GameProvider extends ChangeNotifier {
       case GameType.minesweeper:
         // Minesweeper is prototype only - not yet integrated
         break;
+      case GameType.sokoban:
+        // Sokoban is prototype only - not yet integrated
+        break;
     }
 
     // If showing solution, apply solved state to each puzzle type

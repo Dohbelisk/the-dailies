@@ -94,6 +94,8 @@ class GameIcon extends StatelessWidget {
         return (const Color(0xFF92400E), const Color(0xFFB45309)); // Brown/Amber
       case GameType.minesweeper:
         return (const Color(0xFF475569), const Color(0xFF64748B)); // Slate/Gray
+      case GameType.sokoban:
+        return (const Color(0xFF78350F), const Color(0xFF92400E)); // Amber/Brown
     }
   }
 }
@@ -178,7 +180,45 @@ class _GameIconPainter extends CustomPainter {
       case GameType.minesweeper:
         _drawMinesweeperIcon(canvas, canvasSize, paint, fillPaint);
         break;
+      case GameType.sokoban:
+        _drawSokobanIcon(canvas, canvasSize, paint, fillPaint);
+        break;
     }
+  }
+
+  void _drawSokobanIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {
+    final unit = size.width / 4;
+
+    // Draw box
+    final boxRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(unit * 0.5, unit * 0.5, unit * 1.5, unit * 1.5),
+      const Radius.circular(4),
+    );
+    canvas.drawRRect(boxRect, fill);
+    canvas.drawRRect(boxRect, stroke);
+
+    // Draw player (circle)
+    canvas.drawCircle(
+      Offset(unit * 3, unit * 2.5),
+      unit * 0.5,
+      fill,
+    );
+
+    // Draw target (X mark)
+    final targetPaint = Paint()
+      ..color = color.withValues(alpha: 0.5)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(unit * 1.5, unit * 3),
+      Offset(unit * 2.5, unit * 4),
+      targetPaint,
+    );
+    canvas.drawLine(
+      Offset(unit * 2.5, unit * 3),
+      Offset(unit * 1.5, unit * 4),
+      targetPaint,
+    );
   }
 
   void _drawMinesweeperIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {

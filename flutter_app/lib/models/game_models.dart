@@ -1,4 +1,4 @@
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon, towerOfHanoi, minesweeper }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon, towerOfHanoi, minesweeper, sokoban }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -43,6 +43,8 @@ extension GameTypeExtension on GameType {
         return 'Tower of Hanoi';
       case GameType.minesweeper:
         return 'Minesweeper';
+      case GameType.sokoban:
+        return 'Sokoban';
     }
   }
 
@@ -88,6 +90,8 @@ extension GameTypeExtension on GameType {
         return '🗼';
       case GameType.minesweeper:
         return '💣';
+      case GameType.sokoban:
+        return '📦';
     }
   }
 
@@ -3424,5 +3428,282 @@ class _SimpleRandom {
   int nextInt(int max) {
     _seed = (_seed * 1103515245 + 12345) & 0x7FFFFFFF;
     return _seed % max;
+  }
+}
+
+// ============================================================================
+// SOKOBAN PUZZLE
+// ============================================================================
+
+/// Cell types for Sokoban map
+enum SokobanCell { floor, wall, target }
+
+/// A move in Sokoban
+class SokobanMove {
+  final int playerFromRow;
+  final int playerFromCol;
+  final int playerToRow;
+  final int playerToCol;
+  final int? boxFromRow;
+  final int? boxFromCol;
+  final int? boxToRow;
+  final int? boxToCol;
+
+  SokobanMove({
+    required this.playerFromRow,
+    required this.playerFromCol,
+    required this.playerToRow,
+    required this.playerToCol,
+    this.boxFromRow,
+    this.boxFromCol,
+    this.boxToRow,
+    this.boxToCol,
+  });
+
+  bool get pushedBox => boxFromRow != null;
+}
+
+/// Sokoban puzzle - push boxes to target positions
+class SokobanPuzzle {
+  final int rows;
+  final int cols;
+  final List<List<SokobanCell>> map;
+  final List<(int, int)> targetPositions;
+
+  // Mutable state
+  int playerRow;
+  int playerCol;
+  List<(int, int)> boxPositions;
+  int moveCount;
+  int pushCount;
+  List<SokobanMove> moveHistory;
+
+  SokobanPuzzle({
+    required this.rows,
+    required this.cols,
+    required this.map,
+    required this.targetPositions,
+    required this.playerRow,
+    required this.playerCol,
+    required List<(int, int)> boxPositions,
+  })  : boxPositions = List.from(boxPositions),
+        moveCount = 0,
+        pushCount = 0,
+        moveHistory = [];
+
+  /// Check if a position is walkable (floor or target, not occupied by box)
+  bool isWalkable(int row, int col) {
+    if (row < 0 || row >= rows || col < 0 || col >= cols) return false;
+    if (map[row][col] == SokobanCell.wall) return false;
+    return !boxPositions.contains((row, col));
+  }
+
+  /// Check if a box can be pushed to a position
+  bool canPushBox(int boxRow, int boxCol, int toRow, int toCol) {
+    if (toRow < 0 || toRow >= rows || toCol < 0 || toCol >= cols) return false;
+    if (map[toRow][toCol] == SokobanCell.wall) return false;
+    return !boxPositions.contains((toRow, toCol));
+  }
+
+  /// Try to move the player in a direction
+  /// Returns true if move was successful
+  bool move(int dRow, int dCol) {
+    final newRow = playerRow + dRow;
+    final newCol = playerCol + dCol;
+
+    // Check bounds
+    if (newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols) {
+      return false;
+    }
+
+    // Check for wall
+    if (map[newRow][newCol] == SokobanCell.wall) {
+      return false;
+    }
+
+    // Check for box
+    final boxIndex = boxPositions.indexWhere((b) => b.$1 == newRow && b.$2 == newCol);
+    if (boxIndex >= 0) {
+      // Try to push the box
+      final boxNewRow = newRow + dRow;
+      final boxNewCol = newCol + dCol;
+
+      if (!canPushBox(newRow, newCol, boxNewRow, boxNewCol)) {
+        return false;
+      }
+
+      // Push the box
+      final move = SokobanMove(
+        playerFromRow: playerRow,
+        playerFromCol: playerCol,
+        playerToRow: newRow,
+        playerToCol: newCol,
+        boxFromRow: newRow,
+        boxFromCol: newCol,
+        boxToRow: boxNewRow,
+        boxToCol: boxNewCol,
+      );
+      moveHistory.add(move);
+
+      boxPositions[boxIndex] = (boxNewRow, boxNewCol);
+      playerRow = newRow;
+      playerCol = newCol;
+      moveCount++;
+      pushCount++;
+      return true;
+    }
+
+    // Simple move (no box)
+    final move = SokobanMove(
+      playerFromRow: playerRow,
+      playerFromCol: playerCol,
+      playerToRow: newRow,
+      playerToCol: newCol,
+    );
+    moveHistory.add(move);
+
+    playerRow = newRow;
+    playerCol = newCol;
+    moveCount++;
+    return true;
+  }
+
+  /// Undo the last move
+  bool undo() {
+    if (moveHistory.isEmpty) return false;
+
+    final lastMove = moveHistory.removeLast();
+
+    // Move player back
+    playerRow = lastMove.playerFromRow;
+    playerCol = lastMove.playerFromCol;
+    moveCount--;
+
+    // Move box back if it was pushed
+    if (lastMove.pushedBox) {
+      final boxIndex = boxPositions.indexWhere(
+        (b) => b.$1 == lastMove.boxToRow && b.$2 == lastMove.boxToCol
+      );
+      if (boxIndex >= 0) {
+        boxPositions[boxIndex] = (lastMove.boxFromRow!, lastMove.boxFromCol!);
+      }
+      pushCount--;
+    }
+
+    return true;
+  }
+
+  /// Check if a box is on a target
+  bool isBoxOnTarget(int row, int col) {
+    return targetPositions.contains((row, col));
+  }
+
+  /// Check if puzzle is solved (all boxes on targets)
+  bool get isComplete {
+    for (final target in targetPositions) {
+      if (!boxPositions.contains(target)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Reset to initial state
+  void reset(List<(int, int)> initialBoxPositions, int initialPlayerRow, int initialPlayerCol) {
+    boxPositions = List.from(initialBoxPositions);
+    playerRow = initialPlayerRow;
+    playerCol = initialPlayerCol;
+    moveCount = 0;
+    pushCount = 0;
+    moveHistory.clear();
+  }
+
+  // ======================================
+  // SAMPLE LEVELS
+  // ======================================
+
+  /// Easy - small map, 1 box
+  static SokobanPuzzle sampleLevel1() {
+    // Simple 5x5 level
+    // # = wall, . = floor, T = target, P = player start, B = box
+    // #####
+    // #P.B#
+    // #...#
+    // #.T.#
+    // #####
+    final map = [
+      [SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.floor, SokobanCell.target, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall],
+    ];
+    return SokobanPuzzle(
+      rows: 5,
+      cols: 5,
+      map: map,
+      targetPositions: [(3, 2)],
+      playerRow: 1,
+      playerCol: 1,
+      boxPositions: [(1, 3)],
+    );
+  }
+
+  /// Medium - 2 boxes
+  static SokobanPuzzle sampleLevel2() {
+    // 6x6 level with 2 boxes
+    // ######
+    // #P...#
+    // #.B..#
+    // #..B.#
+    // #TT..#
+    // ######
+    final map = [
+      [SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.target, SokobanCell.target, SokobanCell.floor, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall],
+    ];
+    return SokobanPuzzle(
+      rows: 6,
+      cols: 6,
+      map: map,
+      targetPositions: [(4, 1), (4, 2)],
+      playerRow: 1,
+      playerCol: 1,
+      boxPositions: [(2, 2), (3, 3)],
+    );
+  }
+
+  /// Hard - 3 boxes, more complex layout
+  static SokobanPuzzle sampleLevel3() {
+    // 7x7 level with 3 boxes
+    // #######
+    // #.....#
+    // #.P...#
+    // #.B.B.#
+    // #..B..#
+    // #TTT..#
+    // #######
+    final map = [
+      [SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.target, SokobanCell.target, SokobanCell.target, SokobanCell.floor, SokobanCell.floor, SokobanCell.wall],
+      [SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall, SokobanCell.wall],
+    ];
+    return SokobanPuzzle(
+      rows: 7,
+      cols: 7,
+      map: map,
+      targetPositions: [(5, 1), (5, 2), (5, 3)],
+      playerRow: 2,
+      playerCol: 2,
+      boxPositions: [(3, 2), (3, 4), (4, 3)],
+    );
   }
 }

@@ -233,6 +233,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.stacked_bar_chart_rounded;
       case GameType.minesweeper:
         return Icons.grid_goldenratio_rounded;
+      case GameType.sokoban:
+        return Icons.inventory_2_rounded;
     }
   }
 
@@ -278,6 +280,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Tower of Hanoi';
       case GameType.minesweeper:
         return 'Minesweeper';
+      case GameType.sokoban:
+        return 'Sokoban';
     }
   }
 

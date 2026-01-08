@@ -13,6 +13,7 @@ import '../widgets/game_2048_grid.dart';
 import '../widgets/simon_grid.dart';
 import '../widgets/tower_of_hanoi_grid.dart';
 import '../widgets/minesweeper_grid.dart';
+import '../widgets/sokoban_grid.dart';
 
 /// Hidden debug menu for developers and testers
 class DebugMenuScreen extends StatefulWidget {
@@ -619,6 +620,18 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             );
           },
         ),
+        ListTile(
+          leading: Icon(_getGameTypeIcon(GameType.sokoban)),
+          title: const Text('Sokoban'),
+          subtitle: const Text('Push boxes to targets'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SokobanTestScreen()),
+            );
+          },
+        ),
         const Padding(
           padding: EdgeInsets.all(16),
           child: Text(
@@ -910,6 +923,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         return Icons.stacked_bar_chart;
       case GameType.minesweeper:
         return Icons.grid_goldenratio;
+      case GameType.sokoban:
+        return Icons.inventory_2;
     }
   }
 
