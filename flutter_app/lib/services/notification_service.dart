@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 
 /// Background message handler - must be a top-level function.
 @pragma('vm:entry-point')
@@ -67,6 +68,9 @@ class NotificationService {
       FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
 
       _initialized = true;
+
+      // Clear badge when app opens
+      await clearBadge();
 
       if (kDebugMode) {
         print('NotificationService: Initialized');
@@ -216,5 +220,40 @@ class NotificationService {
   /// Clear the initial message after processing.
   void clearInitialMessage() {
     _initialMessage = null;
+  }
+
+  /// Clear the app badge count (iOS/Android).
+  /// Call this when the app is opened to remove the badge.
+  Future<void> clearBadge() async {
+    try {
+      final isSupported = await FlutterAppBadger.isAppBadgeSupported();
+      if (isSupported) {
+        await FlutterAppBadger.removeBadge();
+        if (kDebugMode) {
+          print('NotificationService: Badge cleared');
+        }
+      }
+    } catch (e) {
+      debugPrint('NotificationService: Error clearing badge - $e');
+    }
+  }
+
+  /// Set the app badge count (iOS/Android).
+  Future<void> setBadge(int count) async {
+    try {
+      final isSupported = await FlutterAppBadger.isAppBadgeSupported();
+      if (isSupported) {
+        if (count > 0) {
+          await FlutterAppBadger.updateBadgeCount(count);
+        } else {
+          await FlutterAppBadger.removeBadge();
+        }
+        if (kDebugMode) {
+          print('NotificationService: Badge set to $count');
+        }
+      }
+    } catch (e) {
+      debugPrint('NotificationService: Error setting badge - $e');
+    }
   }
 }
