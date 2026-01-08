@@ -286,6 +286,7 @@ class CompletionDialog extends StatelessWidget {
       case GameType.nonogram:
       case GameType.mobius:
       case GameType.slidingPuzzle:
+      case GameType.memoryMatch:
         return false; // These games don't have a mistake concept
     }
   }

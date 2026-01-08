@@ -1,4 +1,4 @@
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -33,6 +33,8 @@ extension GameTypeExtension on GameType {
         return 'Möbius';
       case GameType.slidingPuzzle:
         return 'Sliding Puzzle';
+      case GameType.memoryMatch:
+        return 'Memory Match';
     }
   }
 
@@ -68,6 +70,8 @@ extension GameTypeExtension on GameType {
         return '♾️';
       case GameType.slidingPuzzle:
         return '🧩';
+      case GameType.memoryMatch:
+        return '🃏';
     }
   }
 
@@ -2508,5 +2512,190 @@ class SlidingPuzzle {
       21, 22, 23, 24, 20
     ];
     return SlidingPuzzle(size: 5, tiles: tiles, solution: solution);
+  }
+}
+
+// ======================================
+// MEMORY MATCH PUZZLE MODEL
+// ======================================
+
+/// Classic card matching memory game
+class MemoryMatchPuzzle {
+  final int rows;
+  final int cols;
+  final List<String> cardValues; // Symbols/emojis for pairs
+  List<List<String>> board; // The shuffled board
+  List<List<bool>> revealed; // Which cards are face up
+  List<List<bool>> matched; // Which cards have been matched
+  int? firstFlipRow;
+  int? firstFlipCol;
+  int? secondFlipRow;
+  int? secondFlipCol;
+  int pairsFound;
+  int flipCount;
+  int moveCount; // A "move" is completing a pair attempt
+
+  MemoryMatchPuzzle({
+    required this.rows,
+    required this.cols,
+    required this.cardValues,
+    required this.board,
+    List<List<bool>>? revealed,
+    List<List<bool>>? matched,
+    this.firstFlipRow,
+    this.firstFlipCol,
+    this.secondFlipRow,
+    this.secondFlipCol,
+    this.pairsFound = 0,
+    this.flipCount = 0,
+    this.moveCount = 0,
+  })  : revealed = revealed ?? List.generate(rows, (_) => List.filled(cols, false)),
+        matched = matched ?? List.generate(rows, (_) => List.filled(cols, false));
+
+  /// Total number of pairs in the puzzle
+  int get totalPairs => (rows * cols) ~/ 2;
+
+  /// Check if puzzle is complete
+  bool get isComplete => pairsFound >= totalPairs;
+
+  /// Check if we're waiting for second flip
+  bool get waitingForSecondFlip => firstFlipRow != null && secondFlipRow == null;
+
+  /// Check if we're showing two unmatched cards
+  bool get showingPair => firstFlipRow != null && secondFlipRow != null;
+
+  /// Flip a card at the given position
+  /// Returns: 'first' if first card flipped, 'second' if second card flipped,
+  /// 'match' if pair matched, 'nomatch' if pair didn't match, 'invalid' if can't flip
+  String flipCard(int row, int col) {
+    // Can't flip if already revealed or matched
+    if (revealed[row][col] || matched[row][col]) return 'invalid';
+
+    // Can't flip if showing unmatched pair (need to hide them first)
+    if (showingPair) return 'invalid';
+
+    flipCount++;
+    revealed[row][col] = true;
+
+    if (firstFlipRow == null) {
+      // First card of pair
+      firstFlipRow = row;
+      firstFlipCol = col;
+      return 'first';
+    } else {
+      // Second card of pair
+      secondFlipRow = row;
+      secondFlipCol = col;
+      moveCount++;
+
+      // Check for match
+      if (board[firstFlipRow!][firstFlipCol!] == board[row][col]) {
+        matched[firstFlipRow!][firstFlipCol!] = true;
+        matched[row][col] = true;
+        pairsFound++;
+        // Reset selection
+        firstFlipRow = null;
+        firstFlipCol = null;
+        secondFlipRow = null;
+        secondFlipCol = null;
+        return 'match';
+      } else {
+        return 'nomatch';
+      }
+    }
+  }
+
+  /// Hide the unmatched pair (call after delay)
+  void hideUnmatchedPair() {
+    if (firstFlipRow != null && secondFlipRow != null) {
+      revealed[firstFlipRow!][firstFlipCol!] = false;
+      revealed[secondFlipRow!][secondFlipCol!] = false;
+      firstFlipRow = null;
+      firstFlipCol = null;
+      secondFlipRow = null;
+      secondFlipCol = null;
+    }
+  }
+
+  /// Reset the puzzle
+  void reset() {
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        revealed[r][c] = false;
+        matched[r][c] = false;
+      }
+    }
+    firstFlipRow = null;
+    firstFlipCol = null;
+    secondFlipRow = null;
+    secondFlipCol = null;
+    pairsFound = 0;
+    flipCount = 0;
+    moveCount = 0;
+  }
+
+  // ======================================
+  // SAMPLE LEVELS
+  // ======================================
+
+  static final List<String> _emojis = [
+    '🍎', '🍊', '🍋', '🍇', '🍓', '🍒', '🥝', '🍑',
+    '🌸', '🌺', '🌻', '🌹', '🌷', '💐', '🌼', '🪻',
+  ];
+
+  /// Create a shuffled board with pairs
+  static List<List<String>> _createBoard(int rows, int cols, List<String> symbols) {
+    final pairs = <String>[];
+    final pairCount = (rows * cols) ~/ 2;
+
+    for (int i = 0; i < pairCount; i++) {
+      pairs.add(symbols[i % symbols.length]);
+      pairs.add(symbols[i % symbols.length]);
+    }
+    pairs.shuffle();
+
+    final board = <List<String>>[];
+    int index = 0;
+    for (int r = 0; r < rows; r++) {
+      final row = <String>[];
+      for (int c = 0; c < cols; c++) {
+        row.add(pairs[index++]);
+      }
+      board.add(row);
+    }
+    return board;
+  }
+
+  /// 3x4 (6 pairs) - Easy
+  static MemoryMatchPuzzle sampleLevel1() {
+    final board = _createBoard(3, 4, _emojis);
+    return MemoryMatchPuzzle(
+      rows: 3,
+      cols: 4,
+      cardValues: _emojis.take(6).toList(),
+      board: board,
+    );
+  }
+
+  /// 4x4 (8 pairs) - Medium
+  static MemoryMatchPuzzle sampleLevel2() {
+    final board = _createBoard(4, 4, _emojis);
+    return MemoryMatchPuzzle(
+      rows: 4,
+      cols: 4,
+      cardValues: _emojis.take(8).toList(),
+      board: board,
+    );
+  }
+
+  /// 4x5 (10 pairs) - Hard
+  static MemoryMatchPuzzle sampleLevel3() {
+    final board = _createBoard(4, 5, _emojis);
+    return MemoryMatchPuzzle(
+      rows: 4,
+      cols: 5,
+      cardValues: _emojis.take(10).toList(),
+      board: board,
+    );
   }
 }

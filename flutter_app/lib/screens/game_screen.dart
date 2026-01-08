@@ -292,6 +292,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case GameType.slidingPuzzle:
         // Sliding puzzle is prototype only - not yet integrated
         break;
+      case GameType.memoryMatch:
+        // Memory match is prototype only - not yet integrated
+        break;
     }
 
     if (isComplete) {
@@ -652,6 +655,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             'The empty space should end up in the bottom-right corner',
           ],
           tips: 'Work on solving one row at a time, starting from the top.',
+        );
+      case GameType.memoryMatch:
+        return _GameInstructions(
+          objective: 'Find all matching pairs of cards by flipping them two at a time.',
+          steps: [
+            'Tap a card to flip it and reveal its symbol',
+            'Tap a second card to see if it matches',
+            'Matching pairs stay face up',
+            'Non-matching pairs flip back after a moment',
+          ],
+          tips: 'Try to remember where you saw each symbol. Focus on one area at a time.',
         );
     }
   }
@@ -1052,6 +1066,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return _buildMobiusContent(context);
       case GameType.slidingPuzzle:
         return const Center(child: Text('Sliding Puzzle - Available in Debug Menu'));
+      case GameType.memoryMatch:
+        return const Center(child: Text('Memory Match - Available in Debug Menu'));
     }
   }
 

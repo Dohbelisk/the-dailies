@@ -664,6 +664,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.grid_view_rounded;
         label = 'Sliding';
         break;
+      case GameType.memoryMatch:
+        icon = Icons.flip_rounded;
+        label = 'Memory';
+        break;
     }
 
     if (small) {

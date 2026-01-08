@@ -340,6 +340,8 @@ class PuzzleCard extends StatelessWidget {
         return (const Color(0xFF06B6D4), const Color(0xFF0891B2)); // Cyan/Teal
       case GameType.slidingPuzzle:
         return (const Color(0xFF14B8A6), const Color(0xFF0D9488)); // Teal
+      case GameType.memoryMatch:
+        return (const Color(0xFFEC4899), const Color(0xFFDB2777)); // Pink
     }
   }
 }

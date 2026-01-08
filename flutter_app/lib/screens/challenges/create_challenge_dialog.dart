@@ -223,6 +223,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.all_inclusive;
       case GameType.slidingPuzzle:
         return Icons.grid_view_rounded;
+      case GameType.memoryMatch:
+        return Icons.flip_rounded;
     }
   }
 
@@ -258,6 +260,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Mobius';
       case GameType.slidingPuzzle:
         return 'Sliding Puzzle';
+      case GameType.memoryMatch:
+        return 'Memory Match';
     }
   }
 

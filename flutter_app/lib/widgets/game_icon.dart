@@ -84,6 +84,8 @@ class GameIcon extends StatelessWidget {
         return (const Color(0xFF06B6D4), const Color(0xFF0891B2)); // Cyan/Teal
       case GameType.slidingPuzzle:
         return (const Color(0xFF14B8A6), const Color(0xFF0D9488)); // Teal
+      case GameType.memoryMatch:
+        return (const Color(0xFFEC4899), const Color(0xFFDB2777)); // Pink
     }
   }
 }
@@ -153,7 +155,28 @@ class _GameIconPainter extends CustomPainter {
       case GameType.slidingPuzzle:
         _drawSlidingPuzzleIcon(canvas, canvasSize, paint, fillPaint);
         break;
+      case GameType.memoryMatch:
+        _drawMemoryMatchIcon(canvas, canvasSize, paint, fillPaint);
+        break;
     }
+  }
+
+  void _drawMemoryMatchIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {
+    final cardWidth = size.width * 0.4;
+    final cardHeight = size.height * 0.5;
+    // Draw two overlapping cards
+    final card1 = RRect.fromRectAndRadius(
+      Rect.fromLTWH(size.width * 0.1, size.height * 0.2, cardWidth, cardHeight),
+      const Radius.circular(4),
+    );
+    final card2 = RRect.fromRectAndRadius(
+      Rect.fromLTWH(size.width * 0.5, size.height * 0.3, cardWidth, cardHeight),
+      const Radius.circular(4),
+    );
+    canvas.drawRRect(card1, fill);
+    canvas.drawRRect(card1, stroke);
+    canvas.drawRRect(card2, fill);
+    canvas.drawRRect(card2, stroke);
   }
 
   void _drawSlidingPuzzleIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {
