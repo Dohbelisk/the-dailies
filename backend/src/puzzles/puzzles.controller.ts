@@ -33,7 +33,9 @@ export class PuzzlesController {
   // Public endpoints
 
   @Get("today")
-  @ApiOperation({ summary: "Get all puzzles for today" })
+  @ApiOperation({
+    summary: "Get all puzzles for today (based on SAST timezone)",
+  })
   @ApiResponse({ status: 200, description: "Returns today's puzzles" })
   findTodaysPuzzles() {
     return this.puzzlesService.findTodaysPuzzles();

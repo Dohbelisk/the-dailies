@@ -59,15 +59,32 @@ export class PuzzlesService {
   }
 
   async findTodaysPuzzles(): Promise<Puzzle[]> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Use SAST (South African Standard Time, UTC+2) as the global reference
+    // This means puzzles roll over at midnight SAST for all users worldwide
+    const now = new Date();
 
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Get current time in SAST (UTC+2)
+    // Adding 2 hours to UTC gives us SAST
+    const sastOffset = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+    const sastNow = new Date(now.getTime() + sastOffset);
+
+    // Get the SAST date (year, month, day)
+    const sastYear = sastNow.getUTCFullYear();
+    const sastMonth = sastNow.getUTCMonth();
+    const sastDay = sastNow.getUTCDate();
+
+    // Create today's start in SAST, then convert back to UTC for DB query
+    // Midnight SAST = 22:00 UTC previous day
+    const todayStartUTC = new Date(
+      Date.UTC(sastYear, sastMonth, sastDay, 0, 0, 0, 0) - sastOffset,
+    );
+    const tomorrowStartUTC = new Date(
+      todayStartUTC.getTime() + 24 * 60 * 60 * 1000,
+    );
 
     return this.puzzleModel
       .find({
-        date: { $gte: today, $lt: tomorrow },
+        date: { $gte: todayStartUTC, $lt: tomorrowStartUTC },
         isActive: true,
       })
       .exec();

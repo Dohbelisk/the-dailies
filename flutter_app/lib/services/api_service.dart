@@ -31,7 +31,7 @@ class ApiService {
         Uri.parse('$baseUrl/puzzles/today'),
         headers: _getHeaders(),
       );
-      
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => DailyPuzzle.fromJson(json)).toList();
