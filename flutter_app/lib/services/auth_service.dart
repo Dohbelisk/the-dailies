@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import '../models/user_models.dart';
 
 class AuthService extends ChangeNotifier {
@@ -9,16 +10,19 @@ class AuthService extends ChangeNotifier {
   static const String _usernameKey = 'username';
   static const String _friendCodeKey = 'friend_code';
   static const String _profilePictureKey = 'profile_picture';
+  static const String _deviceIdKey = 'device_id';
 
   String? _token;
   User? _currentUser;
   bool _isAuthenticated = false;
   bool _isInitialized = false;
+  String? _deviceId;
 
   String? get token => _token;
   User? get currentUser => _currentUser;
   bool get isAuthenticated => _isAuthenticated;
   bool get isInitialized => _isInitialized;
+  String? get deviceId => _deviceId;
 
   // Initialize auth service - load token from storage
   Future<void> initialize() async {
@@ -27,6 +31,13 @@ class AuthService extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       _token = prefs.getString(_tokenKey);
+
+      // Load or generate device ID (for anonymous user tracking)
+      _deviceId = prefs.getString(_deviceIdKey);
+      if (_deviceId == null) {
+        _deviceId = const Uuid().v4();
+        await prefs.setString(_deviceIdKey, _deviceId!);
+      }
 
       if (_token != null) {
         // Load user data from storage
