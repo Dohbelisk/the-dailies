@@ -49,6 +49,22 @@ class UpdateClueDto {
   clue: string;
 }
 
+class AddWordDto {
+  @IsString()
+  @MinLength(4)
+  word: string;
+
+  @IsOptional()
+  @IsString()
+  clue?: string;
+}
+
+class BulkAddWordsDto {
+  @IsArray()
+  @IsString({ each: true })
+  words: string[];
+}
+
 @ApiTags("dictionary")
 @Controller("dictionary")
 export class DictionaryController {
@@ -147,5 +163,24 @@ export class DictionaryController {
   @ApiOperation({ summary: "Delete a word from the dictionary" })
   async deleteWord(@Param("word") word: string) {
     return this.dictionaryService.deleteWord(word.toUpperCase());
+  }
+
+  @Post("word")
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiOperation({ summary: "Add a word to the dictionary" })
+  async addWord(@Body() dto: AddWordDto) {
+    const word = await this.dictionaryService.addWord(dto.word);
+    if (dto.clue) {
+      await this.dictionaryService.updateClue(dto.word, dto.clue);
+    }
+    return word;
+  }
+
+  @Post("words/bulk")
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiOperation({ summary: "Bulk add words to the dictionary" })
+  async bulkAddWords(@Body() dto: BulkAddWordsDto) {
+    const count = await this.dictionaryService.bulkAddWords(dto.words);
+    return { added: count };
   }
 }
