@@ -6,6 +6,7 @@ import '../services/game_state_service.dart';
 import '../services/api_service.dart';
 import '../config/environment.dart';
 import '../models/game_models.dart';
+import '../widgets/mobius_grid.dart';
 
 /// Hidden debug menu for developers and testers
 class DebugMenuScreen extends StatefulWidget {
@@ -54,6 +55,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
                     _buildEnvironmentSection(theme),
                     const SizedBox(height: 24),
                     _buildFeatureFlagsSection(theme),
+                    const SizedBox(height: 24),
+                    _buildInDevGamesSection(theme),
                     const SizedBox(height: 24),
                     _buildActionsSection(theme),
                   ],
@@ -430,6 +433,55 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
     );
   }
 
+  Widget _buildInDevGamesSection(ThemeData theme) {
+    return _buildSection(
+      theme,
+      title: 'In-Development Games',
+      icon: Icons.science,
+      children: [
+        ListTile(
+          leading: const Icon(Icons.all_inclusive, color: Colors.deepPurple),
+          title: const Text('Möbius'),
+          subtitle: const Text('Impossible geometry puzzle prototype'),
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange),
+            ),
+            child: const Text(
+              'WIP',
+              style: TextStyle(
+                color: Colors.orange,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MobiusTestScreen()),
+            );
+          },
+        ),
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text(
+            'These games are under development and not yet available to users. '
+            'Use this section to test new puzzle types before release.',
+            style: TextStyle(
+              fontStyle: FontStyle.italic,
+              color: Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildActionsSection(ThemeData theme) {
     return _buildSection(
       theme,
@@ -691,6 +743,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         return Icons.group_work;
       case GameType.mathora:
         return Icons.functions;
+      case GameType.mobius:
+        return Icons.all_inclusive;
     }
   }
 

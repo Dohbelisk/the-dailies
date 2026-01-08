@@ -1,4 +1,4 @@
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -29,6 +29,8 @@ extension GameTypeExtension on GameType {
         return 'Connections';
       case GameType.mathora:
         return 'Mathora';
+      case GameType.mobius:
+        return 'Möbius';
     }
   }
 
@@ -60,6 +62,8 @@ extension GameTypeExtension on GameType {
         return '🔗';
       case GameType.mathora:
         return '🧮';
+      case GameType.mobius:
+        return '♾️';
     }
   }
 
@@ -2081,5 +2085,279 @@ class MathoraPuzzle {
       sb.write('= $value');
     }
     return sb.toString();
+  }
+}
+
+// ======================================
+// MÖBIUS PUZZLE MODEL
+// ======================================
+
+/// Direction for swipe input
+enum SwipeDirection { up, down, left, right }
+
+/// A node in the isometric puzzle structure
+class MobiusNode {
+  final int id;
+  final double x; // Isometric X position
+  final double y; // Isometric Y position (height)
+  final double z; // Isometric Z position
+
+  MobiusNode({
+    required this.id,
+    required this.x,
+    required this.y,
+    required this.z,
+  });
+
+  factory MobiusNode.fromJson(Map<String, dynamic> json) {
+    return MobiusNode(
+      id: json['id'] as int,
+      x: (json['x'] as num).toDouble(),
+      y: (json['y'] as num).toDouble(),
+      z: (json['z'] as num).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'id': id, 'x': x, 'y': y, 'z': z};
+}
+
+/// An edge connecting two nodes with a swipe direction
+class MobiusEdge {
+  final int fromNode;
+  final int toNode;
+  final SwipeDirection direction;
+
+  MobiusEdge({
+    required this.fromNode,
+    required this.toNode,
+    required this.direction,
+  });
+
+  factory MobiusEdge.fromJson(Map<String, dynamic> json) {
+    return MobiusEdge(
+      fromNode: json['from'] as int,
+      toNode: json['to'] as int,
+      direction: SwipeDirection.values.firstWhere(
+        (d) => d.name == json['direction'],
+        orElse: () => SwipeDirection.right,
+      ),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'from': fromNode,
+    'to': toNode,
+    'direction': direction.name,
+  };
+}
+
+/// The complete Möbius puzzle
+class MobiusPuzzle {
+  final List<MobiusNode> nodes;
+  final List<MobiusEdge> edges;
+  final int startNodeId;
+  final int goalNodeId;
+
+  // Game state
+  int currentNodeId;
+  int moveCount;
+  List<int> moveHistory;
+
+  MobiusPuzzle({
+    required this.nodes,
+    required this.edges,
+    required this.startNodeId,
+    required this.goalNodeId,
+    int? currentNodeId,
+    this.moveCount = 0,
+    List<int>? moveHistory,
+  }) : currentNodeId = currentNodeId ?? startNodeId,
+       moveHistory = moveHistory ?? [];
+
+  factory MobiusPuzzle.fromJson(Map<String, dynamic> json) {
+    final puzzleData = json;
+
+    final nodes = (puzzleData['nodes'] as List)
+        .map((n) => MobiusNode.fromJson(n as Map<String, dynamic>))
+        .toList();
+
+    final edges = (puzzleData['edges'] as List)
+        .map((e) => MobiusEdge.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    return MobiusPuzzle(
+      nodes: nodes,
+      edges: edges,
+      startNodeId: puzzleData['startNode'] as int,
+      goalNodeId: puzzleData['goalNode'] as int,
+    );
+  }
+
+  /// Get node by ID
+  MobiusNode? getNode(int id) {
+    try {
+      return nodes.firstWhere((n) => n.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get current node
+  MobiusNode? get currentNode => getNode(currentNodeId);
+
+  /// Get goal node
+  MobiusNode? get goalNode => getNode(goalNodeId);
+
+  /// Get all edges from current node
+  List<MobiusEdge> get availableEdges {
+    return edges.where((e) => e.fromNode == currentNodeId).toList();
+  }
+
+  /// Try to move in a direction
+  /// Returns the target node ID if successful, null otherwise
+  int? tryMove(SwipeDirection direction) {
+    final edge = edges.firstWhere(
+      (e) => e.fromNode == currentNodeId && e.direction == direction,
+      orElse: () => MobiusEdge(fromNode: -1, toNode: -1, direction: direction),
+    );
+
+    if (edge.fromNode == -1) return null;
+
+    moveHistory.add(currentNodeId);
+    currentNodeId = edge.toNode;
+    moveCount++;
+    return edge.toNode;
+  }
+
+  /// Undo last move
+  bool undoMove() {
+    if (moveHistory.isEmpty) return false;
+    currentNodeId = moveHistory.removeLast();
+    moveCount--;
+    return true;
+  }
+
+  /// Check if puzzle is complete
+  bool get isComplete => currentNodeId == goalNodeId;
+
+  /// Reset to start
+  void reset() {
+    currentNodeId = startNodeId;
+    moveCount = 0;
+    moveHistory.clear();
+  }
+
+  // ======================================
+  // SAMPLE LEVELS FOR PROTOTYPING
+  // ======================================
+
+  /// Simple tutorial level - straight path
+  static MobiusPuzzle sampleLevel1() {
+    return MobiusPuzzle(
+      nodes: [
+        MobiusNode(id: 0, x: 0, y: 0, z: 0),
+        MobiusNode(id: 1, x: 1, y: 0, z: 0),
+        MobiusNode(id: 2, x: 2, y: 0, z: 0),
+        MobiusNode(id: 3, x: 2, y: 0, z: 1),
+      ],
+      edges: [
+        MobiusEdge(fromNode: 0, toNode: 1, direction: SwipeDirection.right),
+        MobiusEdge(fromNode: 1, toNode: 0, direction: SwipeDirection.left),
+        MobiusEdge(fromNode: 1, toNode: 2, direction: SwipeDirection.right),
+        MobiusEdge(fromNode: 2, toNode: 1, direction: SwipeDirection.left),
+        MobiusEdge(fromNode: 2, toNode: 3, direction: SwipeDirection.down),
+        MobiusEdge(fromNode: 3, toNode: 2, direction: SwipeDirection.up),
+      ],
+      startNodeId: 0,
+      goalNodeId: 3,
+    );
+  }
+
+  /// Impossible staircase - Penrose style
+  static MobiusPuzzle sampleLevel2() {
+    return MobiusPuzzle(
+      nodes: [
+        // Bottom level
+        MobiusNode(id: 0, x: 0, y: 0, z: 0),
+        MobiusNode(id: 1, x: 1, y: 0, z: 0),
+        MobiusNode(id: 2, x: 2, y: 0, z: 0),
+        // Rising stairs
+        MobiusNode(id: 3, x: 2, y: 1, z: 1),
+        MobiusNode(id: 4, x: 2, y: 2, z: 2),
+        // Top level (appears to connect back impossibly)
+        MobiusNode(id: 5, x: 1, y: 2, z: 2),
+        MobiusNode(id: 6, x: 0, y: 2, z: 2),
+        // "Impossible" connection back to start level
+        MobiusNode(id: 7, x: 0, y: 0, z: 1), // Goal - visually at height but connects down
+      ],
+      edges: [
+        // Horizontal path
+        MobiusEdge(fromNode: 0, toNode: 1, direction: SwipeDirection.right),
+        MobiusEdge(fromNode: 1, toNode: 0, direction: SwipeDirection.left),
+        MobiusEdge(fromNode: 1, toNode: 2, direction: SwipeDirection.right),
+        MobiusEdge(fromNode: 2, toNode: 1, direction: SwipeDirection.left),
+        // Ascending
+        MobiusEdge(fromNode: 2, toNode: 3, direction: SwipeDirection.up),
+        MobiusEdge(fromNode: 3, toNode: 2, direction: SwipeDirection.down),
+        MobiusEdge(fromNode: 3, toNode: 4, direction: SwipeDirection.up),
+        MobiusEdge(fromNode: 4, toNode: 3, direction: SwipeDirection.down),
+        // Top path
+        MobiusEdge(fromNode: 4, toNode: 5, direction: SwipeDirection.left),
+        MobiusEdge(fromNode: 5, toNode: 4, direction: SwipeDirection.right),
+        MobiusEdge(fromNode: 5, toNode: 6, direction: SwipeDirection.left),
+        MobiusEdge(fromNode: 6, toNode: 5, direction: SwipeDirection.right),
+        // Impossible descent
+        MobiusEdge(fromNode: 6, toNode: 7, direction: SwipeDirection.down),
+        MobiusEdge(fromNode: 7, toNode: 6, direction: SwipeDirection.up),
+      ],
+      startNodeId: 0,
+      goalNodeId: 7,
+    );
+  }
+
+  /// Complex with multiple paths
+  static MobiusPuzzle sampleLevel3() {
+    return MobiusPuzzle(
+      nodes: [
+        // Center structure
+        MobiusNode(id: 0, x: 1, y: 0, z: 1), // Start - center bottom
+        MobiusNode(id: 1, x: 0, y: 0, z: 1), // Left
+        MobiusNode(id: 2, x: 2, y: 0, z: 1), // Right
+        MobiusNode(id: 3, x: 1, y: 1, z: 0), // Back elevated
+        MobiusNode(id: 4, x: 1, y: 1, z: 2), // Front elevated
+        MobiusNode(id: 5, x: 0, y: 2, z: 0), // Back left top
+        MobiusNode(id: 6, x: 2, y: 2, z: 2), // Front right top
+        MobiusNode(id: 7, x: 1, y: 3, z: 1), // Goal - top center
+      ],
+      edges: [
+        // From start
+        MobiusEdge(fromNode: 0, toNode: 1, direction: SwipeDirection.left),
+        MobiusEdge(fromNode: 0, toNode: 2, direction: SwipeDirection.right),
+        MobiusEdge(fromNode: 0, toNode: 3, direction: SwipeDirection.up),
+        MobiusEdge(fromNode: 0, toNode: 4, direction: SwipeDirection.down),
+        // Back paths
+        MobiusEdge(fromNode: 1, toNode: 0, direction: SwipeDirection.right),
+        MobiusEdge(fromNode: 1, toNode: 5, direction: SwipeDirection.up),
+        MobiusEdge(fromNode: 2, toNode: 0, direction: SwipeDirection.left),
+        MobiusEdge(fromNode: 2, toNode: 6, direction: SwipeDirection.up),
+        // Elevated paths
+        MobiusEdge(fromNode: 3, toNode: 0, direction: SwipeDirection.down),
+        MobiusEdge(fromNode: 3, toNode: 5, direction: SwipeDirection.left),
+        MobiusEdge(fromNode: 4, toNode: 0, direction: SwipeDirection.up),
+        MobiusEdge(fromNode: 4, toNode: 6, direction: SwipeDirection.right),
+        // Top paths
+        MobiusEdge(fromNode: 5, toNode: 1, direction: SwipeDirection.down),
+        MobiusEdge(fromNode: 5, toNode: 3, direction: SwipeDirection.right),
+        MobiusEdge(fromNode: 5, toNode: 7, direction: SwipeDirection.up),
+        MobiusEdge(fromNode: 6, toNode: 2, direction: SwipeDirection.down),
+        MobiusEdge(fromNode: 6, toNode: 4, direction: SwipeDirection.left),
+        MobiusEdge(fromNode: 6, toNode: 7, direction: SwipeDirection.up),
+        // Goal
+        MobiusEdge(fromNode: 7, toNode: 5, direction: SwipeDirection.left),
+        MobiusEdge(fromNode: 7, toNode: 6, direction: SwipeDirection.right),
+      ],
+      startNodeId: 0,
+      goalNodeId: 7,
+    );
   }
 }
