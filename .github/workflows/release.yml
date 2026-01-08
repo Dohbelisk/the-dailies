@@ -354,9 +354,10 @@ jobs:
           VERSION="${{ needs.version-bump.outputs.new_version }}"
 
           # Deploy APK to Firebase App Distribution
+          # Note: Remove --groups flag to just upload without distributing to a group
+          # Add --groups "group-name" once you create a tester group in Firebase Console
           firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
             --app "1:476194139682:android:e0b084a1040290ed87a47b" \
-            --groups "testers" \
             --release-notes "Version $VERSION - $NOTES"
 
       - name: Upload APK artifact
