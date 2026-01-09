@@ -42,6 +42,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Set<GameType> _favorites = {};
   bool _showFavoritesOnly = false;
   Map<GameType, int> _playCounts = {}; // Track play counts for "most played"
+  DateTime? _overrideDate; // Super user date override
+
+  /// Returns the effective date for puzzles (override or today)
+  DateTime get _effectiveDate => _overrideDate ?? DateTime.now();
 
   @override
   void initState() {
@@ -83,7 +87,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _loadPuzzles() {
     final gameService = Provider.of<GameService>(context, listen: false);
-    _puzzlesFuture = gameService.getTodaysPuzzles();
+    // Use override date if set (super user feature), otherwise get today's puzzles
+    if (_overrideDate != null) {
+      _puzzlesFuture = gameService.getPuzzlesForDate(_overrideDate!);
+    } else {
+      _puzzlesFuture = gameService.getTodaysPuzzles();
+    }
     _loadPuzzleStatuses();
     _loadFavorites();
     _loadPlayCounts();
@@ -99,9 +108,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _loadPuzzleStatuses() async {
-    final today = DateTime.now();
-    final completions = await GameStateService.getCompletionsForDate(today);
-    final inProgress = await GameStateService.getInProgressForDate(today);
+    final date = _effectiveDate;
+    final completions = await GameStateService.getCompletionsForDate(date);
+    final inProgress = await GameStateService.getInProgressForDate(date);
     if (mounted) {
       setState(() {
         _completions = completions;
@@ -176,12 +185,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  /// Show date picker for super users to override the displayed date
+  Future<void> _showDatePicker() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _overrideDate ?? now,
+      firstDate: DateTime(2024, 1, 1),
+      lastDate: now.add(const Duration(days: 7)), // Allow up to 7 days in future
+      helpText: 'Select date to view puzzles',
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        _overrideDate = picked;
+        _loadPuzzles();
+      });
+    }
+  }
+
+  /// Clear the date override and return to today
+  void _clearDateOverride() {
+    setState(() {
+      _overrideDate = null;
+      _loadPuzzles();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final today = DateTime.now();
+    final displayDate = _effectiveDate;
     final dateFormat = DateFormat('EEEE, MMMM d');
+    final isSuperUser = RemoteConfigService().isSuperAccount;
 
     return Scaffold(
       body: Stack(
@@ -208,13 +245,53 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    dateFormat.format(today),
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
+                                  // Date display with optional picker for super users
+                                  if (isSuperUser)
+                                    GestureDetector(
+                                      onTap: _showDatePicker,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            dateFormat.format(displayDate),
+                                            style: theme.textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: _overrideDate != null
+                                                  ? Colors.amber
+                                                  : null,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(
+                                            Icons.calendar_today,
+                                            size: 16,
+                                            color: _overrideDate != null
+                                                ? Colors.amber
+                                                : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                          ),
+                                          if (_overrideDate != null) ...[
+                                            const SizedBox(width: 4),
+                                            GestureDetector(
+                                              onTap: _clearDateOverride,
+                                              child: const Icon(
+                                                Icons.close,
+                                                size: 16,
+                                                color: Colors.amber,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    )
+                                  else
+                                    Text(
+                                      dateFormat.format(displayDate),
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
                                   const SizedBox(height: 2),
                                   TokenBalanceWidget(
                                     onTap: () => Navigator.push(
