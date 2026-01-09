@@ -853,6 +853,24 @@ class GameProvider extends ChangeNotifier {
     return true;
   }
 
+  /// Check if a clue is completely filled AND all letters are correct
+  bool _isClueCorrect(CrosswordClue clue) {
+    if (_crosswordPuzzle == null) return false;
+
+    for (int i = 0; i < clue.length; i++) {
+      final r = clue.direction == 'across' ? clue.startRow : clue.startRow + i;
+      final c = clue.direction == 'across' ? clue.startCol + i : clue.startCol;
+
+      final userValue = _crosswordPuzzle!.userGrid[r][c];
+      final correctValue = _crosswordPuzzle!.grid[r][c];
+      if (userValue == null || userValue.isEmpty ||
+          userValue.toUpperCase() != correctValue?.toUpperCase()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /// Find the next incomplete clue after the current one
   CrosswordClue? _findNextIncompleteClue() {
     if (_crosswordPuzzle == null || _selectedClue == null) return null;
@@ -893,7 +911,7 @@ class GameProvider extends ChangeNotifier {
       currentIndex = _selectedRow! - clue.startRow;
     }
 
-    // Search from current position to end of word
+    // Search from current position to end of word for an empty cell
     for (int i = currentIndex + 1; i < clue.length; i++) {
       final r = clue.direction == 'across' ? clue.startRow : clue.startRow + i;
       final c = clue.direction == 'across' ? clue.startCol + i : clue.startCol;
@@ -906,20 +924,8 @@ class GameProvider extends ChangeNotifier {
       }
     }
 
-    // Current word is complete - move to next incomplete word
-    final nextClue = _findNextIncompleteClue();
-    if (nextClue != null) {
-      _selectedClue = nextClue;
-      _moveToFirstEmptyInClue(nextClue);
-      return;
-    }
-
-    // All words complete - stay at end of current word
-    if (clue.direction == 'across') {
-      _selectedCol = clue.startCol + clue.length - 1;
-    } else {
-      _selectedRow = clue.startRow + clue.length - 1;
-    }
+    // Current word is complete - move to next incomplete word or incorrect word
+    _moveToNextIncompleteWord();
   }
 
   void enterLetter(String letter) {
@@ -927,14 +933,78 @@ class GameProvider extends ChangeNotifier {
 
     if (_crosswordPuzzle!.grid[_selectedRow!][_selectedCol!] == null) return;
 
-    _crosswordPuzzle!.userGrid[_selectedRow!][_selectedCol!] = letter.toUpperCase();
-
-    // Move to next empty cell in the word
     if (_selectedClue != null) {
+      final clue = _selectedClue!;
+
+      // Check if the entire clue is correct - if so, don't allow changes
+      if (_isClueCorrect(clue)) {
+        // Word is correct, don't change it, move to next incomplete word
+        _moveToNextIncompleteWord();
+        notifyListeners();
+        return;
+      }
+
+      // Enter the letter
+      _crosswordPuzzle!.userGrid[_selectedRow!][_selectedCol!] = letter.toUpperCase();
+
+      // Move cursor appropriately
       _moveToNextEmptyInClue();
+    } else {
+      // No clue selected, just enter the letter
+      _crosswordPuzzle!.userGrid[_selectedRow!][_selectedCol!] = letter.toUpperCase();
     }
 
     notifyListeners();
+  }
+
+  /// Move to the next incomplete word, or first letter of next word if all filled
+  void _moveToNextIncompleteWord() {
+    if (_crosswordPuzzle == null || _selectedClue == null) return;
+
+    // Find next incomplete clue
+    final nextClue = _findNextIncompleteClue();
+    if (nextClue != null) {
+      _selectedClue = nextClue;
+      _moveToFirstEmptyInClue(nextClue);
+      return;
+    }
+
+    // All clues are filled - find the next incorrect clue and go to its first letter
+    final nextIncorrectClue = _findNextIncorrectClue();
+    if (nextIncorrectClue != null) {
+      _selectedClue = nextIncorrectClue;
+      _selectedRow = nextIncorrectClue.startRow;
+      _selectedCol = nextIncorrectClue.startCol;
+    }
+  }
+
+  /// Find the next clue that is filled but has errors
+  CrosswordClue? _findNextIncorrectClue() {
+    if (_crosswordPuzzle == null || _selectedClue == null) return null;
+
+    final allClues = _crosswordPuzzle!.clues;
+    final currentIndex = allClues.indexOf(_selectedClue!);
+
+    // Search from after current clue to the end
+    for (int i = currentIndex + 1; i < allClues.length; i++) {
+      if (_isClueComplete(allClues[i]) && !_isClueCorrect(allClues[i])) {
+        return allClues[i];
+      }
+    }
+
+    // Wrap around: search from start to current clue
+    for (int i = 0; i < currentIndex; i++) {
+      if (_isClueComplete(allClues[i]) && !_isClueCorrect(allClues[i])) {
+        return allClues[i];
+      }
+    }
+
+    // Check current clue itself
+    if (_isClueComplete(_selectedClue!) && !_isClueCorrect(_selectedClue!)) {
+      return _selectedClue;
+    }
+
+    return null;
   }
 
   void deleteLetter() {
