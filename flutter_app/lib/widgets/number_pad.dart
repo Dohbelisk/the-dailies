@@ -162,12 +162,14 @@ class _NumberPadState extends State<NumberPad> {
           final availableWidth = constraints.maxWidth;
           const buttonCount = 5;
           const gapCount = buttonCount - 1;
-          const minGap = 6.0;
+          const minGap = 8.0;
 
-          // Calculate button size: (available - gaps) / buttons, capped at 56
-          final buttonSize = ((availableWidth - (gapCount * minGap)) / buttonCount).clamp(40.0, 56.0);
-          final buttonHeight = (buttonSize * 1.14).clamp(46.0, 64.0);
-          final fontSize = (buttonSize * 0.5).clamp(20.0, 28.0);
+          // Calculate button size to fill available space nicely
+          // Use 85% of slot width to leave comfortable gaps
+          final slotWidth = availableWidth / buttonCount;
+          final buttonSize = (slotWidth * 0.85).clamp(44.0, 72.0);
+          final buttonHeight = (buttonSize * 1.1).clamp(50.0, 80.0);
+          final fontSize = (buttonSize * 0.45).clamp(20.0, 32.0);
 
           return Column(
             children: [
