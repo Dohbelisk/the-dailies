@@ -80,23 +80,31 @@ class SudokuGrid extends StatelessWidget {
         decoration: BoxDecoration(
           color: backgroundColor,
         ),
-        child: Center(
-          child: value != null
-              ? Text(
-                  '$value',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: isInitial ? FontWeight.w800 : FontWeight.w500,
-                    color: isError
-                        ? theme.colorScheme.error
-                        : isInitial
-                            ? theme.colorScheme.onSurface.withValues(alpha: 0.85)
-                            : theme.colorScheme.primary,
-                  ),
-                )
-              : notes.isNotEmpty
-                  ? _buildNotes(context, notes)
-                  : null,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Scale font size based on cell size
+            final cellSize = constraints.maxWidth;
+            final fontSize = (cellSize * 0.55).clamp(20.0, 36.0);
+
+            return Center(
+              child: value != null
+                  ? Text(
+                      '$value',
+                      style: TextStyle(
+                        fontSize: fontSize,
+                        fontWeight: isInitial ? FontWeight.w800 : FontWeight.w500,
+                        color: isError
+                            ? theme.colorScheme.error
+                            : isInitial
+                                ? theme.colorScheme.onSurface.withValues(alpha: 0.85)
+                                : theme.colorScheme.primary,
+                      ),
+                    )
+                  : notes.isNotEmpty
+                      ? _buildNotes(context, notes)
+                      : null,
+            );
+          },
         ),
       ),
     );

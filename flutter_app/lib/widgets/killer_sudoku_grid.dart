@@ -198,50 +198,59 @@ class KillerSudokuGrid extends StatelessWidget {
         decoration: BoxDecoration(
           color: backgroundColor,
         ),
-        child: Stack(
-          children: [
-            // Cage sum indicator
-            if (showCageSum)
-              Positioned(
-                top: 0,
-                left: 2,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: Text(
-                    '$cageSum',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.secondary,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Scale font sizes based on cell size
+            final cellSize = constraints.maxWidth;
+            final valueFontSize = (cellSize * 0.5).clamp(18.0, 32.0);
+            final cageSumFontSize = (cellSize * 0.22).clamp(8.0, 14.0);
+
+            return Stack(
+              children: [
+                // Cage sum indicator
+                if (showCageSum)
+                  Positioned(
+                    top: 0,
+                    left: 2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.secondary.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Text(
+                        '$cageSum',
+                        style: TextStyle(
+                          fontSize: cageSumFontSize,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.secondary,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
 
-            // Cell value or notes
-            Center(
-              child: value != null
-                  ? Text(
-                      '$value',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: isInitial ? FontWeight.w800 : FontWeight.w500,
-                        color: isError
-                            ? theme.colorScheme.error
-                            : isInitial
-                                ? theme.colorScheme.onSurface.withValues(alpha: 0.85)
-                                : theme.colorScheme.primary,
-                      ),
-                    )
-                  : notes.isNotEmpty
-                      ? _buildNotes(context, notes)
-                      : null,
-            ),
-          ],
+                // Cell value or notes
+                Center(
+                  child: value != null
+                      ? Text(
+                          '$value',
+                          style: TextStyle(
+                            fontSize: valueFontSize,
+                            fontWeight: isInitial ? FontWeight.w800 : FontWeight.w500,
+                            color: isError
+                                ? theme.colorScheme.error
+                                : isInitial
+                                    ? theme.colorScheme.onSurface.withValues(alpha: 0.85)
+                                    : theme.colorScheme.primary,
+                          ),
+                        )
+                      : notes.isNotEmpty
+                          ? _buildNotes(context, notes)
+                          : null,
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
