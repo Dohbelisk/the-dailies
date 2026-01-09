@@ -1,0 +1,51 @@
+# Snapfile - Fastlane Screenshot Configuration
+# https://docs.fastlane.tools/actions/snapshot/
+
+# App Store requires screenshots for these device sizes:
+# - 6.9" (iPhone 16 Pro Max) - Required
+# - 6.5" (iPhone 15 Plus/14 Plus) - Required
+# - 5.5" (iPhone 8 Plus) - Optional
+# - 12.9" iPad Pro - Required if supporting iPad
+# - 12.9" iPad Pro (6th gen) - Required if supporting iPad
+
+devices([
+  # Required iPhone sizes (available on your system)
+  "iPhone 16 Pro Max",              # 6.9" - largest phone
+  "iPhone 16 Plus",                 # 6.7" - large phone
+  "iPhone 16 Pro",                  # 6.3" - standard Pro
+  "iPhone SE (3rd generation)",     # 4.7" - smallest (if supporting)
+
+  # iPad (uncomment if supporting iPad)
+  "iPad Pro 13-inch (M4)",        # 12.9" class
+  # "iPad Pro 11-inch (M4)",        # 11" class
+])
+
+# Languages to capture
+languages([
+  "en-US",
+  # Add more languages as needed:
+  # "de-DE",
+  # "fr-FR",
+  # "es-ES",
+])
+
+# Output directory
+output_directory("./screenshots")
+
+# Clear previous screenshots
+clear_previous_screenshots(true)
+
+# Scheme to use (will be set up below)
+scheme("RunnerUITests")
+
+# Don't stop on first error
+stop_after_first_error(false)
+
+# Launch arguments for the app
+launch_arguments(["-FASTLANE_SNAPSHOT YES"])
+
+# Erase simulator before running
+erase_simulator(false)
+
+# Disable concurrent simulators (more stable)
+concurrent_simulators(false)

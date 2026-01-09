@@ -75,6 +75,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 3));
 
+    // Start background music if enabled
+    _audioService.startMusic();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializePuzzle();
     });
@@ -215,6 +218,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _cluesTabController?.dispose();
     _acrossScrollController.dispose();
     _downScrollController.dispose();
+    // Stop background music when leaving game
+    _audioService.stopMusic();
     super.dispose();
   }
 

@@ -119,6 +119,8 @@ class ApiService {
 
   Future<bool> submitScore(String puzzleId, int time, int score) async {
     try {
+      print('Submitting score: puzzleId=$puzzleId, time=$time, score=$score');
+      print('Headers: ${_getHeaders()}');
       final response = await http.post(
         Uri.parse('$baseUrl/scores'),
         headers: _getHeaders(),
@@ -128,25 +130,30 @@ class ApiService {
           'score': score,
         }),
       );
-      
+
+      print('Score submit response: ${response.statusCode} - ${response.body}');
       return response.statusCode == 201;
     } catch (e) {
+      print('Score submit error: $e');
       return true; // Offline mode - assume success
     }
   }
 
   Future<UserStats> getUserStats() async {
     try {
+      print('Fetching stats with headers: ${_getHeaders()}');
       final response = await http.get(
         Uri.parse('$baseUrl/scores/stats'),
         headers: _getHeaders(),
       );
 
+      print('Stats response: ${response.statusCode} - ${response.body}');
       if (response.statusCode == 200) {
         return UserStats.fromJson(json.decode(response.body));
       }
       return UserStats.empty();
     } catch (e) {
+      print('Stats fetch error: $e');
       return UserStats.empty();
     }
   }

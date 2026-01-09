@@ -198,50 +198,59 @@ class KillerSudokuGrid extends StatelessWidget {
         decoration: BoxDecoration(
           color: backgroundColor,
         ),
-        child: Stack(
-          children: [
-            // Cage sum indicator
-            if (showCageSum)
-              Positioned(
-                top: 0,
-                left: 2,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: Text(
-                    '$cageSum',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.secondary,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Scale font sizes based on cell size
+            final cellSize = constraints.maxWidth;
+            final valueFontSize = (cellSize * 0.5).clamp(18.0, 32.0);
+            final cageSumFontSize = (cellSize * 0.22).clamp(8.0, 14.0);
+
+            return Stack(
+              children: [
+                // Cage sum indicator
+                if (showCageSum)
+                  Positioned(
+                    top: 0,
+                    left: 2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.secondary.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Text(
+                        '$cageSum',
+                        style: TextStyle(
+                          fontSize: cageSumFontSize,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.secondary,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
 
-            // Cell value or notes
-            Center(
-              child: value != null
-                  ? Text(
-                      '$value',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: isInitial ? FontWeight.w800 : FontWeight.w500,
-                        color: isError
-                            ? theme.colorScheme.error
-                            : isInitial
-                                ? theme.colorScheme.onSurface.withValues(alpha: 0.85)
-                                : theme.colorScheme.primary,
-                      ),
-                    )
-                  : notes.isNotEmpty
-                      ? _buildNotes(context, notes)
-                      : null,
-            ),
-          ],
+                // Cell value or notes
+                Center(
+                  child: value != null
+                      ? Text(
+                          '$value',
+                          style: TextStyle(
+                            fontSize: valueFontSize,
+                            fontWeight: isInitial ? FontWeight.w800 : FontWeight.w500,
+                            color: isError
+                                ? theme.colorScheme.error
+                                : isInitial
+                                    ? theme.colorScheme.onSurface.withValues(alpha: 0.85)
+                                    : theme.colorScheme.primary,
+                          ),
+                        )
+                      : notes.isNotEmpty
+                          ? _buildNotes(context, notes)
+                          : null,
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -249,48 +258,44 @@ class KillerSudokuGrid extends StatelessWidget {
 
   Widget _buildNotes(BuildContext context, Set<int> notes) {
     final theme = Theme.of(context);
-    final textStyle = TextStyle(
-      fontSize: 7,
-      height: 1.0,
-      fontWeight: FontWeight.w500,
-      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-    );
 
-    // Build a compact 3x3 grid of notes, centered in the cell
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Row 1: 1, 2, 3
-          Row(
+    // Build a compact 3x3 grid of notes that scales with the cell
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Use available space to calculate note size
+        final cellSize = constraints.maxWidth.clamp(30.0, 80.0);
+        final noteSize = cellSize / 3.2;
+        final fontSize = (noteSize * 0.75).clamp(8.0, 14.0);
+
+        final textStyle = TextStyle(
+          fontSize: fontSize,
+          height: 1.0,
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+        );
+
+        Widget noteCell(int num) {
+          return SizedBox(
+            width: noteSize,
+            height: noteSize,
+            child: Center(
+              child: Text(notes.contains(num) ? '$num' : '', style: textStyle),
+            ),
+          );
+        }
+
+        return Center(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(width: 8, height: 8, child: Center(child: Text(notes.contains(1) ? '1' : '', style: textStyle))),
-              SizedBox(width: 8, height: 8, child: Center(child: Text(notes.contains(2) ? '2' : '', style: textStyle))),
-              SizedBox(width: 8, height: 8, child: Center(child: Text(notes.contains(3) ? '3' : '', style: textStyle))),
+              Row(mainAxisSize: MainAxisSize.min, children: [noteCell(1), noteCell(2), noteCell(3)]),
+              Row(mainAxisSize: MainAxisSize.min, children: [noteCell(4), noteCell(5), noteCell(6)]),
+              Row(mainAxisSize: MainAxisSize.min, children: [noteCell(7), noteCell(8), noteCell(9)]),
             ],
           ),
-          // Row 2: 4, 5, 6
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(width: 8, height: 8, child: Center(child: Text(notes.contains(4) ? '4' : '', style: textStyle))),
-              SizedBox(width: 8, height: 8, child: Center(child: Text(notes.contains(5) ? '5' : '', style: textStyle))),
-              SizedBox(width: 8, height: 8, child: Center(child: Text(notes.contains(6) ? '6' : '', style: textStyle))),
-            ],
-          ),
-          // Row 3: 7, 8, 9
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(width: 8, height: 8, child: Center(child: Text(notes.contains(7) ? '7' : '', style: textStyle))),
-              SizedBox(width: 8, height: 8, child: Center(child: Text(notes.contains(8) ? '8' : '', style: textStyle))),
-              SizedBox(width: 8, height: 8, child: Center(child: Text(notes.contains(9) ? '9' : '', style: textStyle))),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

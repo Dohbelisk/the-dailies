@@ -163,18 +163,15 @@ class _ConsentDialogState extends State<ConsentDialog> {
                   // Action Buttons
                   Row(
                     children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _isLoading ? null : _acceptEssentialOnly,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: const Text('Essential Only'),
+                      OutlinedButton(
+                        onPressed: _isLoading ? null : _acceptEssentialOnly,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                         ),
+                        child: const Text('Essentials'),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        flex: 2,
                         child: ElevatedButton(
                           onPressed: (_termsAccepted && !_isLoading) ? _acceptAll : null,
                           style: ElevatedButton.styleFrom(

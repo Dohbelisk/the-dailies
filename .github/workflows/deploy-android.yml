@@ -1,8 +1,8 @@
-# Android Firebase App Distribution Deployment Workflow (Manual Only)
+# Android Deployment Workflow (Manual Only)
 # For automatic releases on push to main, use the unified release.yml workflow
 # This workflow is for manual/emergency deployments only
 
-name: Deploy Android to Firebase (Manual)
+name: Deploy Android (Manual)
 
 on:
   workflow_dispatch:
@@ -11,6 +11,20 @@ on:
         description: 'Release notes for testers'
         required: false
         default: 'New build from CI'
+      deploy_to_firebase:
+        description: 'Deploy to Firebase App Distribution'
+        required: true
+        type: boolean
+        default: true
+      deploy_to_play_store:
+        description: 'Deploy to Google Play Console'
+        required: true
+        type: boolean
+        default: false
+      play_store_track:
+        description: 'Play Store track (internal, alpha, beta, production)'
+        required: false
+        default: 'internal'
 
 env:
   JAVA_VERSION: '17'
@@ -18,7 +32,7 @@ env:
 
 jobs:
   deploy:
-    name: Build and Deploy to Firebase
+    name: Build and Deploy Android
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -71,10 +85,12 @@ jobs:
         run: flutter build appbundle --release
 
       - name: Setup Firebase CLI
+        if: ${{ github.event.inputs.deploy_to_firebase == 'true' }}
         run: |
           curl -sL https://firebase.tools | bash
 
       - name: Deploy to Firebase App Distribution
+        if: ${{ github.event.inputs.deploy_to_firebase == 'true' }}
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -89,6 +105,16 @@ jobs:
             --app "1:476194139682:android:e0b084a1040290ed87a47b" \
             --groups "testers" \
             --release-notes "${{ github.event.inputs.release_notes || 'Automated build from GitHub Actions' }}"
+
+      - name: Deploy to Google Play Console
+        if: ${{ github.event.inputs.deploy_to_play_store == 'true' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.dohbelisk.thedailies
+          releaseFiles: flutter_app/build/app/outputs/bundle/release/app-release.aab
+          track: ${{ github.event.inputs.play_store_track }}
+          status: completed
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

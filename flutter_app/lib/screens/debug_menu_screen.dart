@@ -55,6 +55,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
                     const SizedBox(height: 24),
                     _buildFeatureFlagsSection(theme),
                     const SizedBox(height: 24),
+                    _buildInDevGamesSection(theme),
+                    const SizedBox(height: 24),
                     _buildActionsSection(theme),
                   ],
                 );
@@ -427,6 +429,28 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInDevGamesSection(ThemeData theme) {
+    return _buildSection(
+      theme,
+      title: 'In-Development Games',
+      icon: Icons.science,
+      children: [
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text(
+            'No games are currently in development. '
+            'New puzzle types will appear here when being tested.',
+            style: TextStyle(
+              fontStyle: FontStyle.italic,
+              color: Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

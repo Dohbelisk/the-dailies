@@ -464,7 +464,6 @@ class _GameIconPainter extends CustomPainter {
     );
   }
 
-
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

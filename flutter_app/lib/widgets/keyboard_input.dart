@@ -17,19 +17,19 @@ class KeyboardInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Calculate responsive key size based on available width
           // Row 1 has 10 keys, which is the widest row (without delete)
           final availableWidth = constraints.maxWidth;
 
-          // Calculate key width to fit 10 keys with small gaps
-          // Each key gets a slot of (availableWidth / 10)
+          // Calculate key width to fit 10 keys with comfortable gaps
+          // Use 90% of slot width for the key, rest for gaps
           final slotWidth = availableWidth / 10;
-          final keyWidth = (slotWidth - 2).clamp(22.0, 32.0); // Leave 2px for gaps
-          final keyHeight = (keyWidth * 1.4).clamp(30.0, 44.0);
-          final fontSize = (keyWidth * 0.5).clamp(11.0, 16.0);
+          final keyWidth = (slotWidth * 0.9).clamp(28.0, 48.0);
+          final keyHeight = (keyWidth * 1.35).clamp(38.0, 60.0);
+          final fontSize = (keyWidth * 0.45).clamp(14.0, 22.0);
 
           return Column(
             children: [
