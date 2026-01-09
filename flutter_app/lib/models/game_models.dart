@@ -1,4 +1,4 @@
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon, towerOfHanoi, minesweeper, sokoban, kakuro, hitori }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon, towerOfHanoi, minesweeper, sokoban, kakuro, hitori, tangram }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -49,6 +49,8 @@ extension GameTypeExtension on GameType {
         return 'Kakuro';
       case GameType.hitori:
         return 'Hitori';
+      case GameType.tangram:
+        return 'Tangram';
     }
   }
 
@@ -100,6 +102,8 @@ extension GameTypeExtension on GameType {
         return '➕';
       case GameType.hitori:
         return '⬛';
+      case GameType.tangram:
+        return '🔺';
     }
   }
 
@@ -4268,5 +4272,240 @@ class HitoriPuzzle {
       numbers: numbers,
       solution: solution,
     );
+  }
+}
+
+// =============================================================================
+// TANGRAM PUZZLE MODEL
+// =============================================================================
+
+/// Type of tangram piece
+enum TangramPieceType {
+  largeTriangle1,
+  largeTriangle2,
+  mediumTriangle,
+  smallTriangle1,
+  smallTriangle2,
+  square,
+  parallelogram,
+}
+
+/// A tangram piece with position, rotation, and flip state
+class TangramPiece {
+  final TangramPieceType type;
+  double x;
+  double y;
+  double rotation; // In degrees (0, 45, 90, 135, 180, 225, 270, 315)
+  bool isFlipped; // For parallelogram
+
+  TangramPiece({
+    required this.type,
+    this.x = 0,
+    this.y = 0,
+    this.rotation = 0,
+    this.isFlipped = false,
+  });
+
+  /// Rotate piece by 45 degrees
+  void rotate() {
+    rotation = (rotation + 45) % 360;
+  }
+
+  /// Flip piece (only matters for parallelogram)
+  void flip() {
+    isFlipped = !isFlipped;
+  }
+
+  /// Get the color for this piece type
+  int get colorValue {
+    switch (type) {
+      case TangramPieceType.largeTriangle1:
+        return 0xFFE74C3C; // Red
+      case TangramPieceType.largeTriangle2:
+        return 0xFF3498DB; // Blue
+      case TangramPieceType.mediumTriangle:
+        return 0xFFF39C12; // Orange
+      case TangramPieceType.smallTriangle1:
+        return 0xFF2ECC71; // Green
+      case TangramPieceType.smallTriangle2:
+        return 0xFF9B59B6; // Purple
+      case TangramPieceType.square:
+        return 0xFF1ABC9C; // Teal
+      case TangramPieceType.parallelogram:
+        return 0xFFE91E63; // Pink
+    }
+  }
+
+  /// Get relative size (unit = small triangle leg)
+  double get scale {
+    switch (type) {
+      case TangramPieceType.largeTriangle1:
+      case TangramPieceType.largeTriangle2:
+        return 2.0;
+      case TangramPieceType.mediumTriangle:
+        return 1.414; // sqrt(2)
+      case TangramPieceType.smallTriangle1:
+      case TangramPieceType.smallTriangle2:
+        return 1.0;
+      case TangramPieceType.square:
+        return 1.0;
+      case TangramPieceType.parallelogram:
+        return 1.0;
+    }
+  }
+
+  TangramPiece copy() {
+    return TangramPiece(
+      type: type,
+      x: x,
+      y: y,
+      rotation: rotation,
+      isFlipped: isFlipped,
+    );
+  }
+}
+
+/// Target silhouette for a tangram puzzle
+class TangramTarget {
+  final String name;
+  final List<List<double>> vertices; // Polygon vertices normalized to unit square
+
+  const TangramTarget({
+    required this.name,
+    required this.vertices,
+  });
+}
+
+/// Tangram puzzle - arrange pieces to form a shape
+class TangramPuzzle {
+  final String name;
+  final TangramTarget target;
+  final List<TangramPiece> pieces;
+  TangramPiece? selectedPiece;
+
+  TangramPuzzle({
+    required this.name,
+    required this.target,
+    required this.pieces,
+  });
+
+  /// Select a piece
+  void selectPiece(TangramPiece piece) {
+    selectedPiece = piece;
+  }
+
+  /// Deselect current piece
+  void deselectPiece() {
+    selectedPiece = null;
+  }
+
+  /// Move piece to position
+  void movePiece(TangramPiece piece, double x, double y) {
+    piece.x = x;
+    piece.y = y;
+  }
+
+  /// Rotate selected piece
+  void rotateSelectedPiece() {
+    selectedPiece?.rotate();
+  }
+
+  /// Flip selected piece
+  void flipSelectedPiece() {
+    selectedPiece?.flip();
+  }
+
+  /// Simplified completion check - all pieces inside target bounds
+  bool get isComplete {
+    // For prototype, just check if all pieces are positioned (moved from initial spot)
+    for (final piece in pieces) {
+      if (piece.x < 0.1 && piece.y < 0.1) {
+        return false; // Piece hasn't been moved
+      }
+    }
+    return true;
+  }
+
+  /// Reset all pieces to starting positions
+  void reset() {
+    double offsetY = 0;
+    for (final piece in pieces) {
+      piece.x = 0;
+      piece.y = offsetY;
+      piece.rotation = 0;
+      piece.isFlipped = false;
+      offsetY += 60;
+    }
+    selectedPiece = null;
+  }
+
+  /// Sample level 1: Square (easiest tangram)
+  factory TangramPuzzle.sampleLevel1() {
+    return TangramPuzzle(
+      name: 'Square',
+      target: const TangramTarget(
+        name: 'Square',
+        vertices: [
+          [0, 0],
+          [200, 0],
+          [200, 200],
+          [0, 200],
+        ],
+      ),
+      pieces: _createDefaultPieces(),
+    );
+  }
+
+  /// Sample level 2: House
+  factory TangramPuzzle.sampleLevel2() {
+    return TangramPuzzle(
+      name: 'House',
+      target: const TangramTarget(
+        name: 'House',
+        vertices: [
+          [100, 0],
+          [200, 80],
+          [200, 200],
+          [0, 200],
+          [0, 80],
+        ],
+      ),
+      pieces: _createDefaultPieces(),
+    );
+  }
+
+  /// Sample level 3: Cat
+  factory TangramPuzzle.sampleLevel3() {
+    return TangramPuzzle(
+      name: 'Cat',
+      target: const TangramTarget(
+        name: 'Cat',
+        vertices: [
+          [40, 0],
+          [80, 40],
+          [120, 0],
+          [160, 40],
+          [160, 120],
+          [200, 200],
+          [120, 180],
+          [80, 200],
+          [0, 200],
+          [40, 120],
+        ],
+      ),
+      pieces: _createDefaultPieces(),
+    );
+  }
+
+  static List<TangramPiece> _createDefaultPieces() {
+    return [
+      TangramPiece(type: TangramPieceType.largeTriangle1, x: 0, y: 0),
+      TangramPiece(type: TangramPieceType.largeTriangle2, x: 0, y: 70),
+      TangramPiece(type: TangramPieceType.mediumTriangle, x: 0, y: 140),
+      TangramPiece(type: TangramPieceType.smallTriangle1, x: 0, y: 210),
+      TangramPiece(type: TangramPieceType.smallTriangle2, x: 0, y: 260),
+      TangramPiece(type: TangramPieceType.square, x: 0, y: 310),
+      TangramPiece(type: TangramPieceType.parallelogram, x: 0, y: 360),
+    ];
   }
 }

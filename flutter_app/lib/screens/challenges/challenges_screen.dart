@@ -696,6 +696,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.square_rounded;
         label = 'Hitori';
         break;
+      case GameType.tangram:
+        icon = Icons.change_history_rounded;
+        label = 'Tangram';
+        break;
     }
 
     if (small) {

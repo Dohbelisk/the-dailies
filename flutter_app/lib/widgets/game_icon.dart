@@ -100,6 +100,8 @@ class GameIcon extends StatelessWidget {
         return (const Color(0xFF8B5CF6), const Color(0xFFA78BFA)); // Purple
       case GameType.hitori:
         return (const Color(0xFF374151), const Color(0xFF4B5563)); // Gray
+      case GameType.tangram:
+        return (const Color(0xFFE74C3C), const Color(0xFFC0392B)); // Red
     }
   }
 }
@@ -192,6 +194,9 @@ class _GameIconPainter extends CustomPainter {
         break;
       case GameType.hitori:
         _drawHitoriIcon(canvas, canvasSize, paint, fillPaint);
+        break;
+      case GameType.tangram:
+        _drawTangramIcon(canvas, canvasSize, paint, fillPaint);
         break;
     }
   }
@@ -767,6 +772,36 @@ class _GameIconPainter extends CustomPainter {
         }
       }
     }
+  }
+
+  void _drawTangramIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {
+    final unit = size.width / 4;
+
+    // Draw a stylized tangram pattern - various triangles and shapes
+    // Large triangle
+    final path1 = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(size.width, size.height)
+      ..lineTo(size.width / 2, size.height / 2)
+      ..close();
+    canvas.drawPath(path1, fill);
+    canvas.drawPath(path1, stroke);
+
+    // Medium triangle (top left)
+    final path2 = Path()
+      ..moveTo(0, 0)
+      ..lineTo(unit * 2, 0)
+      ..lineTo(0, unit * 2)
+      ..close();
+    fill.color = fill.color.withValues(alpha: 0.7);
+    canvas.drawPath(path2, fill);
+    canvas.drawPath(path2, stroke);
+
+    // Small square
+    final squareRect = Rect.fromLTWH(unit * 2, unit, unit, unit);
+    fill.color = fill.color.withValues(alpha: 0.5);
+    canvas.drawRect(squareRect, fill);
+    canvas.drawRect(squareRect, stroke);
   }
 
   @override

@@ -239,6 +239,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.add_box_rounded;
       case GameType.hitori:
         return Icons.square_rounded;
+      case GameType.tangram:
+        return Icons.change_history_rounded;
     }
   }
 
@@ -290,6 +292,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Kakuro';
       case GameType.hitori:
         return 'Hitori';
+      case GameType.tangram:
+        return 'Tangram';
     }
   }
 

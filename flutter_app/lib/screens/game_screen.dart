@@ -316,6 +316,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case GameType.hitori:
         // Hitori is prototype only - not yet integrated
         break;
+      case GameType.tangram:
+        // Tangram is prototype only - not yet integrated
+        break;
     }
 
     if (isComplete) {
@@ -769,6 +772,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ],
           tips: 'Start by finding numbers that appear twice in a row or column - one must be shaded.',
         );
+      case GameType.tangram:
+        return _GameInstructions(
+          objective: 'Arrange all 7 pieces to form the target shape.',
+          steps: [
+            'Drag pieces into the play area',
+            'Tap a piece to select it',
+            'Use Rotate to rotate the selected piece',
+            'Use Flip for the parallelogram piece',
+            'Fit all pieces to match the silhouette!',
+          ],
+          tips: 'Start with the large triangles - they take up the most space.',
+        );
     }
   }
 
@@ -1184,6 +1199,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return const Center(child: Text('Kakuro - Available in Debug Menu'));
       case GameType.hitori:
         return const Center(child: Text('Hitori - Available in Debug Menu'));
+      case GameType.tangram:
+        return const Center(child: Text('Tangram - Available in Debug Menu'));
     }
   }
 

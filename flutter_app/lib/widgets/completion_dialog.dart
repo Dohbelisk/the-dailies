@@ -294,6 +294,7 @@ class CompletionDialog extends StatelessWidget {
       case GameType.sokoban:
       case GameType.kakuro:
       case GameType.hitori:
+      case GameType.tangram:
         return false; // These games don't have a mistake concept
     }
   }

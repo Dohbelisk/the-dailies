@@ -630,6 +630,9 @@ class GameProvider extends ChangeNotifier {
       case GameType.hitori:
         // Hitori is prototype only - not yet integrated
         break;
+      case GameType.tangram:
+        // Tangram is prototype only - not yet integrated
+        break;
     }
 
     // If showing solution, apply solved state to each puzzle type
