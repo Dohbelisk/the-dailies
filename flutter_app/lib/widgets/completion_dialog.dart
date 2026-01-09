@@ -284,17 +284,6 @@ class CompletionDialog extends StatelessWidget {
       case GameType.wordSearch:
       case GameType.wordLadder:
       case GameType.nonogram:
-      case GameType.mobius:
-      case GameType.slidingPuzzle:
-      case GameType.memoryMatch:
-      case GameType.game2048:
-      case GameType.simon:
-      case GameType.towerOfHanoi:
-      case GameType.minesweeper:
-      case GameType.sokoban:
-      case GameType.kakuro:
-      case GameType.hitori:
-      case GameType.tangram:
         return false; // These games don't have a mistake concept
     }
   }

@@ -219,28 +219,6 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.link_rounded;
       case GameType.mathora:
         return Icons.calculate_outlined;
-      case GameType.mobius:
-        return Icons.all_inclusive;
-      case GameType.slidingPuzzle:
-        return Icons.grid_view_rounded;
-      case GameType.memoryMatch:
-        return Icons.flip_rounded;
-      case GameType.game2048:
-        return Icons.grid_4x4_rounded;
-      case GameType.simon:
-        return Icons.music_note_rounded;
-      case GameType.towerOfHanoi:
-        return Icons.stacked_bar_chart_rounded;
-      case GameType.minesweeper:
-        return Icons.grid_goldenratio_rounded;
-      case GameType.sokoban:
-        return Icons.inventory_2_rounded;
-      case GameType.kakuro:
-        return Icons.add_box_rounded;
-      case GameType.hitori:
-        return Icons.square_rounded;
-      case GameType.tangram:
-        return Icons.change_history_rounded;
     }
   }
 
@@ -272,28 +250,6 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Connections';
       case GameType.mathora:
         return 'Mathora';
-      case GameType.mobius:
-        return 'Mobius';
-      case GameType.slidingPuzzle:
-        return 'Sliding Puzzle';
-      case GameType.memoryMatch:
-        return 'Memory Match';
-      case GameType.game2048:
-        return '2048';
-      case GameType.simon:
-        return 'Simon';
-      case GameType.towerOfHanoi:
-        return 'Tower of Hanoi';
-      case GameType.minesweeper:
-        return 'Minesweeper';
-      case GameType.sokoban:
-        return 'Sokoban';
-      case GameType.kakuro:
-        return 'Kakuro';
-      case GameType.hitori:
-        return 'Hitori';
-      case GameType.tangram:
-        return 'Tangram';
     }
   }
 

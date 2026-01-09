@@ -656,50 +656,6 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.calculate_outlined;
         label = 'Mathora';
         break;
-      case GameType.mobius:
-        icon = Icons.all_inclusive;
-        label = 'Mobius';
-        break;
-      case GameType.slidingPuzzle:
-        icon = Icons.grid_view_rounded;
-        label = 'Sliding';
-        break;
-      case GameType.memoryMatch:
-        icon = Icons.flip_rounded;
-        label = 'Memory';
-        break;
-      case GameType.game2048:
-        icon = Icons.grid_4x4_rounded;
-        label = '2048';
-        break;
-      case GameType.simon:
-        icon = Icons.music_note_rounded;
-        label = 'Simon';
-        break;
-      case GameType.towerOfHanoi:
-        icon = Icons.stacked_bar_chart_rounded;
-        label = 'Hanoi';
-        break;
-      case GameType.minesweeper:
-        icon = Icons.grid_goldenratio_rounded;
-        label = 'Mines';
-        break;
-      case GameType.sokoban:
-        icon = Icons.inventory_2_rounded;
-        label = 'Sokoban';
-        break;
-      case GameType.kakuro:
-        icon = Icons.add_box_rounded;
-        label = 'Kakuro';
-        break;
-      case GameType.hitori:
-        icon = Icons.square_rounded;
-        label = 'Hitori';
-        break;
-      case GameType.tangram:
-        icon = Icons.change_history_rounded;
-        label = 'Tangram';
-        break;
     }
 
     if (small) {

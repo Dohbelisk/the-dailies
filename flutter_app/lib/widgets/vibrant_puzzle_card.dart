@@ -398,28 +398,6 @@ class VibrantPuzzleCard extends StatelessWidget {
         return (const Color(0xFFF43F5E), const Color(0xFFEC4899));
       case GameType.mathora:
         return (const Color(0xFF10B981), const Color(0xFF059669));
-      case GameType.mobius:
-        return (const Color(0xFF06B6D4), const Color(0xFF0891B2)); // Cyan/Teal
-      case GameType.slidingPuzzle:
-        return (const Color(0xFF14B8A6), const Color(0xFF0D9488)); // Teal
-      case GameType.memoryMatch:
-        return (const Color(0xFFEC4899), const Color(0xFFDB2777)); // Pink
-      case GameType.game2048:
-        return (const Color(0xFFEAB308), const Color(0xFFCA8A04)); // Yellow/Amber
-      case GameType.simon:
-        return (const Color(0xFF7C3AED), const Color(0xFF6D28D9)); // Purple
-      case GameType.towerOfHanoi:
-        return (const Color(0xFF92400E), const Color(0xFFB45309)); // Brown/Amber
-      case GameType.minesweeper:
-        return (const Color(0xFF475569), const Color(0xFF64748B)); // Slate/Gray
-      case GameType.sokoban:
-        return (const Color(0xFF78350F), const Color(0xFF92400E)); // Amber/Brown
-      case GameType.kakuro:
-        return (const Color(0xFF8B5CF6), const Color(0xFFA78BFA)); // Purple
-      case GameType.hitori:
-        return (const Color(0xFF374151), const Color(0xFF4B5563)); // Gray
-      case GameType.tangram:
-        return (const Color(0xFFE74C3C), const Color(0xFFC0392B)); // Red
     }
   }
 }

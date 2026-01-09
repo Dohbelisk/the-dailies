@@ -25,7 +25,6 @@ import '../widgets/lights_out_grid.dart';
 import '../widgets/word_ladder_grid.dart';
 import '../widgets/connections_grid.dart';
 import '../widgets/mathora_grid.dart';
-import '../widgets/mobius_grid.dart';
 import '../widgets/number_pad.dart';
 import '../widgets/keyboard_input.dart';
 import '../widgets/game_timer.dart';
@@ -285,39 +284,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         break;
       case GameType.mathora:
         isComplete = await gameProvider.checkMathoraComplete();
-        break;
-      case GameType.mobius:
-        isComplete = await gameProvider.checkMobiusComplete();
-        break;
-      case GameType.slidingPuzzle:
-        // Sliding puzzle is prototype only - not yet integrated
-        break;
-      case GameType.memoryMatch:
-        // Memory match is prototype only - not yet integrated
-        break;
-      case GameType.game2048:
-        // 2048 is prototype only - not yet integrated
-        break;
-      case GameType.simon:
-        // Simon is prototype only - not yet integrated
-        break;
-      case GameType.towerOfHanoi:
-        // Tower of Hanoi is prototype only - not yet integrated
-        break;
-      case GameType.minesweeper:
-        // Minesweeper is prototype only - not yet integrated
-        break;
-      case GameType.sokoban:
-        // Sokoban is prototype only - not yet integrated
-        break;
-      case GameType.kakuro:
-        // Kakuro is prototype only - not yet integrated
-        break;
-      case GameType.hitori:
-        // Hitori is prototype only - not yet integrated
-        break;
-      case GameType.tangram:
-        // Tangram is prototype only - not yet integrated
         break;
     }
 
@@ -659,130 +625,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             'Use Undo to try different operation sequences',
           ],
           tips: 'Sometimes you need to go away from the target before getting closer. Think about what operations are available.',
-        );
-      case GameType.mobius:
-        return _GameInstructions(
-          objective: 'Navigate your cube through an impossible 3D structure to reach the goal.',
-          steps: [
-            'Swipe up, down, left, or right to move your cube',
-            'Find a path from the start node to the goal (marked with a star)',
-            'Some paths may seem impossible - that\'s the Möbius twist!',
-          ],
-          tips: 'The arrows at the bottom show which directions are available. Sometimes you need to explore to find the right path.',
-        );
-      case GameType.slidingPuzzle:
-        return _GameInstructions(
-          objective: 'Arrange the numbered tiles in order by sliding them into the empty space.',
-          steps: [
-            'Tap a tile adjacent to the empty space to slide it',
-            'Arrange tiles in order from 1 to N',
-            'The empty space should end up in the bottom-right corner',
-          ],
-          tips: 'Work on solving one row at a time, starting from the top.',
-        );
-      case GameType.memoryMatch:
-        return _GameInstructions(
-          objective: 'Find all matching pairs of cards by flipping them two at a time.',
-          steps: [
-            'Tap a card to flip it and reveal its symbol',
-            'Tap a second card to see if it matches',
-            'Matching pairs stay face up',
-            'Non-matching pairs flip back after a moment',
-          ],
-          tips: 'Try to remember where you saw each symbol. Focus on one area at a time.',
-        );
-      case GameType.game2048:
-        return _GameInstructions(
-          objective: 'Slide tiles to combine matching numbers and reach 2048.',
-          steps: [
-            'Swipe up, down, left, or right to slide all tiles',
-            'Tiles with the same number merge into one',
-            'A new tile appears after each move',
-            'Reach 2048 to win!',
-          ],
-          tips: 'Keep your highest tile in a corner. Build chains of tiles to set up merges.',
-        );
-      case GameType.simon:
-        return _GameInstructions(
-          objective: 'Repeat the sequence of colors shown to you.',
-          steps: [
-            'Watch the sequence of colored buttons light up',
-            'Repeat the sequence by tapping the buttons in order',
-            'Each round adds one more color to the sequence',
-            'Complete the target number of rounds to win!',
-          ],
-          tips: 'Say the colors out loud as you watch. Focus on patterns.',
-        );
-      case GameType.towerOfHanoi:
-        return _GameInstructions(
-          objective: 'Move all disks from the first peg to the last peg.',
-          steps: [
-            'Tap a peg to select the top disk',
-            'Tap another peg to move the disk there',
-            'You can only place smaller disks on larger ones',
-            'Move all disks to the rightmost peg to win',
-          ],
-          tips: 'The minimum moves for N disks is 2^N - 1. Try to achieve optimal!',
-        );
-      case GameType.minesweeper:
-        return _GameInstructions(
-          objective: 'Reveal all safe cells without hitting any mines.',
-          steps: [
-            'Tap a cell to reveal it',
-            'Numbers show how many adjacent cells contain mines',
-            'Long-press to flag a cell you think contains a mine',
-            'The first tap is always safe',
-            'Reveal all non-mine cells to win!',
-          ],
-          tips: 'Use logic! If a "1" cell has only one hidden neighbor, that neighbor must be a mine.',
-        );
-      case GameType.sokoban:
-        return _GameInstructions(
-          objective: 'Push all boxes onto the target spots.',
-          steps: [
-            'Swipe or use arrow buttons to move your character',
-            'Push boxes by walking into them',
-            'You can only push, not pull',
-            'Boxes on targets turn green',
-            'Get all boxes on targets to win!',
-          ],
-          tips: 'Plan ahead! Avoid pushing boxes into corners where you can\'t retrieve them.',
-        );
-      case GameType.kakuro:
-        return _GameInstructions(
-          objective: 'Fill the grid with numbers 1-9 so each run adds to its clue.',
-          steps: [
-            'Tap a white cell to select it',
-            'Use the number pad to enter a number (1-9)',
-            'Each horizontal/vertical run must sum to the clue',
-            'Numbers cannot repeat within the same run',
-            'Complete all runs correctly to win!',
-          ],
-          tips: 'Start with runs that have few combinations. A 3-cell run summing to 6 can only be 1+2+3.',
-        );
-      case GameType.hitori:
-        return _GameInstructions(
-          objective: 'Shade cells so no number appears twice in any row or column.',
-          steps: [
-            'Tap a cell to shade it',
-            'Shaded cells eliminate duplicate numbers',
-            'Shaded cells cannot be adjacent (horizontally or vertically)',
-            'All unshaded cells must remain connected',
-            'Satisfy all three rules to win!',
-          ],
-          tips: 'Start by finding numbers that appear twice in a row or column - one must be shaded.',
-        );
-      case GameType.tangram:
-        return _GameInstructions(
-          objective: 'Arrange all 7 pieces to form the target shape.',
-          steps: [
-            'Drag pieces into the play area',
-            'Tap a piece to select it',
-            'Use Rotate to rotate the selected piece',
-            'Use Flip for the parallelogram piece',
-            'Fit all pieces to match the silhouette!',
-          ],
-          tips: 'Start with the large triangles - they take up the most space.',
         );
     }
   }
@@ -1179,49 +1021,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return _buildConnectionsContent(context);
       case GameType.mathora:
         return _buildMathoraContent(context);
-      case GameType.mobius:
-        return _buildMobiusContent(context);
-      case GameType.slidingPuzzle:
-        return const Center(child: Text('Sliding Puzzle - Available in Debug Menu'));
-      case GameType.memoryMatch:
-        return const Center(child: Text('Memory Match - Available in Debug Menu'));
-      case GameType.game2048:
-        return const Center(child: Text('2048 - Available in Debug Menu'));
-      case GameType.simon:
-        return const Center(child: Text('Simon - Available in Debug Menu'));
-      case GameType.towerOfHanoi:
-        return const Center(child: Text('Tower of Hanoi - Available in Debug Menu'));
-      case GameType.minesweeper:
-        return const Center(child: Text('Minesweeper - Available in Debug Menu'));
-      case GameType.sokoban:
-        return const Center(child: Text('Sokoban - Available in Debug Menu'));
-      case GameType.kakuro:
-        return const Center(child: Text('Kakuro - Available in Debug Menu'));
-      case GameType.hitori:
-        return const Center(child: Text('Hitori - Available in Debug Menu'));
-      case GameType.tangram:
-        return const Center(child: Text('Tangram - Available in Debug Menu'));
     }
-  }
-
-  Widget _buildMobiusContent(BuildContext context) {
-    final gameProvider = context.watch<GameProvider>();
-    final puzzle = gameProvider.mobiusPuzzle;
-
-    if (puzzle == null) {
-      return const Center(child: Text('Loading Möbius puzzle...'));
-    }
-
-    return MobiusGrid(
-      puzzle: puzzle,
-      onComplete: () {
-        _checkCompletion();
-      },
-      onMove: () {
-        _audioService.playTap();
-        // State is managed internally by MobiusGrid
-      },
-    );
   }
 
   Widget _buildSudokuContent(BuildContext context) {
