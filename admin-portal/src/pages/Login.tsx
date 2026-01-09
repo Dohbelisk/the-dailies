@@ -79,7 +79,7 @@ export default function Login() {
                 type="email"
                 {...register('email')}
                 className="input"
-                placeholder="admin@dohbelisk.com"
+                placeholder="Enter your email"
               />
               {errors.email && (
                 <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
@@ -119,10 +119,6 @@ export default function Login() {
               )}
             </button>
           </form>
-
-          <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            Default: admin@dohbelisk.com / 5nifrenypro
-          </p>
         </div>
       </div>
     </div>
