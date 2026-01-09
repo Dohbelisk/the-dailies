@@ -10,6 +10,10 @@ class GameService {
     return _apiService.getTodaysPuzzles();
   }
 
+  Future<List<DailyPuzzle>> getPuzzlesForDate(DateTime date) {
+    return _apiService.getPuzzlesForDate(date);
+  }
+
   Future<DailyPuzzle?> getPuzzleByTypeAndDate(GameType type, DateTime date) {
     return _apiService.getPuzzleByTypeAndDate(type, date);
   }
