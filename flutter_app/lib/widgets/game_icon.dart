@@ -96,6 +96,8 @@ class GameIcon extends StatelessWidget {
         return (const Color(0xFF475569), const Color(0xFF64748B)); // Slate/Gray
       case GameType.sokoban:
         return (const Color(0xFF78350F), const Color(0xFF92400E)); // Amber/Brown
+      case GameType.kakuro:
+        return (const Color(0xFF8B5CF6), const Color(0xFFA78BFA)); // Purple
     }
   }
 }
@@ -182,6 +184,9 @@ class _GameIconPainter extends CustomPainter {
         break;
       case GameType.sokoban:
         _drawSokobanIcon(canvas, canvasSize, paint, fillPaint);
+        break;
+      case GameType.kakuro:
+        _drawKakuroIcon(canvas, canvasSize, paint, fillPaint);
         break;
     }
   }
@@ -701,6 +706,40 @@ class _GameIconPainter extends CustomPainter {
     );
   }
 
+  void _drawKakuroIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {
+    final unit = size.width / 4;
+
+    // Draw grid cells with clue diagonal
+    // Clue cell (top-left with diagonal)
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, unit, unit),
+      fill,
+    );
+    canvas.drawLine(
+      const Offset(0, 0),
+      Offset(unit, unit),
+      stroke..strokeWidth = size.width * 0.04,
+    );
+
+    // Entry cells
+    stroke.strokeWidth = size.width * 0.05;
+    for (int i = 1; i < 4; i++) {
+      canvas.drawRect(
+        Rect.fromLTWH(i * unit + 2, 2, unit - 4, unit - 4),
+        stroke,
+      );
+    }
+    for (int i = 1; i < 4; i++) {
+      canvas.drawRect(
+        Rect.fromLTWH(2, i * unit + 2, unit - 4, unit - 4),
+        stroke,
+      );
+    }
+
+    // Draw some numbers in cells
+    _drawNumber(canvas, '3', Offset(unit * 1.5, unit * 0.5), size.width * 0.18, fill);
+    _drawNumber(canvas, '1', Offset(unit * 2.5, unit * 0.5), size.width * 0.18, fill);
+  }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;

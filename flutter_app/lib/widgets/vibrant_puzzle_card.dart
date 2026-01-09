@@ -414,6 +414,8 @@ class VibrantPuzzleCard extends StatelessWidget {
         return (const Color(0xFF475569), const Color(0xFF64748B)); // Slate/Gray
       case GameType.sokoban:
         return (const Color(0xFF78350F), const Color(0xFF92400E)); // Amber/Brown
+      case GameType.kakuro:
+        return (const Color(0xFF8B5CF6), const Color(0xFFA78BFA)); // Purple
     }
   }
 }

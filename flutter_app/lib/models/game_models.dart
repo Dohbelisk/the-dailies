@@ -1,4 +1,4 @@
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon, towerOfHanoi, minesweeper, sokoban }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon, towerOfHanoi, minesweeper, sokoban, kakuro }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -45,6 +45,8 @@ extension GameTypeExtension on GameType {
         return 'Minesweeper';
       case GameType.sokoban:
         return 'Sokoban';
+      case GameType.kakuro:
+        return 'Kakuro';
     }
   }
 
@@ -92,6 +94,8 @@ extension GameTypeExtension on GameType {
         return '💣';
       case GameType.sokoban:
         return '📦';
+      case GameType.kakuro:
+        return '➕';
     }
   }
 
@@ -3704,6 +3708,300 @@ class SokobanPuzzle {
       playerRow: 2,
       playerCol: 2,
       boxPositions: [(3, 2), (3, 4), (4, 3)],
+    );
+  }
+}
+
+// ============================================================================
+// KAKURO PUZZLE
+// ============================================================================
+
+/// Cell type for Kakuro grid
+enum KakuroCellType { blocked, clue, entry }
+
+/// A clue cell in Kakuro (shows sums for across/down)
+class KakuroClue {
+  final int? acrossSum; // Sum for horizontal run (null if no clue)
+  final int? downSum; // Sum for vertical run (null if no clue)
+
+  const KakuroClue({this.acrossSum, this.downSum});
+}
+
+/// Kakuro puzzle - fill grid so runs sum to clues, no repeated digits
+class KakuroPuzzle {
+  final int rows;
+  final int cols;
+
+  // Grid layout: each cell is either blocked, a clue cell, or an entry cell
+  final List<List<KakuroCellType>> cellTypes;
+
+  // Clue data for clue cells (row, col) -> KakuroClue
+  final Map<(int, int), KakuroClue> clues;
+
+  // Current entries (0 = empty, 1-9 = filled)
+  List<List<int>> entries;
+
+  // Solution for validation
+  final List<List<int>> solution;
+
+  KakuroPuzzle({
+    required this.rows,
+    required this.cols,
+    required this.cellTypes,
+    required this.clues,
+    required this.solution,
+    List<List<int>>? entries,
+  }) : entries = entries ?? List.generate(rows, (_) => List.generate(cols, (_) => 0));
+
+  /// Check if a cell is an entry cell
+  bool isEntryCell(int row, int col) {
+    if (row < 0 || row >= rows || col < 0 || col >= cols) return false;
+    return cellTypes[row][col] == KakuroCellType.entry;
+  }
+
+  /// Set a value in an entry cell
+  void setEntry(int row, int col, int value) {
+    if (!isEntryCell(row, col)) return;
+    if (value < 0 || value > 9) return;
+    entries[row][col] = value;
+  }
+
+  /// Clear an entry cell
+  void clearEntry(int row, int col) {
+    if (!isEntryCell(row, col)) return;
+    entries[row][col] = 0;
+  }
+
+  /// Get all cells in the horizontal run containing (row, col)
+  List<(int, int)> getHorizontalRun(int row, int col) {
+    if (!isEntryCell(row, col)) return [];
+
+    final cells = <(int, int)>[];
+
+    // Find start of run (move left until we hit a non-entry cell)
+    int startCol = col;
+    while (startCol > 0 && isEntryCell(row, startCol - 1)) {
+      startCol--;
+    }
+
+    // Collect all cells in run
+    int c = startCol;
+    while (c < cols && isEntryCell(row, c)) {
+      cells.add((row, c));
+      c++;
+    }
+
+    return cells;
+  }
+
+  /// Get all cells in the vertical run containing (row, col)
+  List<(int, int)> getVerticalRun(int row, int col) {
+    if (!isEntryCell(row, col)) return [];
+
+    final cells = <(int, int)>[];
+
+    // Find start of run (move up until we hit a non-entry cell)
+    int startRow = row;
+    while (startRow > 0 && isEntryCell(startRow - 1, col)) {
+      startRow--;
+    }
+
+    // Collect all cells in run
+    int r = startRow;
+    while (r < rows && isEntryCell(r, col)) {
+      cells.add((r, col));
+      r++;
+    }
+
+    return cells;
+  }
+
+  /// Check if there are duplicate values in a run
+  bool hasDuplicatesInRun(List<(int, int)> cells) {
+    final values = <int>{};
+    for (final cell in cells) {
+      final value = entries[cell.$1][cell.$2];
+      if (value != 0) {
+        if (values.contains(value)) return true;
+        values.add(value);
+      }
+    }
+    return false;
+  }
+
+  /// Get the sum of values in a run (excluding empty cells)
+  int getRunSum(List<(int, int)> cells) {
+    int sum = 0;
+    for (final cell in cells) {
+      sum += entries[cell.$1][cell.$2];
+    }
+    return sum;
+  }
+
+  /// Check if a run is complete (all cells filled, correct sum, no duplicates)
+  bool isRunComplete(List<(int, int)> cells, int targetSum) {
+    if (cells.any((cell) => entries[cell.$1][cell.$2] == 0)) return false;
+    if (hasDuplicatesInRun(cells)) return false;
+    return getRunSum(cells) == targetSum;
+  }
+
+  /// Check if the puzzle is complete and correct
+  bool get isComplete {
+    // Check that all entries match solution
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (isEntryCell(r, c)) {
+          if (entries[r][c] != solution[r][c]) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Check if a cell has an error (duplicate in run or wrong value)
+  bool hasError(int row, int col) {
+    if (!isEntryCell(row, col)) return false;
+    if (entries[row][col] == 0) return false;
+
+    // Check for duplicates in horizontal run
+    final hRun = getHorizontalRun(row, col);
+    if (hasDuplicatesInRun(hRun)) return true;
+
+    // Check for duplicates in vertical run
+    final vRun = getVerticalRun(row, col);
+    if (hasDuplicatesInRun(vRun)) return true;
+
+    return false;
+  }
+
+  /// Reset all entries
+  void reset() {
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        entries[r][c] = 0;
+      }
+    }
+  }
+
+  // ======================================
+  // SAMPLE LEVELS
+  // ======================================
+
+  /// Easy - small 4x4 puzzle
+  static KakuroPuzzle sampleLevel1() {
+    // Simple 4x4 Kakuro
+    // B = blocked, C = clue, E = entry
+    // Layout:
+    // B  C  C  B
+    // C  E  E  B
+    // C  E  E  B
+    // B  B  B  B
+    final cellTypes = [
+      [KakuroCellType.blocked, KakuroCellType.clue, KakuroCellType.clue, KakuroCellType.blocked],
+      [KakuroCellType.clue, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.blocked],
+      [KakuroCellType.clue, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.blocked],
+      [KakuroCellType.blocked, KakuroCellType.blocked, KakuroCellType.blocked, KakuroCellType.blocked],
+    ];
+
+    final clues = <(int, int), KakuroClue>{
+      (0, 1): const KakuroClue(downSum: 4), // 1+3
+      (0, 2): const KakuroClue(downSum: 6), // 2+4
+      (1, 0): const KakuroClue(acrossSum: 3), // 1+2
+      (2, 0): const KakuroClue(acrossSum: 7), // 3+4
+    };
+
+    final solution = [
+      [0, 0, 0, 0],
+      [0, 1, 2, 0],
+      [0, 3, 4, 0],
+      [0, 0, 0, 0],
+    ];
+
+    return KakuroPuzzle(
+      rows: 4,
+      cols: 4,
+      cellTypes: cellTypes,
+      clues: clues,
+      solution: solution,
+    );
+  }
+
+  /// Medium - 5x5 puzzle
+  static KakuroPuzzle sampleLevel2() {
+    final cellTypes = [
+      [KakuroCellType.blocked, KakuroCellType.clue, KakuroCellType.clue, KakuroCellType.clue, KakuroCellType.blocked],
+      [KakuroCellType.clue, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.blocked],
+      [KakuroCellType.clue, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.clue],
+      [KakuroCellType.blocked, KakuroCellType.clue, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.entry],
+      [KakuroCellType.blocked, KakuroCellType.blocked, KakuroCellType.blocked, KakuroCellType.blocked, KakuroCellType.blocked],
+    ];
+
+    final clues = <(int, int), KakuroClue>{
+      (0, 1): const KakuroClue(downSum: 4), // 1+3
+      (0, 2): const KakuroClue(downSum: 11), // 2+4+5
+      (0, 3): const KakuroClue(downSum: 10), // 6+4
+      (1, 0): const KakuroClue(acrossSum: 9), // 1+2+6
+      (2, 0): const KakuroClue(acrossSum: 12), // 3+4+5
+      (2, 4): const KakuroClue(downSum: 11), // 4+7
+      (3, 1): const KakuroClue(acrossSum: 16), // 5+4+7
+    };
+
+    final solution = [
+      [0, 0, 0, 0, 0],
+      [0, 1, 2, 6, 0],
+      [0, 3, 4, 5, 0],
+      [0, 0, 5, 4, 7],
+      [0, 0, 0, 0, 0],
+    ];
+
+    return KakuroPuzzle(
+      rows: 5,
+      cols: 5,
+      cellTypes: cellTypes,
+      clues: clues,
+      solution: solution,
+    );
+  }
+
+  /// Hard - 6x6 puzzle
+  static KakuroPuzzle sampleLevel3() {
+    final cellTypes = [
+      [KakuroCellType.blocked, KakuroCellType.clue, KakuroCellType.clue, KakuroCellType.blocked, KakuroCellType.clue, KakuroCellType.clue],
+      [KakuroCellType.clue, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.clue, KakuroCellType.entry, KakuroCellType.entry],
+      [KakuroCellType.clue, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.entry],
+      [KakuroCellType.blocked, KakuroCellType.clue, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.blocked],
+      [KakuroCellType.clue, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.blocked, KakuroCellType.blocked, KakuroCellType.blocked],
+      [KakuroCellType.clue, KakuroCellType.entry, KakuroCellType.entry, KakuroCellType.blocked, KakuroCellType.blocked, KakuroCellType.blocked],
+    ];
+
+    final clues = <(int, int), KakuroClue>{
+      (0, 1): const KakuroClue(downSum: 11), // 2+3+6
+      (0, 2): const KakuroClue(downSum: 17), // 1+4+5+7
+      (0, 4): const KakuroClue(downSum: 4), // 1+3
+      (0, 5): const KakuroClue(downSum: 10), // 2+8
+      (1, 0): const KakuroClue(acrossSum: 3), // 2+1
+      (1, 3): const KakuroClue(acrossSum: 3, downSum: 12), // across: 1+2, down: 5+7
+      (2, 0): const KakuroClue(acrossSum: 23), // 3+4+5+3+8
+      (3, 1): const KakuroClue(acrossSum: 19), // 6+5+7+1
+      (4, 0): const KakuroClue(acrossSum: 10), // 2+8
+      (5, 0): const KakuroClue(acrossSum: 13), // 6+7
+    };
+
+    final solution = [
+      [0, 0, 0, 0, 0, 0],
+      [0, 2, 1, 0, 1, 2],
+      [0, 3, 4, 5, 3, 8],
+      [0, 0, 5, 7, 1, 0],
+      [0, 2, 8, 0, 0, 0],
+      [0, 6, 7, 0, 0, 0],
+    ];
+
+    return KakuroPuzzle(
+      rows: 6,
+      cols: 6,
+      cellTypes: cellTypes,
+      clues: clues,
+      solution: solution,
     );
   }
 }

@@ -292,6 +292,7 @@ class CompletionDialog extends StatelessWidget {
       case GameType.towerOfHanoi:
       case GameType.minesweeper:
       case GameType.sokoban:
+      case GameType.kakuro:
         return false; // These games don't have a mistake concept
     }
   }

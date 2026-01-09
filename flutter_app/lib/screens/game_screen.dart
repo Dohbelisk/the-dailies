@@ -310,6 +310,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case GameType.sokoban:
         // Sokoban is prototype only - not yet integrated
         break;
+      case GameType.kakuro:
+        // Kakuro is prototype only - not yet integrated
+        break;
     }
 
     if (isComplete) {
@@ -739,6 +742,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ],
           tips: 'Plan ahead! Avoid pushing boxes into corners where you can\'t retrieve them.',
         );
+      case GameType.kakuro:
+        return _GameInstructions(
+          objective: 'Fill the grid with numbers 1-9 so each run adds to its clue.',
+          steps: [
+            'Tap a white cell to select it',
+            'Use the number pad to enter a number (1-9)',
+            'Each horizontal/vertical run must sum to the clue',
+            'Numbers cannot repeat within the same run',
+            'Complete all runs correctly to win!',
+          ],
+          tips: 'Start with runs that have few combinations. A 3-cell run summing to 6 can only be 1+2+3.',
+        );
     }
   }
 
@@ -1150,6 +1165,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return const Center(child: Text('Minesweeper - Available in Debug Menu'));
       case GameType.sokoban:
         return const Center(child: Text('Sokoban - Available in Debug Menu'));
+      case GameType.kakuro:
+        return const Center(child: Text('Kakuro - Available in Debug Menu'));
     }
   }
 

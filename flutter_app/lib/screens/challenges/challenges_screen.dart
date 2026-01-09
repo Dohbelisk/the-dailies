@@ -688,6 +688,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.inventory_2_rounded;
         label = 'Sokoban';
         break;
+      case GameType.kakuro:
+        icon = Icons.add_box_rounded;
+        label = 'Kakuro';
+        break;
     }
 
     if (small) {

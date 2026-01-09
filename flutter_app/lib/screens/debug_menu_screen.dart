@@ -14,6 +14,7 @@ import '../widgets/simon_grid.dart';
 import '../widgets/tower_of_hanoi_grid.dart';
 import '../widgets/minesweeper_grid.dart';
 import '../widgets/sokoban_grid.dart';
+import '../widgets/kakuro_grid.dart';
 
 /// Hidden debug menu for developers and testers
 class DebugMenuScreen extends StatefulWidget {
@@ -632,6 +633,18 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             );
           },
         ),
+        ListTile(
+          leading: Icon(_getGameTypeIcon(GameType.kakuro)),
+          title: const Text('Kakuro'),
+          subtitle: const Text('Cross-sums puzzle'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const KakuroTestScreen()),
+            );
+          },
+        ),
         const Padding(
           padding: EdgeInsets.all(16),
           child: Text(
@@ -925,6 +938,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         return Icons.grid_goldenratio;
       case GameType.sokoban:
         return Icons.inventory_2;
+      case GameType.kakuro:
+        return Icons.add_box;
     }
   }
 

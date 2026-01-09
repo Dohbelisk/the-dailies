@@ -235,6 +235,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.grid_goldenratio_rounded;
       case GameType.sokoban:
         return Icons.inventory_2_rounded;
+      case GameType.kakuro:
+        return Icons.add_box_rounded;
     }
   }
 
@@ -282,6 +284,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Minesweeper';
       case GameType.sokoban:
         return 'Sokoban';
+      case GameType.kakuro:
+        return 'Kakuro';
     }
   }
 
