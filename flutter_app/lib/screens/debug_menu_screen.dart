@@ -15,6 +15,7 @@ import '../widgets/tower_of_hanoi_grid.dart';
 import '../widgets/minesweeper_grid.dart';
 import '../widgets/sokoban_grid.dart';
 import '../widgets/kakuro_grid.dart';
+import '../widgets/hitori_grid.dart';
 
 /// Hidden debug menu for developers and testers
 class DebugMenuScreen extends StatefulWidget {
@@ -645,6 +646,18 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             );
           },
         ),
+        ListTile(
+          leading: Icon(_getGameTypeIcon(GameType.hitori)),
+          title: const Text('Hitori'),
+          subtitle: const Text('Shade duplicate numbers'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HitoriTestScreen()),
+            );
+          },
+        ),
         const Padding(
           padding: EdgeInsets.all(16),
           child: Text(
@@ -940,6 +953,8 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         return Icons.inventory_2;
       case GameType.kakuro:
         return Icons.add_box;
+      case GameType.hitori:
+        return Icons.square;
     }
   }
 

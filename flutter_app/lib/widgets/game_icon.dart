@@ -98,6 +98,8 @@ class GameIcon extends StatelessWidget {
         return (const Color(0xFF78350F), const Color(0xFF92400E)); // Amber/Brown
       case GameType.kakuro:
         return (const Color(0xFF8B5CF6), const Color(0xFFA78BFA)); // Purple
+      case GameType.hitori:
+        return (const Color(0xFF374151), const Color(0xFF4B5563)); // Gray
     }
   }
 }
@@ -187,6 +189,9 @@ class _GameIconPainter extends CustomPainter {
         break;
       case GameType.kakuro:
         _drawKakuroIcon(canvas, canvasSize, paint, fillPaint);
+        break;
+      case GameType.hitori:
+        _drawHitoriIcon(canvas, canvasSize, paint, fillPaint);
         break;
     }
   }
@@ -739,6 +744,29 @@ class _GameIconPainter extends CustomPainter {
     // Draw some numbers in cells
     _drawNumber(canvas, '3', Offset(unit * 1.5, unit * 0.5), size.width * 0.18, fill);
     _drawNumber(canvas, '1', Offset(unit * 2.5, unit * 0.5), size.width * 0.18, fill);
+  }
+
+  void _drawHitoriIcon(Canvas canvas, Size size, Paint stroke, Paint fill) {
+    final unit = size.width / 4;
+
+    // Draw grid of cells (some shaded, some not)
+    for (int row = 0; row < 3; row++) {
+      for (int col = 0; col < 3; col++) {
+        final isShaded = (row == 1 && col == 1) || (row == 2 && col == 0);
+        final rect = Rect.fromLTWH(
+          col * unit + unit * 0.5 + 2,
+          row * unit + unit * 0.5 + 2,
+          unit - 4,
+          unit - 4,
+        );
+
+        if (isShaded) {
+          canvas.drawRect(rect, fill);
+        } else {
+          canvas.drawRect(rect, stroke);
+        }
+      }
+    }
   }
 
   @override

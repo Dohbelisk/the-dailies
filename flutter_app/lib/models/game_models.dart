@@ -1,4 +1,4 @@
-enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon, towerOfHanoi, minesweeper, sokoban, kakuro }
+enum GameType { sudoku, killerSudoku, crossword, wordSearch, wordForge, nonogram, numberTarget, ballSort, pipes, lightsOut, wordLadder, connections, mathora, mobius, slidingPuzzle, memoryMatch, game2048, simon, towerOfHanoi, minesweeper, sokoban, kakuro, hitori }
 
 extension GameTypeExtension on GameType {
   String get displayName {
@@ -47,6 +47,8 @@ extension GameTypeExtension on GameType {
         return 'Sokoban';
       case GameType.kakuro:
         return 'Kakuro';
+      case GameType.hitori:
+        return 'Hitori';
     }
   }
 
@@ -96,6 +98,8 @@ extension GameTypeExtension on GameType {
         return '📦';
       case GameType.kakuro:
         return '➕';
+      case GameType.hitori:
+        return '⬛';
     }
   }
 
@@ -4001,6 +4005,267 @@ class KakuroPuzzle {
       cols: 6,
       cellTypes: cellTypes,
       clues: clues,
+      solution: solution,
+    );
+  }
+}
+
+// =============================================================================
+// HITORI PUZZLE MODEL
+// =============================================================================
+
+/// Hitori puzzle - shade cells so no number repeats in rows/columns
+/// Rules:
+/// 1. Shade cells so no number appears more than once in any row or column
+/// 2. Shaded cells cannot be adjacent (horizontally or vertically)
+/// 3. Unshaded cells must all be connected orthogonally
+class HitoriPuzzle {
+  final int size;
+  final List<List<int>> numbers;
+  final List<List<bool>> shaded;
+  final List<List<bool>> solution; // Which cells should be shaded
+
+  HitoriPuzzle({
+    required this.size,
+    required this.numbers,
+    List<List<bool>>? shaded,
+    required this.solution,
+  }) : shaded = shaded ?? List.generate(size, (_) => List.filled(size, false));
+
+  /// Toggle shading of a cell
+  void toggleShade(int row, int col) {
+    shaded[row][col] = !shaded[row][col];
+  }
+
+  /// Check if a cell is shaded
+  bool isShaded(int row, int col) => shaded[row][col];
+
+  /// Check if the current state has adjacent shaded cells (rule violation)
+  bool hasAdjacentShaded() {
+    for (int row = 0; row < size; row++) {
+      for (int col = 0; col < size; col++) {
+        if (shaded[row][col]) {
+          // Check right
+          if (col + 1 < size && shaded[row][col + 1]) return true;
+          // Check down
+          if (row + 1 < size && shaded[row + 1][col]) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /// Check if a specific cell has an adjacent shaded cell
+  bool hasCellAdjacentShaded(int row, int col) {
+    if (!shaded[row][col]) return false;
+
+    // Check all four directions
+    if (row > 0 && shaded[row - 1][col]) return true;
+    if (row < size - 1 && shaded[row + 1][col]) return true;
+    if (col > 0 && shaded[row][col - 1]) return true;
+    if (col < size - 1 && shaded[row][col + 1]) return true;
+
+    return false;
+  }
+
+  /// Check if unshaded cells are all connected
+  bool areUnshadedConnected() {
+    // Find first unshaded cell
+    int startRow = -1, startCol = -1;
+    for (int row = 0; row < size && startRow == -1; row++) {
+      for (int col = 0; col < size; col++) {
+        if (!shaded[row][col]) {
+          startRow = row;
+          startCol = col;
+          break;
+        }
+      }
+    }
+
+    if (startRow == -1) return true; // All shaded (shouldn't happen)
+
+    // BFS to find all connected unshaded cells
+    final visited = List.generate(size, (_) => List.filled(size, false));
+    final queue = <(int, int)>[(startRow, startCol)];
+    visited[startRow][startCol] = true;
+    int unshadedCount = 1;
+
+    while (queue.isNotEmpty) {
+      final (row, col) = queue.removeAt(0);
+
+      // Check all four directions
+      for (final (dr, dc) in [(0, 1), (0, -1), (1, 0), (-1, 0)]) {
+        final newRow = row + dr;
+        final newCol = col + dc;
+
+        if (newRow >= 0 && newRow < size &&
+            newCol >= 0 && newCol < size &&
+            !visited[newRow][newCol] &&
+            !shaded[newRow][newCol]) {
+          visited[newRow][newCol] = true;
+          queue.add((newRow, newCol));
+          unshadedCount++;
+        }
+      }
+    }
+
+    // Count total unshaded cells
+    int totalUnshaded = 0;
+    for (int row = 0; row < size; row++) {
+      for (int col = 0; col < size; col++) {
+        if (!shaded[row][col]) totalUnshaded++;
+      }
+    }
+
+    return unshadedCount == totalUnshaded;
+  }
+
+  /// Check if there are duplicate numbers in any row/column among unshaded cells
+  bool hasDuplicates() {
+    // Check rows
+    for (int row = 0; row < size; row++) {
+      final seen = <int>{};
+      for (int col = 0; col < size; col++) {
+        if (!shaded[row][col]) {
+          if (seen.contains(numbers[row][col])) return true;
+          seen.add(numbers[row][col]);
+        }
+      }
+    }
+
+    // Check columns
+    for (int col = 0; col < size; col++) {
+      final seen = <int>{};
+      for (int row = 0; row < size; row++) {
+        if (!shaded[row][col]) {
+          if (seen.contains(numbers[row][col])) return true;
+          seen.add(numbers[row][col]);
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /// Check if a specific cell causes a duplicate in its row or column
+  bool cellCausesDuplicate(int checkRow, int checkCol) {
+    if (shaded[checkRow][checkCol]) return false;
+
+    final num = numbers[checkRow][checkCol];
+
+    // Check row
+    for (int col = 0; col < size; col++) {
+      if (col != checkCol && !shaded[checkRow][col] && numbers[checkRow][col] == num) {
+        return true;
+      }
+    }
+
+    // Check column
+    for (int row = 0; row < size; row++) {
+      if (row != checkRow && !shaded[row][checkCol] && numbers[row][checkCol] == num) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /// Check if the puzzle is complete and valid
+  bool get isComplete {
+    // No duplicates in rows/columns
+    if (hasDuplicates()) return false;
+    // No adjacent shaded cells
+    if (hasAdjacentShaded()) return false;
+    // Unshaded cells are connected
+    if (!areUnshadedConnected()) return false;
+
+    return true;
+  }
+
+  /// Reset puzzle to initial state
+  void reset() {
+    for (int row = 0; row < size; row++) {
+      for (int col = 0; col < size; col++) {
+        shaded[row][col] = false;
+      }
+    }
+  }
+
+  /// Sample level 1: 5x5 Easy
+  factory HitoriPuzzle.sampleLevel1() {
+    final numbers = [
+      [2, 5, 1, 3, 4],
+      [1, 3, 4, 5, 2],
+      [4, 1, 3, 2, 5],
+      [3, 4, 2, 1, 3],
+      [5, 2, 5, 4, 1],
+    ];
+
+    final solution = [
+      [false, false, false, false, false],
+      [false, false, false, false, false],
+      [false, false, false, false, false],
+      [false, false, false, false, true],
+      [false, false, true, false, false],
+    ];
+
+    return HitoriPuzzle(
+      size: 5,
+      numbers: numbers,
+      solution: solution,
+    );
+  }
+
+  /// Sample level 2: 6x6 Medium
+  factory HitoriPuzzle.sampleLevel2() {
+    final numbers = [
+      [3, 2, 1, 4, 5, 6],
+      [6, 3, 2, 5, 4, 1],
+      [1, 4, 5, 6, 2, 3],
+      [2, 6, 4, 1, 3, 5],
+      [4, 5, 3, 2, 6, 4],
+      [5, 1, 6, 3, 4, 2],
+    ];
+
+    final solution = [
+      [false, false, false, false, false, false],
+      [false, false, false, false, false, false],
+      [false, false, false, false, false, false],
+      [false, false, false, false, false, false],
+      [false, false, false, false, false, true],
+      [false, false, false, false, true, false],
+    ];
+
+    return HitoriPuzzle(
+      size: 6,
+      numbers: numbers,
+      solution: solution,
+    );
+  }
+
+  /// Sample level 3: 6x6 with more shading needed
+  factory HitoriPuzzle.sampleLevel3() {
+    final numbers = [
+      [1, 2, 3, 4, 5, 6],
+      [2, 1, 4, 3, 6, 5],
+      [3, 4, 1, 6, 2, 3],
+      [4, 3, 6, 1, 4, 2],
+      [5, 6, 2, 5, 3, 1],
+      [6, 5, 5, 2, 1, 4],
+    ];
+
+    final solution = [
+      [false, false, false, false, false, false],
+      [false, false, false, false, false, false],
+      [false, false, false, false, false, true],
+      [false, false, false, false, true, false],
+      [false, false, false, true, false, false],
+      [false, false, true, false, false, false],
+    ];
+
+    return HitoriPuzzle(
+      size: 6,
+      numbers: numbers,
       solution: solution,
     );
   }

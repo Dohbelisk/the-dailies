@@ -692,6 +692,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
         icon = Icons.add_box_rounded;
         label = 'Kakuro';
         break;
+      case GameType.hitori:
+        icon = Icons.square_rounded;
+        label = 'Hitori';
+        break;
     }
 
     if (small) {

@@ -313,6 +313,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case GameType.kakuro:
         // Kakuro is prototype only - not yet integrated
         break;
+      case GameType.hitori:
+        // Hitori is prototype only - not yet integrated
+        break;
     }
 
     if (isComplete) {
@@ -754,6 +757,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ],
           tips: 'Start with runs that have few combinations. A 3-cell run summing to 6 can only be 1+2+3.',
         );
+      case GameType.hitori:
+        return _GameInstructions(
+          objective: 'Shade cells so no number appears twice in any row or column.',
+          steps: [
+            'Tap a cell to shade it',
+            'Shaded cells eliminate duplicate numbers',
+            'Shaded cells cannot be adjacent (horizontally or vertically)',
+            'All unshaded cells must remain connected',
+            'Satisfy all three rules to win!',
+          ],
+          tips: 'Start by finding numbers that appear twice in a row or column - one must be shaded.',
+        );
     }
   }
 
@@ -1167,6 +1182,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return const Center(child: Text('Sokoban - Available in Debug Menu'));
       case GameType.kakuro:
         return const Center(child: Text('Kakuro - Available in Debug Menu'));
+      case GameType.hitori:
+        return const Center(child: Text('Hitori - Available in Debug Menu'));
     }
   }
 

@@ -237,6 +237,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return Icons.inventory_2_rounded;
       case GameType.kakuro:
         return Icons.add_box_rounded;
+      case GameType.hitori:
+        return Icons.square_rounded;
     }
   }
 
@@ -286,6 +288,8 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
         return 'Sokoban';
       case GameType.kakuro:
         return 'Kakuro';
+      case GameType.hitori:
+        return 'Hitori';
     }
   }
 
