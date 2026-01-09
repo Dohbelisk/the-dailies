@@ -596,53 +596,54 @@ class _MobiusPainter extends CustomPainter {
   void _drawIsometricCube(Canvas canvas, Offset center, double size, Color color) {
     // Isometric cube dimensions
     final halfWidth = size * 0.5;
-    final height = size * 0.6;
+    final quarterHeight = size * 0.3; // Isometric vertical unit
+    final cubeHeight = size * 0.6; // Total height of cube sides
 
-    // Top diamond
-    final top = Offset(center.dx, center.dy - height);
-    final right = Offset(center.dx + halfWidth, center.dy - height * 0.3);
-    final bottom = Offset(center.dx, center.dy);
-    final left = Offset(center.dx - halfWidth, center.dy - height * 0.3);
+    // Top face corners (diamond shape)
+    final topBack = Offset(center.dx, center.dy - quarterHeight * 2);
+    final topRight = Offset(center.dx + halfWidth, center.dy - quarterHeight);
+    final topFront = Offset(center.dx, center.dy);
+    final topLeft = Offset(center.dx - halfWidth, center.dy - quarterHeight);
 
-    // Bottom points (for side faces)
-    final bottomRight = Offset(center.dx + halfWidth, center.dy + height * 0.4);
-    final bottomLeft = Offset(center.dx - halfWidth, center.dy + height * 0.4);
-    final bottomCenter = Offset(center.dx, center.dy + height * 0.7);
+    // Bottom corners (directly below top corners, offset by cube height)
+    final bottomRight = Offset(topRight.dx, topRight.dy + cubeHeight);
+    final bottomFront = Offset(topFront.dx, topFront.dy + cubeHeight);
+    final bottomLeft = Offset(topLeft.dx, topLeft.dy + cubeHeight);
 
     // Draw faces back to front
 
     // Left face (medium brightness)
     final leftPath = Path()
-      ..moveTo(left.dx, left.dy)
-      ..lineTo(bottom.dx, bottom.dy)
-      ..lineTo(bottomCenter.dx, bottomCenter.dy)
+      ..moveTo(topLeft.dx, topLeft.dy)
+      ..lineTo(topFront.dx, topFront.dy)
+      ..lineTo(bottomFront.dx, bottomFront.dy)
       ..lineTo(bottomLeft.dx, bottomLeft.dy)
       ..close();
-    canvas.drawPath(leftPath, Paint()..color = _adjustBrightness(color, 0.8));
+    canvas.drawPath(leftPath, Paint()..color = _adjustBrightness(color, 0.7));
 
     // Right face (darkest)
     final rightPath = Path()
-      ..moveTo(right.dx, right.dy)
-      ..lineTo(bottom.dx, bottom.dy)
-      ..lineTo(bottomCenter.dx, bottomCenter.dy)
+      ..moveTo(topRight.dx, topRight.dy)
+      ..lineTo(topFront.dx, topFront.dy)
+      ..lineTo(bottomFront.dx, bottomFront.dy)
       ..lineTo(bottomRight.dx, bottomRight.dy)
       ..close();
-    canvas.drawPath(rightPath, Paint()..color = _adjustBrightness(color, 0.6));
+    canvas.drawPath(rightPath, Paint()..color = _adjustBrightness(color, 0.5));
 
     // Top face (brightest)
     final topPath = Path()
-      ..moveTo(top.dx, top.dy)
-      ..lineTo(right.dx, right.dy)
-      ..lineTo(bottom.dx, bottom.dy)
-      ..lineTo(left.dx, left.dy)
+      ..moveTo(topBack.dx, topBack.dy)
+      ..lineTo(topRight.dx, topRight.dy)
+      ..lineTo(topFront.dx, topFront.dy)
+      ..lineTo(topLeft.dx, topLeft.dy)
       ..close();
     canvas.drawPath(topPath, Paint()..color = _adjustBrightness(color, 1.0));
 
-    // Draw edges
+    // Draw edges for definition
     final edgePaint = Paint()
-      ..color = _adjustBrightness(color, 0.4)
+      ..color = _adjustBrightness(color, 0.3)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0
+      ..strokeWidth = 1.5
       ..strokeJoin = StrokeJoin.round;
 
     canvas.drawPath(topPath, edgePaint);
