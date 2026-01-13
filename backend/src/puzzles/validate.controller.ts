@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
-import { IsArray } from "class-validator";
+import { IsArray, IsString, IsInt, Min, Max } from "class-validator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminGuard } from "../auth/guards/admin.guard";
 import {
@@ -9,6 +9,9 @@ import {
   SudokuSolveResult,
   KillerSudokuValidationResult,
   KillerSudokuSolveResult,
+  WordLadderValidationResult,
+  NumberTargetValidationResult,
+  WordForgeValidationResult,
   Cage,
 } from "./validate.service";
 
@@ -20,6 +23,35 @@ class SudokuGridDto {
 class KillerSudokuCagesDto {
   @IsArray()
   cages: Cage[];
+}
+
+class WordLadderDto {
+  @IsString()
+  startWord: string;
+
+  @IsString()
+  targetWord: string;
+
+  @IsInt()
+  @Min(3)
+  @Max(5)
+  wordLength: number;
+}
+
+class NumberTargetDto {
+  @IsArray()
+  numbers: number[];
+
+  @IsArray()
+  targets: { target: number; difficulty: string }[];
+}
+
+class WordForgeDto {
+  @IsArray()
+  letters: string[];
+
+  @IsString()
+  centerLetter: string;
 }
 
 @ApiTags("validate")
@@ -55,5 +87,42 @@ export class ValidateController {
     @Body() dto: KillerSudokuCagesDto,
   ): KillerSudokuSolveResult {
     return this.validateService.solveKillerSudoku(dto.cages);
+  }
+
+  @Post("word-ladder")
+  @ApiOperation({
+    summary: "Validate a Word Ladder puzzle and find solution path",
+  })
+  validateWordLadder(
+    @Body() dto: WordLadderDto,
+  ): Promise<WordLadderValidationResult> {
+    return this.validateService.validateWordLadder(
+      dto.startWord,
+      dto.targetWord,
+      dto.wordLength,
+    );
+  }
+
+  @Post("number-target")
+  @ApiOperation({
+    summary: "Validate a Number Target puzzle and find solutions",
+  })
+  validateNumberTarget(
+    @Body() dto: NumberTargetDto,
+  ): NumberTargetValidationResult {
+    return this.validateService.validateNumberTarget(dto.numbers, dto.targets);
+  }
+
+  @Post("word-forge")
+  @ApiOperation({
+    summary: "Validate Word Forge letters and generate valid words",
+  })
+  validateWordForge(
+    @Body() dto: WordForgeDto,
+  ): Promise<WordForgeValidationResult> {
+    return this.validateService.validateWordForge(
+      dto.letters,
+      dto.centerLetter,
+    );
   }
 }

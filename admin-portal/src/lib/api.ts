@@ -193,6 +193,21 @@ export const validateApi = {
     api.post('/validate/killer-sudoku', { cages }),
   solveKillerSudoku: (cages: Cage[]) =>
     api.post('/validate/killer-sudoku/solve', { cages }),
+  validateWordLadder: (startWord: string, targetWord: string, wordLength: number) =>
+    api.post('/validate/word-ladder', { startWord, targetWord, wordLength }),
+  validateNumberTarget: (numbers: number[], targets: { target: number; difficulty: string }[]) =>
+    api.post('/validate/number-target', { numbers, targets }),
+  validateWordForge: (letters: string[], centerLetter: string) =>
+    api.post('/validate/word-forge', { letters, centerLetter }),
+}
+
+// AI
+export const aiApi = {
+  getStatus: () => api.get('/ai/status'),
+  generateCrosswordWords: (theme: string, count?: number, minLength?: number, maxLength?: number) =>
+    api.post('/ai/crossword-words', { theme, count, minLength, maxLength }),
+  generateConnections: (theme?: string) =>
+    api.post('/ai/connections', { theme }),
 }
 
 export default api

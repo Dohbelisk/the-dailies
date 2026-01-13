@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { DictionaryService } from "../dictionary/dictionary.service";
 
 export interface ValidationError {
   row: number;
@@ -37,8 +38,37 @@ export interface KillerSudokuSolveResult {
   error?: string;
 }
 
+// Word Ladder interfaces
+export interface WordLadderValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+  path?: string[];
+  minSteps?: number;
+}
+
+// Number Target interfaces
+export interface NumberTargetValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+  targetSolutions?: {
+    target: number;
+    expression: string;
+    reachable: boolean;
+  }[];
+}
+
+// Word Forge interfaces
+export interface WordForgeValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+  allWords?: string[];
+  pangrams?: string[];
+  maxScore?: number;
+}
+
 @Injectable()
 export class ValidateService {
+  constructor(private readonly dictionaryService: DictionaryService) {}
   /**
    * Validates a Sudoku puzzle and optionally returns its solution
    */
@@ -626,5 +656,493 @@ export class ValidateService {
 
     countSolutions(grid);
     return solutionCount === 1;
+  }
+
+  // ============================================
+  // Word Ladder Methods
+  // ============================================
+
+  /**
+   * Validates a Word Ladder puzzle and finds the shortest path
+   */
+  async validateWordLadder(
+    startWord: string,
+    targetWord: string,
+    wordLength: number,
+  ): Promise<WordLadderValidationResult> {
+    const errors: ValidationError[] = [];
+    const start = startWord.toUpperCase().trim();
+    const target = targetWord.toUpperCase().trim();
+
+    // Validate input
+    if (!start || start.length !== wordLength) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: `Start word must be exactly ${wordLength} letters`,
+      });
+    }
+
+    if (!target || target.length !== wordLength) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: `Target word must be exactly ${wordLength} letters`,
+      });
+    }
+
+    if (!/^[A-Z]+$/.test(start)) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: "Start word must contain only letters",
+      });
+    }
+
+    if (!/^[A-Z]+$/.test(target)) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: "Target word must contain only letters",
+      });
+    }
+
+    if (errors.length > 0) {
+      return { isValid: false, errors };
+    }
+
+    // Check if words exist in dictionary
+    const [startExists, targetExists] = await Promise.all([
+      this.dictionaryService.isValidWord(start),
+      this.dictionaryService.isValidWord(target),
+    ]);
+
+    if (!startExists) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: `"${start}" is not in the dictionary`,
+      });
+    }
+
+    if (!targetExists) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: `"${target}" is not in the dictionary`,
+      });
+    }
+
+    if (errors.length > 0) {
+      return { isValid: false, errors };
+    }
+
+    // Find shortest path using BFS
+    const path = await this.findWordLadderPath(start, target, wordLength);
+
+    if (!path) {
+      return {
+        isValid: false,
+        errors: [
+          {
+            row: -1,
+            col: -1,
+            message: `No valid path exists from "${start}" to "${target}"`,
+          },
+        ],
+      };
+    }
+
+    return {
+      isValid: true,
+      errors: [],
+      path,
+      minSteps: path.length - 1,
+    };
+  }
+
+  /**
+   * BFS to find shortest path between two words
+   */
+  private async findWordLadderPath(
+    start: string,
+    target: string,
+    wordLength: number,
+  ): Promise<string[] | null> {
+    if (start === target) return [start];
+
+    // Get all words of the correct length from dictionary
+    const allWords = await this.getAllWordsOfLength(wordLength);
+    const wordSet = new Set(allWords);
+
+    if (!wordSet.has(start) || !wordSet.has(target)) {
+      return null;
+    }
+
+    // BFS
+    const queue: { word: string; path: string[] }[] = [
+      { word: start, path: [start] },
+    ];
+    const visited = new Set<string>([start]);
+
+    while (queue.length > 0) {
+      const { word, path } = queue.shift()!;
+
+      // Try changing each letter
+      for (let i = 0; i < word.length; i++) {
+        for (let c = 65; c <= 90; c++) {
+          // A-Z
+          const newChar = String.fromCharCode(c);
+          if (newChar === word[i]) continue;
+
+          const newWord = word.slice(0, i) + newChar + word.slice(i + 1);
+
+          if (newWord === target) {
+            return [...path, newWord];
+          }
+
+          if (wordSet.has(newWord) && !visited.has(newWord)) {
+            visited.add(newWord);
+            queue.push({ word: newWord, path: [...path, newWord] });
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Get all words of a specific length from the dictionary
+   */
+  private async getAllWordsOfLength(length: number): Promise<string[]> {
+    // This queries the dictionary for words of the specified length
+    const result = await this.dictionaryService.findAll({
+      length,
+      limit: 100000, // Large limit to get all words
+    });
+    return result.words.map((w) => w.word);
+  }
+
+  // ============================================
+  // Number Target Methods
+  // ============================================
+
+  /**
+   * Validates a Number Target puzzle and finds solutions for each target
+   */
+  validateNumberTarget(
+    numbers: number[],
+    targets: { target: number; difficulty: string }[],
+  ): NumberTargetValidationResult {
+    const errors: ValidationError[] = [];
+
+    // Validate numbers
+    if (!numbers || numbers.length !== 4) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: "Exactly 4 numbers are required",
+      });
+      return { isValid: false, errors };
+    }
+
+    for (let i = 0; i < numbers.length; i++) {
+      if (!Number.isInteger(numbers[i]) || numbers[i] < 1 || numbers[i] > 100) {
+        errors.push({
+          row: -1,
+          col: -1,
+          message: `Number ${i + 1} must be an integer between 1 and 100`,
+        });
+      }
+    }
+
+    // Validate targets
+    if (!targets || targets.length === 0) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: "At least one target is required",
+      });
+      return { isValid: false, errors };
+    }
+
+    if (errors.length > 0) {
+      return { isValid: false, errors };
+    }
+
+    // Try to solve for each target
+    const targetSolutions: {
+      target: number;
+      expression: string;
+      reachable: boolean;
+    }[] = [];
+
+    for (const { target } of targets) {
+      const expression = this.findExpression(numbers, target);
+      targetSolutions.push({
+        target,
+        expression: expression || "",
+        reachable: !!expression,
+      });
+    }
+
+    const allReachable = targetSolutions.every((t) => t.reachable);
+
+    if (!allReachable) {
+      const unreachable = targetSolutions
+        .filter((t) => !t.reachable)
+        .map((t) => t.target);
+      errors.push({
+        row: -1,
+        col: -1,
+        message: `Target(s) ${unreachable.join(", ")} cannot be reached with the given numbers`,
+      });
+    }
+
+    return {
+      isValid: allReachable,
+      errors,
+      targetSolutions,
+    };
+  }
+
+  /**
+   * Find an expression that evaluates to the target using all 4 numbers
+   */
+  private findExpression(numbers: number[], target: number): string | null {
+    const ops = ["+", "-", "*", "/"];
+
+    // Generate all permutations of numbers
+    const perms = this.permutations(numbers);
+
+    for (const perm of perms) {
+      // Try all combinations of operators
+      for (const op1 of ops) {
+        for (const op2 of ops) {
+          for (const op3 of ops) {
+            // Try different parenthesizations
+            const expressions = [
+              // ((a op1 b) op2 c) op3 d
+              `((${perm[0]}${op1}${perm[1]})${op2}${perm[2]})${op3}${perm[3]}`,
+              // (a op1 (b op2 c)) op3 d
+              `(${perm[0]}${op1}(${perm[1]}${op2}${perm[2]}))${op3}${perm[3]}`,
+              // (a op1 b) op2 (c op3 d)
+              `(${perm[0]}${op1}${perm[1]})${op2}(${perm[2]}${op3}${perm[3]})`,
+              // a op1 ((b op2 c) op3 d)
+              `${perm[0]}${op1}((${perm[1]}${op2}${perm[2]})${op3}${perm[3]})`,
+              // a op1 (b op2 (c op3 d))
+              `${perm[0]}${op1}(${perm[1]}${op2}(${perm[2]}${op3}${perm[3]}))`,
+            ];
+
+            for (const expr of expressions) {
+              try {
+                // Safe evaluation
+                const result = this.evaluateExpression(expr);
+                if (Math.abs(result - target) < 0.0001) {
+                  return this.formatExpression(expr);
+                }
+              } catch {
+                // Invalid expression, continue
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Generate all permutations of an array
+   */
+  private permutations<T>(arr: T[]): T[][] {
+    if (arr.length <= 1) return [arr];
+
+    const result: T[][] = [];
+    for (let i = 0; i < arr.length; i++) {
+      const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+      const restPerms = this.permutations(rest);
+      for (const perm of restPerms) {
+        result.push([arr[i], ...perm]);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Safely evaluate a mathematical expression
+   */
+  private evaluateExpression(expr: string): number {
+    // Replace operators for evaluation
+    const sanitized = expr.replace(/\*/g, "*").replace(/\//g, "/");
+
+    // Simple recursive descent parser to avoid eval()
+    return this.parseExpression(sanitized);
+  }
+
+  private parseExpression(expr: string): number {
+    expr = expr.trim();
+
+    // Remove outer parentheses if present
+    if (expr.startsWith("(") && expr.endsWith(")")) {
+      let depth = 0;
+      let canRemove = true;
+      for (let i = 0; i < expr.length - 1; i++) {
+        if (expr[i] === "(") depth++;
+        if (expr[i] === ")") depth--;
+        if (depth === 0 && i < expr.length - 1) {
+          canRemove = false;
+          break;
+        }
+      }
+      if (canRemove) {
+        expr = expr.slice(1, -1).trim();
+      }
+    }
+
+    // Find the last + or - not inside parentheses
+    let depth = 0;
+    for (let i = expr.length - 1; i >= 0; i--) {
+      if (expr[i] === ")") depth++;
+      if (expr[i] === "(") depth--;
+      if (depth === 0 && (expr[i] === "+" || expr[i] === "-") && i > 0) {
+        const left = this.parseExpression(expr.slice(0, i));
+        const right = this.parseExpression(expr.slice(i + 1));
+        return expr[i] === "+" ? left + right : left - right;
+      }
+    }
+
+    // Find the last * or / not inside parentheses
+    depth = 0;
+    for (let i = expr.length - 1; i >= 0; i--) {
+      if (expr[i] === ")") depth++;
+      if (expr[i] === "(") depth--;
+      if (depth === 0 && (expr[i] === "*" || expr[i] === "/") && i > 0) {
+        const left = this.parseExpression(expr.slice(0, i));
+        const right = this.parseExpression(expr.slice(i + 1));
+        if (expr[i] === "/") {
+          if (right === 0) throw new Error("Division by zero");
+          return left / right;
+        }
+        return left * right;
+      }
+    }
+
+    // Must be a number
+    const num = parseFloat(expr);
+    if (isNaN(num)) throw new Error(`Invalid number: ${expr}`);
+    return num;
+  }
+
+  /**
+   * Format expression for display (replace * with × and / with ÷)
+   */
+  private formatExpression(expr: string): string {
+    return expr.replace(/\*/g, "×").replace(/\//g, "÷");
+  }
+
+  // ============================================
+  // Word Forge Methods
+  // ============================================
+
+  /**
+   * Validates Word Forge letters and generates all valid words
+   */
+  async validateWordForge(
+    letters: string[],
+    centerLetter: string,
+  ): Promise<WordForgeValidationResult> {
+    const errors: ValidationError[] = [];
+    const normalizedLetters = letters.map((l) => l.toUpperCase().trim());
+    const normalizedCenter = centerLetter.toUpperCase().trim();
+
+    // Validate letters
+    if (!normalizedLetters || normalizedLetters.length !== 7) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: "Exactly 7 letters are required",
+      });
+      return { isValid: false, errors };
+    }
+
+    // Check for duplicates
+    const letterSet = new Set(normalizedLetters);
+    if (letterSet.size !== 7) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: "All 7 letters must be unique",
+      });
+    }
+
+    // Validate all are letters
+    for (const letter of normalizedLetters) {
+      if (!/^[A-Z]$/.test(letter)) {
+        errors.push({
+          row: -1,
+          col: -1,
+          message: `"${letter}" is not a valid letter`,
+        });
+      }
+    }
+
+    // Validate center letter is one of the 7
+    if (!normalizedLetters.includes(normalizedCenter)) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: "Center letter must be one of the 7 selected letters",
+      });
+    }
+
+    if (errors.length > 0) {
+      return { isValid: false, errors };
+    }
+
+    // Find all valid words
+    const allWords = await this.dictionaryService.findValidWords(
+      normalizedLetters,
+      normalizedCenter,
+      4,
+    );
+
+    if (allWords.length < 10) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: `Only ${allWords.length} valid words found. Try different letters for a better puzzle.`,
+      });
+      return { isValid: false, errors, allWords };
+    }
+
+    // Identify pangrams (words using all 7 letters)
+    const pangrams = allWords.filter((word) =>
+      normalizedLetters.every((l) => word.includes(l)),
+    );
+
+    // Calculate max score
+    // 4-letter words = 1 point, 5+ letter words = word length, pangrams = word length + 7
+    let maxScore = 0;
+    for (const word of allWords) {
+      if (word.length === 4) {
+        maxScore += 1;
+      } else {
+        maxScore += word.length;
+      }
+      if (pangrams.includes(word)) {
+        maxScore += 7; // Pangram bonus
+      }
+    }
+
+    return {
+      isValid: true,
+      errors: [],
+      allWords,
+      pangrams,
+      maxScore,
+    };
   }
 }

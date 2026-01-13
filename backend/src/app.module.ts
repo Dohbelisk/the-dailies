@@ -13,6 +13,7 @@ import { AppConfigModule } from "./config/config.module";
 import { DictionaryModule } from "./dictionary/dictionary.module";
 import { GitHubModule } from "./github/github.module";
 import { NotificationsModule } from "./notifications/notifications.module";
+import { AiModule } from "./ai/ai.module";
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { NotificationsModule } from "./notifications/notifications.module";
     DictionaryModule,
     GitHubModule,
     NotificationsModule,
+    AiModule,
   ],
 })
 export class AppModule {}
