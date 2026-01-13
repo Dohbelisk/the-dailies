@@ -458,12 +458,15 @@ export class PuzzlesService {
     puzzleData: Record<string, any>,
     solution: Record<string, any>,
   ): { isValid: boolean; error?: string } {
-    const { grid } = puzzleData;
-    if (!grid || !Array.isArray(grid)) {
-      return { isValid: false, error: "Pipes missing grid" };
+    const { endpoints } = puzzleData;
+    if (!endpoints || !Array.isArray(endpoints)) {
+      return { isValid: false, error: "Pipes missing endpoints" };
     }
-    if (!solution?.grid) {
-      return { isValid: false, error: "Pipes missing solution" };
+    if (endpoints.length < 4) {
+      return { isValid: false, error: "Pipes needs at least 2 color pairs (4 endpoints)" };
+    }
+    if (!solution?.paths) {
+      return { isValid: false, error: "Pipes missing solution paths" };
     }
     return { isValid: true };
   }
