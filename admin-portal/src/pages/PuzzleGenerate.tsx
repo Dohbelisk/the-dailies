@@ -80,6 +80,8 @@ export default function PuzzleGenerate() {
         return api.post('/generate/word-ladder', { difficulty, date, title })
       } else if (gameType === 'connections') {
         return api.post('/generate/connections', { difficulty, date, title })
+      } else if (gameType === 'mathora') {
+        return api.post('/generate/mathora', { difficulty, date, title })
       }
     },
     onSuccess: () => {
@@ -184,6 +186,7 @@ export default function PuzzleGenerate() {
                   <option value="lightsOut">Lights Out</option>
                   <option value="wordLadder">Word Ladder</option>
                   <option value="connections">Connections</option>
+                  <option value="mathora">Mathora</option>
                 </select>
                 <p className="mt-1 text-sm text-gray-500">
                   {gameType === 'sudoku' && 'Generates a valid Sudoku puzzle with unique solution'}
@@ -198,6 +201,7 @@ export default function PuzzleGenerate() {
                   {gameType === 'lightsOut' && 'Toggle lights to turn them all off'}
                   {gameType === 'wordLadder' && 'Transform one word to another, one letter at a time'}
                   {gameType === 'connections' && 'Group 16 words into 4 categories'}
+                  {gameType === 'mathora' && 'Solve math equations to reach target numbers'}
                 </p>
               </div>
 

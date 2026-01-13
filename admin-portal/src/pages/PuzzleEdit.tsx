@@ -10,7 +10,7 @@ import { puzzlesApi } from '../lib/api'
 import PuzzleEditorWrapper from '../components/editors/PuzzleEditorWrapper'
 
 const puzzleSchema = z.object({
-  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch', 'wordForge', 'nonogram', 'numberTarget', 'ballSort', 'pipes', 'lightsOut', 'wordLadder', 'connections']),
+  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch', 'wordForge', 'nonogram', 'numberTarget', 'ballSort', 'pipes', 'lightsOut', 'wordLadder', 'connections', 'mathora']),
   difficulty: z.enum(['easy', 'medium', 'hard', 'expert']),
   date: z.string().min(1, 'Date is required'),
   title: z.string().optional(),
@@ -196,6 +196,7 @@ export default function PuzzleEdit() {
                 <option value="lightsOut">Lights Out</option>
                 <option value="wordLadder">Word Ladder</option>
                 <option value="connections">Connections</option>
+                <option value="mathora">Mathora</option>
               </select>
             </div>
 
