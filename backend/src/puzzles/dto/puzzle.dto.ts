@@ -57,7 +57,10 @@ export class CreatePuzzleDto {
   @IsOptional()
   isActive?: boolean;
 
-  @ApiPropertyOptional({ enum: PuzzleStatus, description: "Puzzle status (pending, active, inactive)" })
+  @ApiPropertyOptional({
+    enum: PuzzleStatus,
+    description: "Puzzle status (pending, active, inactive)",
+  })
   @IsEnum(PuzzleStatus)
   @IsOptional()
   status?: PuzzleStatus;

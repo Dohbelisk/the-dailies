@@ -18,7 +18,7 @@ interface WordSearchEditorProps {
     grid: string[][]
     words: WordSearchWord[]
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
 

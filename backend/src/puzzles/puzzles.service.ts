@@ -250,7 +250,10 @@ export class PuzzlesService {
       case GameType.SUDOKU: {
         const result = this.validateService.validateSudoku(puzzleData.grid);
         if (!result.isValid) {
-          return { isValid: false, error: `Sudoku validation failed: ${result.errors?.map((e) => e.message).join(", ")}` };
+          return {
+            isValid: false,
+            error: `Sudoku validation failed: ${result.errors?.map((e) => e.message).join(", ")}`,
+          };
         }
         if (!result.hasUniqueSolution) {
           return { isValid: false, error: "Sudoku has multiple solutions" };
@@ -263,10 +266,16 @@ export class PuzzlesService {
           puzzleData.cages,
         );
         if (!result.isValid) {
-          return { isValid: false, error: `Killer Sudoku validation failed: ${result.errors?.map((e) => e.message).join(", ")}` };
+          return {
+            isValid: false,
+            error: `Killer Sudoku validation failed: ${result.errors?.map((e) => e.message).join(", ")}`,
+          };
         }
         if (!result.hasUniqueSolution) {
-          return { isValid: false, error: "Killer Sudoku has multiple solutions" };
+          return {
+            isValid: false,
+            error: "Killer Sudoku has multiple solutions",
+          };
         }
         return { isValid: true };
       }
@@ -322,9 +331,10 @@ export class PuzzlesService {
 
   // Validation methods for each game type
 
-  private validateCrossword(
-    puzzleData: Record<string, any>,
-  ): { isValid: boolean; error?: string } {
+  private validateCrossword(puzzleData: Record<string, any>): {
+    isValid: boolean;
+    error?: string;
+  } {
     const { grid, clues } = puzzleData;
     if (!grid || !clues || !Array.isArray(clues)) {
       return { isValid: false, error: "Crossword missing grid or clues" };
@@ -332,15 +342,19 @@ export class PuzzlesService {
     // Check all clues have answers that fit in grid
     for (const clue of clues) {
       if (!clue.answer || clue.answer.length === 0) {
-        return { isValid: false, error: `Clue ${clue.number} ${clue.direction} has no answer` };
+        return {
+          isValid: false,
+          error: `Clue ${clue.number} ${clue.direction} has no answer`,
+        };
       }
     }
     return { isValid: true };
   }
 
-  private validateWordSearch(
-    puzzleData: Record<string, any>,
-  ): { isValid: boolean; error?: string } {
+  private validateWordSearch(puzzleData: Record<string, any>): {
+    isValid: boolean;
+    error?: string;
+  } {
     const { grid, words } = puzzleData;
     if (!grid || !words || !Array.isArray(words)) {
       return { isValid: false, error: "Word Search missing grid or words" };
@@ -363,10 +377,16 @@ export class PuzzlesService {
   ): { isValid: boolean; error?: string } {
     const { letters, centerLetter } = puzzleData;
     if (!letters || letters.length !== 7) {
-      return { isValid: false, error: "Word Forge must have exactly 7 letters" };
+      return {
+        isValid: false,
+        error: "Word Forge must have exactly 7 letters",
+      };
     }
     if (!centerLetter || !letters.includes(centerLetter)) {
-      return { isValid: false, error: "Word Forge center letter must be one of the 7 letters" };
+      return {
+        isValid: false,
+        error: "Word Forge center letter must be one of the 7 letters",
+      };
     }
     if (!solution?.allWords || solution.allWords.length === 0) {
       return { isValid: false, error: "Word Forge has no valid words" };
@@ -386,7 +406,10 @@ export class PuzzlesService {
       return { isValid: false, error: "Nonogram missing row or column clues" };
     }
     if (rowClues.length !== rows || colClues.length !== cols) {
-      return { isValid: false, error: "Nonogram clue count doesn't match grid size" };
+      return {
+        isValid: false,
+        error: "Nonogram clue count doesn't match grid size",
+      };
     }
     if (!solution?.grid) {
       return { isValid: false, error: "Nonogram missing solution grid" };
@@ -400,20 +423,27 @@ export class PuzzlesService {
   ): { isValid: boolean; error?: string } {
     const { numbers, target } = puzzleData;
     if (!numbers || numbers.length !== 4) {
-      return { isValid: false, error: "Number Target must have exactly 4 numbers" };
+      return {
+        isValid: false,
+        error: "Number Target must have exactly 4 numbers",
+      };
     }
     if (target === undefined || target === null) {
       return { isValid: false, error: "Number Target missing target value" };
     }
     if (!solution?.expression) {
-      return { isValid: false, error: "Number Target missing solution expression" };
+      return {
+        isValid: false,
+        error: "Number Target missing solution expression",
+      };
     }
     return { isValid: true };
   }
 
-  private validateBallSort(
-    puzzleData: Record<string, any>,
-  ): { isValid: boolean; error?: string } {
+  private validateBallSort(puzzleData: Record<string, any>): {
+    isValid: boolean;
+    error?: string;
+  } {
     const { tubes } = puzzleData;
     if (!tubes || !Array.isArray(tubes)) {
       return { isValid: false, error: "Ball Sort missing tubes" };
@@ -438,9 +468,10 @@ export class PuzzlesService {
     return { isValid: true };
   }
 
-  private validateLightsOut(
-    puzzleData: Record<string, any>,
-  ): { isValid: boolean; error?: string } {
+  private validateLightsOut(puzzleData: Record<string, any>): {
+    isValid: boolean;
+    error?: string;
+  } {
     const { initialState, rows, cols } = puzzleData;
     if (!initialState || !Array.isArray(initialState)) {
       return { isValid: false, error: "Lights Out missing initial state" };
@@ -457,38 +488,59 @@ export class PuzzlesService {
   ): { isValid: boolean; error?: string } {
     const { startWord, targetWord } = puzzleData;
     if (!startWord || !targetWord) {
-      return { isValid: false, error: "Word Ladder missing start or target word" };
+      return {
+        isValid: false,
+        error: "Word Ladder missing start or target word",
+      };
     }
     if (startWord.length !== targetWord.length) {
-      return { isValid: false, error: "Word Ladder start and target must be same length" };
+      return {
+        isValid: false,
+        error: "Word Ladder start and target must be same length",
+      };
     }
     if (!solution?.path || solution.path.length < 2) {
-      return { isValid: false, error: "Word Ladder missing valid solution path" };
+      return {
+        isValid: false,
+        error: "Word Ladder missing valid solution path",
+      };
     }
     return { isValid: true };
   }
 
-  private validateConnections(
-    puzzleData: Record<string, any>,
-  ): { isValid: boolean; error?: string } {
+  private validateConnections(puzzleData: Record<string, any>): {
+    isValid: boolean;
+    error?: string;
+  } {
     const { categories } = puzzleData;
     if (!categories || categories.length !== 4) {
-      return { isValid: false, error: "Connections must have exactly 4 categories" };
+      return {
+        isValid: false,
+        error: "Connections must have exactly 4 categories",
+      };
     }
     // Check each category has 4 words
     for (const cat of categories) {
       if (!cat.words || cat.words.length !== 4) {
-        return { isValid: false, error: `Category "${cat.name}" must have exactly 4 words` };
+        return {
+          isValid: false,
+          error: `Category "${cat.name}" must have exactly 4 words`,
+        };
       }
       if (!cat.name) {
         return { isValid: false, error: "Connections category missing name" };
       }
     }
     // Check for duplicate words across categories
-    const allWords = categories.flatMap((c: any) => c.words.map((w: string) => w.toUpperCase()));
+    const allWords = categories.flatMap((c: any) =>
+      c.words.map((w: string) => w.toUpperCase()),
+    );
     const uniqueWords = new Set(allWords);
     if (uniqueWords.size !== 16) {
-      return { isValid: false, error: "Connections has duplicate words across categories" };
+      return {
+        isValid: false,
+        error: "Connections has duplicate words across categories",
+      };
     }
     return { isValid: true };
   }

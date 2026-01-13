@@ -14,7 +14,7 @@ interface WordLadderEditorProps {
     path: string[]
     minSteps: number
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
 

@@ -41,7 +41,9 @@ async function migrate() {
     console.log(`Puzzles without status field: ${puzzlesWithoutStatus}`);
 
     if (puzzlesWithoutStatus === 0) {
-      console.log("\nAll puzzles already have status field. Nothing to migrate.");
+      console.log(
+        "\nAll puzzles already have status field. Nothing to migrate.",
+      );
       await mongoose.disconnect();
       return;
     }
@@ -53,14 +55,18 @@ async function migrate() {
       { isActive: true, status: { $exists: false } },
       { $set: { status: "active" } },
     );
-    console.log(`  - Set ${activeResult.modifiedCount} active puzzles to status: 'active'`);
+    console.log(
+      `  - Set ${activeResult.modifiedCount} active puzzles to status: 'active'`,
+    );
 
     // Migrate inactive puzzles to status: 'inactive'
     const inactiveResult = await Puzzle.updateMany(
       { isActive: false, status: { $exists: false } },
       { $set: { status: "inactive" } },
     );
-    console.log(`  - Set ${inactiveResult.modifiedCount} inactive puzzles to status: 'inactive'`);
+    console.log(
+      `  - Set ${inactiveResult.modifiedCount} inactive puzzles to status: 'inactive'`,
+    );
 
     // Handle any puzzles without isActive field (shouldn't happen, but just in case)
     const nullResult = await Puzzle.updateMany(
@@ -68,7 +74,9 @@ async function migrate() {
       { $set: { status: "active", isActive: true } },
     );
     if (nullResult.modifiedCount > 0) {
-      console.log(`  - Set ${nullResult.modifiedCount} puzzles without isActive to status: 'active'`);
+      console.log(
+        `  - Set ${nullResult.modifiedCount} puzzles without isActive to status: 'active'`,
+      );
     }
 
     // Verify migration

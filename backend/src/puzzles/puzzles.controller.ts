@@ -109,7 +109,10 @@ export class PuzzlesController {
   @Patch(":id/toggle-active")
   @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Toggle puzzle active status (Admin only) - DEPRECATED, use /status instead" })
+  @ApiOperation({
+    summary:
+      "Toggle puzzle active status (Admin only) - DEPRECATED, use /status instead",
+  })
   toggleActive(@Param("id") id: string) {
     return this.puzzlesService.toggleActive(id);
   }
@@ -117,13 +120,15 @@ export class PuzzlesController {
   @Patch(":id/status")
   @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Update puzzle status with validation (Admin only)" })
+  @ApiOperation({
+    summary: "Update puzzle status with validation (Admin only)",
+  })
   @ApiResponse({ status: 200, description: "Status updated successfully" })
-  @ApiResponse({ status: 400, description: "Validation failed - puzzle cannot be activated" })
-  updateStatus(
-    @Param("id") id: string,
-    @Body() dto: UpdatePuzzleStatusDto,
-  ) {
+  @ApiResponse({
+    status: 400,
+    description: "Validation failed - puzzle cannot be activated",
+  })
+  updateStatus(@Param("id") id: string, @Body() dto: UpdatePuzzleStatusDto) {
     return this.puzzlesService.updateStatus(id, dto.status);
   }
 
