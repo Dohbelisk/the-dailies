@@ -318,11 +318,13 @@ export class KillerSudokuGenerator {
     cages: Array<{ sum: number; cells: number[][] }>,
   ): void {
     // Number of givens based on difficulty
+    // Expert: no givens (pure Killer Sudoku challenge)
+    // Hard: minimal givens (2-5)
     const givensCount = {
       easy: { min: 10, max: 14 },
       medium: { min: 6, max: 9 },
-      hard: { min: 3, max: 5 },
-      expert: { min: 0, max: 2 },
+      hard: { min: 2, max: 5 },
+      expert: { min: 0, max: 0 },
     }[difficulty];
 
     const targetGivens =
