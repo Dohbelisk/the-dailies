@@ -29,6 +29,7 @@ export default function PuzzleCreate() {
   const [jsonError, setJsonError] = useState('')
   const [editorMode, setEditorMode] = useState<EditorMode>('visual')
   const [visualPuzzleData, setVisualPuzzleData] = useState<any>(null)
+  const [isPuzzleValid, setIsPuzzleValid] = useState(false)
 
   const {
     register,
@@ -59,8 +60,9 @@ export default function PuzzleCreate() {
     },
   })
 
-  const handleVisualDataChange = useCallback((data: any) => {
+  const handleVisualDataChange = useCallback((data: any, _solution: any, isValid?: boolean) => {
     setVisualPuzzleData(data)
+    setIsPuzzleValid(isValid ?? false)
   }, [])
 
   const onSubmit = (data: PuzzleFormData) => {
@@ -518,8 +520,9 @@ export default function PuzzleCreate() {
           </button>
           <button
             type="submit"
-            disabled={createMutation.isPending}
+            disabled={createMutation.isPending || (editorMode === 'visual' && !isPuzzleValid)}
             className="btn btn-primary"
+            title={editorMode === 'visual' && !isPuzzleValid ? 'Validate the puzzle before saving' : undefined}
           >
             {createMutation.isPending ? (
               <>

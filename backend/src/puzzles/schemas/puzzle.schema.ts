@@ -27,6 +27,12 @@ export enum Difficulty {
   EXPERT = "expert",
 }
 
+export enum PuzzleStatus {
+  PENDING = "pending",
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+}
+
 @Schema({ timestamps: true })
 export class Puzzle {
   @ApiProperty({ enum: GameType })
@@ -53,9 +59,13 @@ export class Puzzle {
   @Prop()
   targetTime: number;
 
-  @ApiProperty({ description: "Whether the puzzle is active/published" })
+  @ApiProperty({ description: "Whether the puzzle is active/published (deprecated, use status)" })
   @Prop({ default: true })
   isActive: boolean;
+
+  @ApiProperty({ enum: PuzzleStatus, description: "Puzzle status: pending, active, or inactive" })
+  @Prop({ enum: PuzzleStatus, default: PuzzleStatus.PENDING })
+  status: PuzzleStatus;
 
   @ApiProperty({ description: "Optional title for the puzzle" })
   @Prop()
@@ -72,3 +82,5 @@ export const PuzzleSchema = SchemaFactory.createForClass(Puzzle);
 PuzzleSchema.index({ gameType: 1, date: -1 });
 PuzzleSchema.index({ date: 1 });
 PuzzleSchema.index({ gameType: 1, isActive: 1 });
+PuzzleSchema.index({ gameType: 1, status: 1 });
+PuzzleSchema.index({ status: 1, date: -1 });
