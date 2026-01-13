@@ -18,7 +18,7 @@ interface WordSearchEditorProps {
     grid: string[][]
     words: WordSearchWord[]
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
 
@@ -140,7 +140,8 @@ export function WordSearchEditor({
     if (onChange && validationResult?.isValid) {
       onChange(
         { rows, cols, theme, grid, words },
-        { words }
+        { words },
+        true
       )
     }
   }, [rows, cols, theme, grid, words, onChange, validationResult])

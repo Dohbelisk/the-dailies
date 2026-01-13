@@ -9,7 +9,7 @@ import ValidationStatus from './shared/ValidationStatus'
 interface SudokuEditorProps {
   initialGrid?: number[][]
   initialSolution?: number[][]
-  onChange?: (grid: number[][], solution: number[][]) => void
+  onChange?: (grid: number[][], solution: number[][], isValid?: boolean) => void
   className?: string
 }
 
@@ -52,8 +52,8 @@ export function SudokuEditor({
 
   // Notify parent of changes
   useEffect(() => {
-    onChange?.(grid, solution)
-  }, [grid, solution, onChange])
+    onChange?.(grid, solution, validationResult?.isValid && validationResult?.hasUniqueSolution)
+  }, [grid, solution, onChange, validationResult])
 
   const validateMutation = useMutation({
     mutationFn: (g: number[][]) => validateApi.validateSudoku(g),

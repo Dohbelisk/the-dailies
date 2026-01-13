@@ -18,7 +18,7 @@ interface MathoraEditorProps {
   initialSolution?: {
     steps: MathoraOperation[]
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
 
@@ -180,7 +180,8 @@ export function MathoraEditor({
     if (onChange && validationResult?.isValid) {
       onChange(
         { startNumber, targetNumber, moves, operations },
-        { steps: solutionSteps }
+        { steps: solutionSteps },
+        true
       )
     }
   }, [startNumber, targetNumber, moves, operations, solutionSteps, onChange, validationResult])

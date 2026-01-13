@@ -446,9 +446,21 @@ export function CrosswordEditor({
     if (errors.length > 0) {
       setValidationResult({ isValid: false, hasUniqueSolution: false, errors })
     } else {
+      // Mark empty cells as blocked ('#') on successful validation
+      setGrid(prevGrid => {
+        const newGrid = prevGrid.map(row => [...row])
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (newGrid[r][c] === '') {
+              newGrid[r][c] = '#'
+            }
+          }
+        }
+        return newGrid
+      })
       setValidationResult({ isValid: true, hasUniqueSolution: true, errors: [] })
     }
-  }, [clues])
+  }, [clues, rows, cols])
 
   // Separate clues by direction
   const acrossClues = useMemo(() =>

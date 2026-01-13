@@ -15,7 +15,7 @@ interface WordForgeEditorProps {
     pangrams: string[]
     maxScore: number
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
 
@@ -47,7 +47,8 @@ export function WordForgeEditor({
     if (onChange && validationResult?.isValid && solution) {
       onChange(
         { letters, centerLetter },
-        solution
+        solution,
+        true
       )
     }
   }, [letters, centerLetter, solution, onChange, validationResult])

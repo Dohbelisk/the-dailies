@@ -10,7 +10,7 @@ interface ConnectionsEditorProps {
     words: string[]
     categories: CategoryGroup[]
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
 
@@ -81,7 +81,8 @@ export function ConnectionsEditor({
     if (onChange && validationResult?.isValid) {
       onChange(
         { words: shuffledWords, categories },
-        { categories }
+        { categories },
+        true
       )
     }
   }, [shuffledWords, categories, onChange, validationResult])

@@ -59,11 +59,17 @@ export class Puzzle {
   @Prop()
   targetTime: number;
 
-  @ApiProperty({ description: "Whether the puzzle is active/published (deprecated, use status)" })
+  @ApiProperty({
+    description:
+      "Whether the puzzle is active/published (deprecated, use status)",
+  })
   @Prop({ default: true })
   isActive: boolean;
 
-  @ApiProperty({ enum: PuzzleStatus, description: "Puzzle status: pending, active, or inactive" })
+  @ApiProperty({
+    enum: PuzzleStatus,
+    description: "Puzzle status: pending, active, or inactive",
+  })
   @Prop({ enum: PuzzleStatus, default: PuzzleStatus.PENDING })
   status: PuzzleStatus;
 

@@ -13,7 +13,7 @@ interface LightsOutEditorProps {
     moves: { row: number; col: number }[]
     minMoves: number
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
 
@@ -201,10 +201,11 @@ export function LightsOutEditor({
     if (onChange) {
       onChange(
         { rows: size, cols: size, initialState: grid },
-        solution
+        solution,
+        validationResult?.isValid ?? false
       )
     }
-  }, [grid, solution, size, onChange])
+  }, [grid, solution, size, onChange, validationResult])
 
   const handleToggle = useCallback((row: number, col: number) => {
     // In editor mode, just toggle the single cell (not neighbors)

@@ -12,7 +12,7 @@ interface NonogramEditorProps {
   initialSolution?: {
     grid: number[][]
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
 
@@ -115,7 +115,8 @@ export function NonogramEditor({
     if (onChange && validationResult?.isValid) {
       onChange(
         { rows, cols, rowClues, colClues },
-        { grid }
+        { grid },
+        true
       )
     }
   }, [rows, cols, rowClues, colClues, grid, onChange, validationResult])

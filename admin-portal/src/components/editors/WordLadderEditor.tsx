@@ -14,7 +14,7 @@ interface WordLadderEditorProps {
     path: string[]
     minSteps: number
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
 
@@ -48,7 +48,8 @@ export function WordLadderEditor({
     if (onChange && validationResult?.isValid && solution) {
       onChange(
         { startWord: startWord.toUpperCase(), targetWord: targetWord.toUpperCase(), wordLength },
-        solution
+        solution,
+        true
       )
     }
   }, [startWord, targetWord, wordLength, solution, onChange, validationResult])

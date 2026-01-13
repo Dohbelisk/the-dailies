@@ -13,7 +13,7 @@ interface BallSortEditorProps {
     moves: { from: number; to: number }[]
     minMoves: number
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
 
@@ -100,7 +100,8 @@ export function BallSortEditor({
           tubeCapacity,
           initialState: tubes,
         },
-        { moves: [], minMoves: 0 } // TODO: Could add solver
+        { moves: [], minMoves: 0 }, // TODO: Could add solver
+        true
       )
     }
   }, [tubes, numColors, tubeCapacity, numTubes, onChange, validationResult])
