@@ -22,7 +22,7 @@ import {
   PuzzleQueryDto,
   UpdatePuzzleStatusDto,
 } from "./dto/puzzle.dto";
-import { GameType, PuzzleStatus } from "./schemas/puzzle.schema";
+import { GameType } from "./schemas/puzzle.schema";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminGuard } from "../auth/guards/admin.guard";
 

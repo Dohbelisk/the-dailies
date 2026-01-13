@@ -109,17 +109,6 @@ export default function PuzzleList() {
     },
   })
 
-  const toggleActiveMutation = useMutation({
-    mutationFn: (id: string) => puzzlesApi.toggleActive(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['puzzles'] })
-      toast.success('Puzzle updated')
-    },
-    onError: () => {
-      toast.error('Failed to update puzzle')
-    },
-  })
-
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: PuzzleStatus }) =>
       puzzlesApi.updateStatus(id, status),

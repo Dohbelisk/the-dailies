@@ -471,7 +471,7 @@ export class PuzzlesService {
   private validateConnections(
     puzzleData: Record<string, any>,
   ): { isValid: boolean; error?: string } {
-    const { categories, words } = puzzleData;
+    const { categories } = puzzleData;
     if (!categories || categories.length !== 4) {
       return { isValid: false, error: "Connections must have exactly 4 categories" };
     }
