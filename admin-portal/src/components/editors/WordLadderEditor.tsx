@@ -48,7 +48,8 @@ export function WordLadderEditor({
     if (onChange && validationResult?.isValid && solution) {
       onChange(
         { startWord: startWord.toUpperCase(), targetWord: targetWord.toUpperCase(), wordLength },
-        solution
+        solution,
+        true
       )
     }
   }, [startWord, targetWord, wordLength, solution, onChange, validationResult])

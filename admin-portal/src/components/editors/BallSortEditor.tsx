@@ -100,7 +100,8 @@ export function BallSortEditor({
           tubeCapacity,
           initialState: tubes,
         },
-        { moves: [], minMoves: 0 } // TODO: Could add solver
+        { moves: [], minMoves: 0 }, // TODO: Could add solver
+        true
       )
     }
   }, [tubes, numColors, tubeCapacity, numTubes, onChange, validationResult])

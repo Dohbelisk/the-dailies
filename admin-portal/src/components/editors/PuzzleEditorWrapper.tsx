@@ -27,12 +27,12 @@ export default function PuzzleEditorWrapper({
   onChange,
   className,
 }: PuzzleEditorWrapperProps) {
-  const handleSudokuChange = (grid: number[][], sol: number[][]) => {
-    onChange?.({ grid }, { grid: sol })
+  const handleSudokuChange = (grid: number[][], sol: number[][], isValid?: boolean) => {
+    onChange?.({ grid }, { grid: sol }, isValid)
   }
 
-  const handleKillerSudokuChange = (data: { grid: number[][]; solution: number[][]; cages: unknown }) => {
-    onChange?.({ cages: data.cages, grid: data.grid }, { grid: data.solution })
+  const handleKillerSudokuChange = (data: { grid: number[][]; solution: number[][]; cages: unknown; isValid?: boolean }) => {
+    onChange?.({ cages: data.cages, grid: data.grid }, { grid: data.solution }, data.isValid)
   }
 
   const handleGenericChange = (data: unknown, sol: unknown, isValid?: boolean) => {

@@ -12,7 +12,7 @@ interface NumberTargetEditorProps {
   initialSolution?: {
     targetSolutions: { target: number; expression: string }[]
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
 
@@ -65,7 +65,8 @@ export function NumberTargetEditor({
 
       onChange(
         { numbers: validNumbers, targets: validTargets },
-        { targetSolutions: solution }
+        { targetSolutions: solution },
+        true
       )
     }
   }, [numbers, targets, solution, onChange, validationResult])
