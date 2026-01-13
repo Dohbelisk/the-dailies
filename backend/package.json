@@ -20,7 +20,8 @@
     "seed:range": "ts-node src/seeds/seed-date-range.ts",
     "seed:dictionary": "ts-node src/seeds/seed-dictionary.ts",
     "seed:dictionary-clues": "ts-node src/seeds/seed-dictionary-clues.ts",
-    "seed:spelling-bee": "ts-node src/seeds/seed-spelling-bee-dictionary.ts"
+    "seed:spelling-bee": "ts-node src/seeds/seed-spelling-bee-dictionary.ts",
+    "migrate:puzzle-status": "ts-node src/seeds/migrate-puzzle-status.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",

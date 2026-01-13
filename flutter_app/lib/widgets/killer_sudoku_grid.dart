@@ -207,21 +207,21 @@ class KillerSudokuGrid extends StatelessWidget {
 
             return Stack(
               children: [
-                // Cage sum indicator
+                // Cage sum indicator - smaller with slight negative margin
                 if (showCageSum)
                   Positioned(
-                    top: 0,
-                    left: 2,
+                    top: -2,
+                    left: 1,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0),
+                      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.secondary.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(3),
+                        color: theme.colorScheme.secondary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                       child: Text(
                         '$cageSum',
                         style: TextStyle(
-                          fontSize: cageSumFontSize,
+                          fontSize: cageSumFontSize * 0.85,
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.secondary,
                         ),
@@ -260,12 +260,13 @@ class KillerSudokuGrid extends StatelessWidget {
     final theme = Theme.of(context);
 
     // Build a compact 3x3 grid of notes that scales with the cell
+    // Smaller size with padding to avoid overlapping cage sums
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Use available space to calculate note size
+        // Use available space to calculate note size - smaller to leave room for cage sum
         final cellSize = constraints.maxWidth.clamp(30.0, 80.0);
-        final noteSize = cellSize / 3.2;
-        final fontSize = (noteSize * 0.75).clamp(8.0, 14.0);
+        final noteSize = cellSize / 3.8; // Smaller divisor = smaller notes
+        final fontSize = (noteSize * 0.7).clamp(6.0, 11.0); // Smaller font
 
         final textStyle = TextStyle(
           fontSize: fontSize,
@@ -284,15 +285,19 @@ class KillerSudokuGrid extends StatelessWidget {
           );
         }
 
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(mainAxisSize: MainAxisSize.min, children: [noteCell(1), noteCell(2), noteCell(3)]),
-              Row(mainAxisSize: MainAxisSize.min, children: [noteCell(4), noteCell(5), noteCell(6)]),
-              Row(mainAxisSize: MainAxisSize.min, children: [noteCell(7), noteCell(8), noteCell(9)]),
-            ],
+        return Padding(
+          // Add padding to push notes toward center, leaving room for cage sum in top-left
+          padding: const EdgeInsets.only(top: 4, left: 2),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(mainAxisSize: MainAxisSize.min, children: [noteCell(1), noteCell(2), noteCell(3)]),
+                Row(mainAxisSize: MainAxisSize.min, children: [noteCell(4), noteCell(5), noteCell(6)]),
+                Row(mainAxisSize: MainAxisSize.min, children: [noteCell(7), noteCell(8), noteCell(9)]),
+              ],
+            ),
           ),
         );
       },

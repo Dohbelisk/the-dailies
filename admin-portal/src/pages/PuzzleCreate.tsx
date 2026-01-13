@@ -10,7 +10,7 @@ import { puzzlesApi } from '../lib/api'
 import PuzzleEditorWrapper from '../components/editors/PuzzleEditorWrapper'
 
 const puzzleSchema = z.object({
-  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch', 'wordForge', 'nonogram', 'numberTarget', 'ballSort', 'pipes', 'lightsOut', 'wordLadder', 'connections']),
+  gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch', 'wordForge', 'nonogram', 'numberTarget', 'ballSort', 'pipes', 'lightsOut', 'wordLadder', 'connections', 'mathora']),
   difficulty: z.enum(['easy', 'medium', 'hard', 'expert']),
   date: z.string().min(1, 'Date is required'),
   title: z.string().optional(),
@@ -29,6 +29,7 @@ export default function PuzzleCreate() {
   const [jsonError, setJsonError] = useState('')
   const [editorMode, setEditorMode] = useState<EditorMode>('visual')
   const [visualPuzzleData, setVisualPuzzleData] = useState<any>(null)
+  const [isPuzzleValid, setIsPuzzleValid] = useState(false)
 
   const {
     register,
@@ -59,8 +60,9 @@ export default function PuzzleCreate() {
     },
   })
 
-  const handleVisualDataChange = useCallback((data: any) => {
+  const handleVisualDataChange = useCallback((data: any, _solution: any, isValid?: boolean) => {
     setVisualPuzzleData(data)
+    setIsPuzzleValid(isValid ?? false)
   }, [])
 
   const onSubmit = (data: PuzzleFormData) => {
@@ -293,6 +295,7 @@ export default function PuzzleCreate() {
                 <option value="lightsOut">Lights Out</option>
                 <option value="wordLadder">Word Ladder</option>
                 <option value="connections">Connections</option>
+                <option value="mathora">Mathora</option>
               </select>
             </div>
 
@@ -517,8 +520,9 @@ export default function PuzzleCreate() {
           </button>
           <button
             type="submit"
-            disabled={createMutation.isPending}
+            disabled={createMutation.isPending || (editorMode === 'visual' && !isPuzzleValid)}
             className="btn btn-primary"
+            title={editorMode === 'visual' && !isPuzzleValid ? 'Validate the puzzle before saving' : undefined}
           >
             {createMutation.isPending ? (
               <>

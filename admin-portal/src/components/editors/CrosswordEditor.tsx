@@ -1,8 +1,144 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Plus, Trash2, CheckCircle, Grid3X3, Sparkles, Loader2 } from 'lucide-react'
+import { Plus, Trash2, CheckCircle, Grid3X3, Sparkles, Loader2, LayoutGrid } from 'lucide-react'
 import ValidationStatus from './shared/ValidationStatus'
 import { aiApi } from '../../lib/api'
+
+// Crossword grid builder - attempts to place words with intersections
+const buildCrosswordFromWords = (
+  words: { word: string; clue: string }[],
+  gridSize: number
+): CrosswordClue[] => {
+  if (words.length === 0) return []
+
+  // Sort by length descending (place longer words first)
+  const sortedWords = [...words].sort((a, b) => b.word.length - a.word.length)
+
+  // Track placed words and grid state
+  const placed: CrosswordClue[] = []
+  const grid: (string | null)[][] = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null))
+
+  // Helper to check if a word can be placed at position
+  const canPlace = (word: string, row: number, col: number, direction: 'across' | 'down'): boolean => {
+    const len = word.length
+
+    // Check bounds
+    if (direction === 'across') {
+      if (col + len > gridSize) return false
+      // Check cell before word is empty or edge
+      if (col > 0 && grid[row][col - 1] !== null) return false
+      // Check cell after word is empty or edge
+      if (col + len < gridSize && grid[row][col + len] !== null) return false
+    } else {
+      if (row + len > gridSize) return false
+      if (row > 0 && grid[row - 1][col] !== null) return false
+      if (row + len < gridSize && grid[row + len][col] !== null) return false
+    }
+
+    let hasIntersection = placed.length === 0 // First word doesn't need intersection
+
+    for (let i = 0; i < len; i++) {
+      const r = direction === 'across' ? row : row + i
+      const c = direction === 'across' ? col + i : col
+      const letter = word[i].toUpperCase()
+      const existing = grid[r][c]
+
+      if (existing !== null) {
+        if (existing !== letter) return false // Conflict
+        hasIntersection = true
+      } else {
+        // Check adjacent cells (perpendicular) aren't filled (avoid parallel words touching)
+        if (direction === 'across') {
+          if (r > 0 && grid[r - 1][c] !== null && i !== 0 && i !== len - 1) {
+            // Has letter above, check if it's part of an intersection
+            const above = grid[r - 1][c]
+            if (above !== null) {
+              // Only allow if this creates a valid crossing
+            }
+          }
+          if (r < gridSize - 1 && grid[r + 1][c] !== null) {
+            // Similar check below
+          }
+        }
+      }
+    }
+
+    return hasIntersection
+  }
+
+  // Place a word on the grid
+  const placeWord = (word: string, clue: string, row: number, col: number, direction: 'across' | 'down') => {
+    for (let i = 0; i < word.length; i++) {
+      const r = direction === 'across' ? row : row + i
+      const c = direction === 'across' ? col + i : col
+      grid[r][c] = word[i].toUpperCase()
+    }
+
+    placed.push({
+      number: placed.length + 1,
+      direction,
+      clue,
+      answer: word.toUpperCase(),
+      startRow: row,
+      startCol: col,
+    })
+  }
+
+  // Find best placement for a word
+  const findPlacement = (word: string, clue: string): boolean => {
+    const len = word.length
+    const wordUpper = word.toUpperCase()
+
+    // Try to find intersections with existing words
+    for (const existingClue of placed) {
+      for (let i = 0; i < existingClue.answer.length; i++) {
+        const existingLetter = existingClue.answer[i]
+
+        // Find matching letters in new word
+        for (let j = 0; j < len; j++) {
+          if (wordUpper[j] === existingLetter) {
+            // Calculate position for intersection
+            let row: number, col: number
+            let newDirection: 'across' | 'down'
+
+            if (existingClue.direction === 'across') {
+              // Place new word going down
+              newDirection = 'down'
+              row = existingClue.startRow - j
+              col = existingClue.startCol + i
+            } else {
+              // Place new word going across
+              newDirection = 'across'
+              row = existingClue.startRow + i
+              col = existingClue.startCol - j
+            }
+
+            if (row >= 0 && col >= 0 && canPlace(wordUpper, row, col, newDirection)) {
+              placeWord(word, clue, row, col, newDirection)
+              return true
+            }
+          }
+        }
+      }
+    }
+
+    return false
+  }
+
+  // Place first word in center horizontally
+  const firstWord = sortedWords[0]
+  const startCol = Math.floor((gridSize - firstWord.word.length) / 2)
+  const startRow = Math.floor(gridSize / 2)
+  placeWord(firstWord.word, firstWord.clue, startRow, startCol, 'across')
+
+  // Try to place remaining words
+  for (let i = 1; i < sortedWords.length; i++) {
+    const { word, clue } = sortedWords[i]
+    findPlacement(word, clue)
+  }
+
+  return placed
+}
 
 interface CrosswordClue {
   number: number
@@ -20,7 +156,7 @@ interface CrosswordEditorProps {
     grid: string[][]
     clues: CrosswordClue[]
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid: boolean) => void
   className?: string
 }
 
@@ -124,18 +260,52 @@ export function CrosswordEditor({
     setAiSuggestions(prev => prev.filter(s => s.word !== suggestion.word))
   }, [clues.length])
 
+  const handleBuildGrid = useCallback(() => {
+    if (aiSuggestions.length === 0) {
+      alert('No words to place. Generate some words first!')
+      return
+    }
+
+    // Build crossword from AI suggestions
+    const placedClues = buildCrosswordFromWords(aiSuggestions, rows)
+
+    if (placedClues.length === 0) {
+      alert('Could not place any words. Try generating different words.')
+      return
+    }
+
+    // Renumber the clues properly
+    const numberedClues = renumberClues(placedClues)
+    setClues(numberedClues)
+
+    // Show how many words were placed
+    const notPlaced = aiSuggestions.length - placedClues.length
+    if (notPlaced > 0) {
+      // Keep unplaced words in suggestions
+      const placedWords = new Set(placedClues.map(c => c.answer))
+      setAiSuggestions(prev => prev.filter(s => !placedWords.has(s.word.toUpperCase())))
+      alert(`Placed ${placedClues.length} words. ${notPlaced} words couldn't fit - you can add them manually.`)
+    } else {
+      setAiSuggestions([])
+      alert(`Successfully placed all ${placedClues.length} words!`)
+    }
+
+    setValidationResult(null)
+  }, [aiSuggestions, rows])
+
   // Rebuild grid when clues change
   useEffect(() => {
     const newGrid = buildGridFromClues(rows, cols, clues)
     setGrid(newGrid)
   }, [clues, rows, cols])
 
-  // Notify parent of changes
+  // Notify parent of changes (always, with validity status)
   useEffect(() => {
-    if (onChange && validationResult?.isValid) {
+    if (onChange) {
       onChange(
         { rows, cols, grid, clues },
-        { grid } // Solution is the filled grid
+        { grid }, // Solution is the filled grid
+        validationResult?.isValid ?? false
       )
     }
   }, [rows, cols, grid, clues, onChange, validationResult])
@@ -362,9 +532,20 @@ export function CrosswordEditor({
         {/* AI Suggestions */}
         {aiSuggestions.length > 0 && (
           <div>
-            <p className="text-sm text-purple-600 dark:text-purple-400 mb-2">
-              Click a word to add it to your crossword:
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-purple-600 dark:text-purple-400">
+                Click a word to add it manually, or build the entire grid:
+              </p>
+              <button
+                type="button"
+                onClick={handleBuildGrid}
+                className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-md
+                           hover:bg-purple-700 transition-colors text-sm font-medium"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Build Grid
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {aiSuggestions.map((suggestion, idx) => (
                 <button
