@@ -20,8 +20,9 @@ import {
   CreatePuzzleDto,
   UpdatePuzzleDto,
   PuzzleQueryDto,
+  UpdatePuzzleStatusDto,
 } from "./dto/puzzle.dto";
-import { GameType } from "./schemas/puzzle.schema";
+import { GameType, PuzzleStatus } from "./schemas/puzzle.schema";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminGuard } from "../auth/guards/admin.guard";
 
@@ -108,9 +109,22 @@ export class PuzzlesController {
   @Patch(":id/toggle-active")
   @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Toggle puzzle active status (Admin only)" })
+  @ApiOperation({ summary: "Toggle puzzle active status (Admin only) - DEPRECATED, use /status instead" })
   toggleActive(@Param("id") id: string) {
     return this.puzzlesService.toggleActive(id);
+  }
+
+  @Patch(":id/status")
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Update puzzle status with validation (Admin only)" })
+  @ApiResponse({ status: 200, description: "Status updated successfully" })
+  @ApiResponse({ status: 400, description: "Validation failed - puzzle cannot be activated" })
+  updateStatus(
+    @Param("id") id: string,
+    @Body() dto: UpdatePuzzleStatusDto,
+  ) {
+    return this.puzzlesService.updateStatus(id, dto.status);
   }
 
   @Delete(":id")

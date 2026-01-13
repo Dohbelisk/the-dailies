@@ -27,7 +27,7 @@ import {
   X,
   Calculator,
 } from 'lucide-react'
-import { puzzlesApi } from '../lib/api'
+import { puzzlesApi, PuzzleStatus } from '../lib/api'
 
 const gameTypeIcons: Record<string, typeof Grid3X3> = {
   sudoku: Grid3X3,
@@ -120,6 +120,18 @@ export default function PuzzleList() {
     },
   })
 
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: PuzzleStatus }) =>
+      puzzlesApi.updateStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['puzzles'] })
+      toast.success('Puzzle status updated')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to update puzzle status')
+    },
+  })
+
   const filteredPuzzles = puzzles?.filter((puzzle: any) => {
     // Search filter
     if (searchQuery) {
@@ -136,10 +148,10 @@ export default function PuzzleList() {
       return false
     }
 
-    // Status filter
+    // Status filter - check both new status field and legacy isActive
     if (statusFilter) {
-      const isActive = statusFilter === 'active'
-      if (puzzle.isActive !== isActive) return false
+      const puzzleStatus = puzzle.status || (puzzle.isActive ? 'active' : 'inactive')
+      if (puzzleStatus !== statusFilter) return false
     }
 
     // Date range filter
@@ -232,6 +244,7 @@ export default function PuzzleList() {
               className="input w-auto"
             >
               <option value="">All Status</option>
+              <option value="pending">Pending</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
@@ -385,15 +398,26 @@ export default function PuzzleList() {
                         {format(new Date(puzzle.date), 'MMM d, yyyy')}
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            puzzle.isActive
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                          }`}
-                        >
-                          {puzzle.isActive ? 'Active' : 'Inactive'}
-                        </span>
+                        {(() => {
+                          const status = puzzle.status || (puzzle.isActive ? 'active' : 'inactive')
+                          const statusColors: Record<string, string> = {
+                            pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                            active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                            inactive: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+                          }
+                          const statusLabels: Record<string, string> = {
+                            pending: 'Pending',
+                            active: 'Active',
+                            inactive: 'Inactive',
+                          }
+                          return (
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusColors[status] || statusColors.inactive}`}
+                            >
+                              {statusLabels[status] || status}
+                            </span>
+                          )
+                        })()}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="relative inline-block">
@@ -422,25 +446,36 @@ export default function PuzzleList() {
                                   <Edit className="w-4 h-4" />
                                   Edit
                                 </Link>
-                                <button
-                                  onClick={() => {
-                                    toggleActiveMutation.mutate(puzzle._id)
-                                    setActiveMenu(null)
-                                  }}
-                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                >
-                                  {puzzle.isActive ? (
-                                    <>
-                                      <EyeOff className="w-4 h-4" />
-                                      Deactivate
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Eye className="w-4 h-4" />
-                                      Activate
-                                    </>
-                                  )}
-                                </button>
+                                {(() => {
+                                  const status = puzzle.status || (puzzle.isActive ? 'active' : 'inactive')
+                                  if (status === 'active') {
+                                    return (
+                                      <button
+                                        onClick={() => {
+                                          updateStatusMutation.mutate({ id: puzzle._id, status: 'inactive' })
+                                          setActiveMenu(null)
+                                        }}
+                                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      >
+                                        <EyeOff className="w-4 h-4" />
+                                        Deactivate
+                                      </button>
+                                    )
+                                  } else {
+                                    return (
+                                      <button
+                                        onClick={() => {
+                                          updateStatusMutation.mutate({ id: puzzle._id, status: 'active' })
+                                          setActiveMenu(null)
+                                        }}
+                                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                        Activate
+                                      </button>
+                                    )
+                                  }
+                                })()}
                                 <button
                                   onClick={() => handleDelete(puzzle._id)}
                                   className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"

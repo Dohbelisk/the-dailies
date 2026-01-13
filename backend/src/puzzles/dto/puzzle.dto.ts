@@ -9,7 +9,7 @@ import {
   IsString,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
-import { GameType, Difficulty } from "../schemas/puzzle.schema";
+import { GameType, Difficulty, PuzzleStatus } from "../schemas/puzzle.schema";
 
 export class CreatePuzzleDto {
   @ApiProperty({ enum: GameType })
@@ -56,9 +56,21 @@ export class CreatePuzzleDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ enum: PuzzleStatus, description: "Puzzle status (pending, active, inactive)" })
+  @IsEnum(PuzzleStatus)
+  @IsOptional()
+  status?: PuzzleStatus;
 }
 
 export class UpdatePuzzleDto extends PartialType(CreatePuzzleDto) {}
+
+export class UpdatePuzzleStatusDto {
+  @ApiProperty({ enum: PuzzleStatus, description: "New status for the puzzle" })
+  @IsEnum(PuzzleStatus)
+  @IsNotEmpty()
+  status: PuzzleStatus;
+}
 
 export class PuzzleQueryDto {
   @ApiPropertyOptional({ enum: GameType })
@@ -85,6 +97,11 @@ export class PuzzleQueryDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ enum: PuzzleStatus })
+  @IsEnum(PuzzleStatus)
+  @IsOptional()
+  status?: PuzzleStatus;
 }
 
 // Specific puzzle data DTOs for validation

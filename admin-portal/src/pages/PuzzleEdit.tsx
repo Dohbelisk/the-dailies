@@ -5,8 +5,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Loader2, Save, Trash2, Code, Grid3X3 } from 'lucide-react'
-import { puzzlesApi } from '../lib/api'
+import { ArrowLeft, Loader2, Save, Trash2, Code, Grid3X3, Eye, EyeOff } from 'lucide-react'
+import { puzzlesApi, PuzzleStatus } from '../lib/api'
 import PuzzleEditorWrapper from '../components/editors/PuzzleEditorWrapper'
 
 const puzzleSchema = z.object({
@@ -96,6 +96,18 @@ export default function PuzzleEdit() {
     },
   })
 
+  const updateStatusMutation = useMutation({
+    mutationFn: (status: PuzzleStatus) => puzzlesApi.updateStatus(id!, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['puzzles'] })
+      queryClient.invalidateQueries({ queryKey: ['puzzle', id] })
+      toast.success('Puzzle status updated')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to update puzzle status')
+    },
+  })
+
   const onSubmit = (data: PuzzleFormData) => {
     let puzzleData
 
@@ -160,19 +172,77 @@ export default function PuzzleEdit() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Edit Puzzle
           </h1>
+          {/* Status Badge */}
+          {(() => {
+            const status = puzzle.status || (puzzle.isActive ? 'active' : 'inactive')
+            const statusColors: Record<string, string> = {
+              pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+              active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+              inactive: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+            }
+            const statusLabels: Record<string, string> = {
+              pending: 'Pending',
+              active: 'Active',
+              inactive: 'Inactive',
+            }
+            return (
+              <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${statusColors[status] || statusColors.inactive}`}>
+                {statusLabels[status] || status}
+              </span>
+            )
+          })()}
         </div>
-        <button
-          onClick={handleDelete}
-          disabled={deleteMutation.isPending}
-          className="btn btn-danger"
-        >
-          {deleteMutation.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Trash2 className="w-4 h-4" />
-          )}
-          Delete
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Activate/Deactivate Button */}
+          {(() => {
+            const status = puzzle.status || (puzzle.isActive ? 'active' : 'inactive')
+            if (status === 'active') {
+              return (
+                <button
+                  type="button"
+                  onClick={() => updateStatusMutation.mutate('inactive')}
+                  disabled={updateStatusMutation.isPending}
+                  className="btn btn-secondary"
+                >
+                  {updateStatusMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <EyeOff className="w-4 h-4" />
+                  )}
+                  Deactivate
+                </button>
+              )
+            } else {
+              return (
+                <button
+                  type="button"
+                  onClick={() => updateStatusMutation.mutate('active')}
+                  disabled={updateStatusMutation.isPending}
+                  className="btn btn-primary"
+                >
+                  {updateStatusMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                  Activate
+                </button>
+              )
+            }
+          })()}
+          <button
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+            className="btn btn-danger"
+          >
+            {deleteMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+            Delete
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -240,17 +310,6 @@ export default function PuzzleEdit() {
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isActive"
-                {...register('isActive')}
-                className="w-4 h-4 rounded border-gray-300"
-              />
-              <label htmlFor="isActive" className="text-sm text-gray-700 dark:text-gray-300">
-                Active (visible to users)
-              </label>
-            </div>
           </div>
 
           {/* Puzzle Data */}

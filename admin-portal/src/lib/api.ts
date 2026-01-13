@@ -65,6 +65,8 @@ export const puzzlesApi = {
     api.patch(`/puzzles/${id}`, data),
   toggleActive: (id: string) =>
     api.patch(`/puzzles/${id}/toggle-active`),
+  updateStatus: (id: string, status: PuzzleStatus) =>
+    api.patch(`/puzzles/${id}/status`, { status }),
   delete: (id: string) =>
     api.delete(`/puzzles/${id}`),
 }
@@ -87,6 +89,16 @@ export const GAME_TYPES = [
 ] as const
 
 export type GameType = typeof GAME_TYPES[number]
+
+// Puzzle Status
+export const PUZZLE_STATUSES = ['pending', 'active', 'inactive'] as const
+export type PuzzleStatus = typeof PUZZLE_STATUSES[number]
+
+export const PUZZLE_STATUS_LABELS: Record<PuzzleStatus, string> = {
+  pending: 'Pending',
+  active: 'Active',
+  inactive: 'Inactive',
+}
 
 export const GAME_TYPE_LABELS: Record<GameType, string> = {
   sudoku: 'Sudoku',

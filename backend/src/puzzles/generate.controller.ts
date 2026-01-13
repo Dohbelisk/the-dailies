@@ -27,7 +27,7 @@ import {
   generateMathora,
 } from "../utils/puzzle-generators";
 import { PuzzlesService } from "./puzzles.service";
-import { GameType, Difficulty } from "./schemas/puzzle.schema";
+import { GameType, Difficulty, PuzzleStatus } from "./schemas/puzzle.schema";
 import { DictionaryService } from "../dictionary/dictionary.service";
 
 class GenerateSudokuDto {
@@ -269,7 +269,7 @@ export class GenerateController {
       solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Daily Sudoku - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -296,7 +296,7 @@ export class GenerateController {
       solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Killer Sudoku - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -335,7 +335,7 @@ export class GenerateController {
       solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Daily Crossword - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -369,7 +369,7 @@ export class GenerateController {
       solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Word Search - ${dto.theme || "Mixed"}`,
-      isActive: false, // Word Search is currently removed from circulation
+      status: PuzzleStatus.INACTIVE, // Word Search is currently removed from circulation
     });
   }
 
@@ -481,7 +481,7 @@ export class GenerateController {
       solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Word Forge - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -505,7 +505,7 @@ export class GenerateController {
       solution: result.solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Nonogram - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -529,7 +529,7 @@ export class GenerateController {
       solution: result.solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Number Target - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -553,7 +553,7 @@ export class GenerateController {
       solution: result.solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Ball Sort - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -577,7 +577,7 @@ export class GenerateController {
       solution: result.solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Pipes - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -601,7 +601,7 @@ export class GenerateController {
       solution: result.solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Lights Out - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -625,7 +625,7 @@ export class GenerateController {
       solution: result.solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Word Ladder - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -649,7 +649,7 @@ export class GenerateController {
       solution: result.solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Connections - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -673,7 +673,7 @@ export class GenerateController {
       solution: result.solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Mathora - ${dto.difficulty}`,
-      isActive: true,
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -1101,7 +1101,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Daily Sudoku`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(sudoku);
       }
@@ -1119,7 +1119,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Killer Sudoku`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(killerSudoku);
       }
@@ -1145,7 +1145,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Daily Crossword`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(crossword);
       }
@@ -1169,7 +1169,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Word Search - ${themeData.theme}`,
-          isActive: false, // Word Search is currently removed from circulation
+          status: PuzzleStatus.INACTIVE, // Word Search is currently removed from circulation
         });
         createdPuzzles.push(wordSearch);
       }
@@ -1226,7 +1226,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Word Forge`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(wordForge);
       }
@@ -1244,7 +1244,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Nonogram`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(nonogram);
       }
@@ -1262,7 +1262,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Number Target`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(numberTarget);
       }
@@ -1280,7 +1280,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Ball Sort`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(ballSort);
       }
@@ -1298,7 +1298,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Pipes`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(pipes);
       }
@@ -1316,7 +1316,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Lights Out`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(lightsOut);
       }
@@ -1334,7 +1334,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Word Ladder`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(wordLadder);
       }
@@ -1352,7 +1352,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Connections`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(connections);
       }
@@ -1370,7 +1370,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Mathora`,
-          isActive: true,
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(mathora);
       }
