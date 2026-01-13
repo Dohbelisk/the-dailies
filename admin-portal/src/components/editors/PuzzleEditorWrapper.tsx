@@ -16,7 +16,7 @@ interface PuzzleEditorWrapperProps {
   gameType: string
   puzzleData?: Record<string, unknown>
   solution?: Record<string, unknown>
-  onChange?: (puzzleData: unknown, solution: unknown) => void
+  onChange?: (puzzleData: unknown, solution: unknown, isValid?: boolean) => void
   className?: string
 }
 
@@ -35,8 +35,8 @@ export default function PuzzleEditorWrapper({
     onChange?.({ cages: data.cages, grid: data.grid }, { grid: data.solution })
   }
 
-  const handleGenericChange = (data: unknown, sol: unknown) => {
-    onChange?.(data, sol)
+  const handleGenericChange = (data: unknown, sol: unknown, isValid?: boolean) => {
+    onChange?.(data, sol, isValid)
   }
 
   switch (gameType) {

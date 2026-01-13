@@ -156,7 +156,7 @@ interface CrosswordEditorProps {
     grid: string[][]
     clues: CrosswordClue[]
   }
-  onChange?: (puzzleData: any, solution: any) => void
+  onChange?: (puzzleData: any, solution: any, isValid: boolean) => void
   className?: string
 }
 
@@ -299,12 +299,13 @@ export function CrosswordEditor({
     setGrid(newGrid)
   }, [clues, rows, cols])
 
-  // Notify parent of changes
+  // Notify parent of changes (always, with validity status)
   useEffect(() => {
-    if (onChange && validationResult?.isValid) {
+    if (onChange) {
       onChange(
         { rows, cols, grid, clues },
-        { grid } // Solution is the filled grid
+        { grid }, // Solution is the filled grid
+        validationResult?.isValid ?? false
       )
     }
   }, [rows, cols, grid, clues, onChange, validationResult])

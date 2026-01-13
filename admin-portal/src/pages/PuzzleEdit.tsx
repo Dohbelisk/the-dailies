@@ -30,6 +30,7 @@ export default function PuzzleEdit() {
   const [jsonError, setJsonError] = useState('')
   const [editorMode, setEditorMode] = useState<EditorMode>('visual')
   const [visualPuzzleData, setVisualPuzzleData] = useState<any>(null)
+  const [isPuzzleValid, setIsPuzzleValid] = useState(false)
 
   const { data: puzzle, isLoading } = useQuery({
     queryKey: ['puzzle', id],
@@ -65,8 +66,9 @@ export default function PuzzleEdit() {
     }
   }, [puzzle, reset])
 
-  const handleVisualDataChange = useCallback((data: any) => {
+  const handleVisualDataChange = useCallback((data: any, _solution: any, isValid?: boolean) => {
     setVisualPuzzleData(data)
+    setIsPuzzleValid(isValid ?? false)
   }, [])
 
   const updateMutation = useMutation({
@@ -321,8 +323,9 @@ export default function PuzzleEdit() {
           </button>
           <button
             type="submit"
-            disabled={updateMutation.isPending}
+            disabled={updateMutation.isPending || (editorMode === 'visual' && !isPuzzleValid)}
             className="btn btn-primary"
+            title={editorMode === 'visual' && !isPuzzleValid ? 'Validate the puzzle before saving' : undefined}
           >
             {updateMutation.isPending ? (
               <>
