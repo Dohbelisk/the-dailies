@@ -81,7 +81,8 @@ export function ConnectionsEditor({
     if (onChange && validationResult?.isValid) {
       onChange(
         { words: shuffledWords, categories },
-        { categories }
+        { categories },
+        true
       )
     }
   }, [shuffledWords, categories, onChange, validationResult])

@@ -47,7 +47,8 @@ export function WordForgeEditor({
     if (onChange && validationResult?.isValid && solution) {
       onChange(
         { letters, centerLetter },
-        solution
+        solution,
+        true
       )
     }
   }, [letters, centerLetter, solution, onChange, validationResult])

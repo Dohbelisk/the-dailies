@@ -140,7 +140,8 @@ export function WordSearchEditor({
     if (onChange && validationResult?.isValid) {
       onChange(
         { rows, cols, theme, grid, words },
-        { words }
+        { words },
+        true
       )
     }
   }, [rows, cols, theme, grid, words, onChange, validationResult])

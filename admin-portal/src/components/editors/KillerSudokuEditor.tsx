@@ -8,7 +8,7 @@ import { validateApi, Cage } from '../../lib/api'
 interface KillerSudokuEditorProps {
   initialCages?: Cage[]
   initialSolution?: number[][]
-  onChange: (data: { grid: number[][]; solution: number[][]; cages: Cage[] }) => void
+  onChange: (data: { grid: number[][]; solution: number[][]; cages: Cage[]; isValid?: boolean }) => void
 }
 
 // Muted colors for cages - designed to be visually distinct when adjacent
@@ -113,8 +113,13 @@ export default function KillerSudokuEditor({
 
   // Update parent when cages or solution changes
   useEffect(() => {
-    onChange({ grid: createEmptyGrid(), solution, cages })
-  }, [cages, solution, onChange])
+    onChange({
+      grid: createEmptyGrid(),
+      solution,
+      cages,
+      isValid: validationResult?.isValid && validationResult?.hasUniqueSolution
+    })
+  }, [cages, solution, onChange, validationResult])
 
   // Validation mutation
   const validateMutation = useMutation({
