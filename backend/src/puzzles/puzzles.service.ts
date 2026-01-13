@@ -444,11 +444,11 @@ export class PuzzlesService {
     isValid: boolean;
     error?: string;
   } {
-    const { tubes } = puzzleData;
-    if (!tubes || !Array.isArray(tubes)) {
-      return { isValid: false, error: "Ball Sort missing tubes" };
+    const { initialState } = puzzleData;
+    if (!initialState || !Array.isArray(initialState)) {
+      return { isValid: false, error: "Ball Sort missing initialState" };
     }
-    if (tubes.length < 2) {
+    if (initialState.length < 2) {
       return { isValid: false, error: "Ball Sort needs at least 2 tubes" };
     }
     return { isValid: true };
