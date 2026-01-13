@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
-import { IsArray, IsString, IsNumber, IsInt, Min, Max } from "class-validator";
+import { IsArray, IsString, IsInt, Min, Max } from "class-validator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminGuard } from "../auth/guards/admin.guard";
 import {
@@ -90,7 +90,9 @@ export class ValidateController {
   }
 
   @Post("word-ladder")
-  @ApiOperation({ summary: "Validate a Word Ladder puzzle and find solution path" })
+  @ApiOperation({
+    summary: "Validate a Word Ladder puzzle and find solution path",
+  })
   validateWordLadder(
     @Body() dto: WordLadderDto,
   ): Promise<WordLadderValidationResult> {
@@ -102,7 +104,9 @@ export class ValidateController {
   }
 
   @Post("number-target")
-  @ApiOperation({ summary: "Validate a Number Target puzzle and find solutions" })
+  @ApiOperation({
+    summary: "Validate a Number Target puzzle and find solutions",
+  })
   validateNumberTarget(
     @Body() dto: NumberTargetDto,
   ): NumberTargetValidationResult {
@@ -110,10 +114,15 @@ export class ValidateController {
   }
 
   @Post("word-forge")
-  @ApiOperation({ summary: "Validate Word Forge letters and generate valid words" })
+  @ApiOperation({
+    summary: "Validate Word Forge letters and generate valid words",
+  })
   validateWordForge(
     @Body() dto: WordForgeDto,
   ): Promise<WordForgeValidationResult> {
-    return this.validateService.validateWordForge(dto.letters, dto.centerLetter);
+    return this.validateService.validateWordForge(
+      dto.letters,
+      dto.centerLetter,
+    );
   }
 }

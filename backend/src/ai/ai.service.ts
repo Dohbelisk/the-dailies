@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import Anthropic from '@anthropic-ai/sdk';
+import { Injectable, Logger } from "@nestjs/common";
+import Anthropic from "@anthropic-ai/sdk";
 
 export interface CrosswordWord {
   word: string;
@@ -21,9 +21,9 @@ export class AiService {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (apiKey) {
       this.client = new Anthropic({ apiKey });
-      this.logger.log('Anthropic client initialized');
+      this.logger.log("Anthropic client initialized");
     } else {
-      this.logger.warn('ANTHROPIC_API_KEY not set - AI features disabled');
+      this.logger.warn("ANTHROPIC_API_KEY not set - AI features disabled");
     }
   }
 
@@ -34,7 +34,7 @@ export class AiService {
     maxLength: number = 12,
   ): Promise<CrosswordWord[]> {
     if (!this.client) {
-      throw new Error('AI service not configured - ANTHROPIC_API_KEY not set');
+      throw new Error("AI service not configured - ANTHROPIC_API_KEY not set");
     }
 
     const prompt = `Generate ${count} crossword puzzle words and clues for the theme: "${theme}"
@@ -54,20 +54,22 @@ Generate exactly ${count} word/clue pairs for the theme "${theme}":`;
 
     try {
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: "claude-sonnet-4-20250514",
         max_tokens: 1024,
         messages: [
           {
-            role: 'user',
+            role: "user",
             content: prompt,
           },
         ],
       });
 
       // Extract text content from response
-      const textContent = response.content.find((block) => block.type === 'text');
-      if (!textContent || textContent.type !== 'text') {
-        throw new Error('No text content in AI response');
+      const textContent = response.content.find(
+        (block) => block.type === "text",
+      );
+      if (!textContent || textContent.type !== "text") {
+        throw new Error("No text content in AI response");
       }
 
       // Parse JSON response
@@ -84,21 +86,23 @@ Generate exactly ${count} word/clue pairs for the theme "${theme}":`;
             w.word.length <= maxLength,
         )
         .map((w) => ({
-          word: w.word.toUpperCase().replace(/[^A-Z]/g, ''),
+          word: w.word.toUpperCase().replace(/[^A-Z]/g, ""),
           clue: w.clue.trim(),
         }));
     } catch (error) {
-      this.logger.error('Failed to generate crossword words', error);
+      this.logger.error("Failed to generate crossword words", error);
       throw new Error(`AI generation failed: ${error.message}`);
     }
   }
 
   async generateConnections(theme?: string): Promise<ConnectionsCategory[]> {
     if (!this.client) {
-      throw new Error('AI service not configured - ANTHROPIC_API_KEY not set');
+      throw new Error("AI service not configured - ANTHROPIC_API_KEY not set");
     }
 
-    const themeText = theme ? `for the theme "${theme}"` : 'with any creative themes you choose';
+    const themeText = theme
+      ? `for the theme "${theme}"`
+      : "with any creative themes you choose";
 
     const prompt = `Generate a Connections puzzle ${themeText}. This is a word puzzle where players must find 4 groups of 4 related words.
 
@@ -123,20 +127,22 @@ Generate the 4 categories now:`;
 
     try {
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: "claude-sonnet-4-20250514",
         max_tokens: 1024,
         messages: [
           {
-            role: 'user',
+            role: "user",
             content: prompt,
           },
         ],
       });
 
       // Extract text content from response
-      const textContent = response.content.find((block) => block.type === 'text');
-      if (!textContent || textContent.type !== 'text') {
-        throw new Error('No text content in AI response');
+      const textContent = response.content.find(
+        (block) => block.type === "text",
+      );
+      if (!textContent || textContent.type !== "text") {
+        throw new Error("No text content in AI response");
       }
 
       // Parse JSON response
@@ -155,12 +161,12 @@ Generate the 4 categories now:`;
         )
         .map((c) => ({
           name: c.name.trim(),
-          words: c.words.map((w) => w.toUpperCase().replace(/[^A-Z]/g, '')),
+          words: c.words.map((w) => w.toUpperCase().replace(/[^A-Z]/g, "")),
           difficulty: c.difficulty,
         }))
         .sort((a, b) => a.difficulty - b.difficulty);
     } catch (error) {
-      this.logger.error('Failed to generate connections puzzle', error);
+      this.logger.error("Failed to generate connections puzzle", error);
       throw new Error(`AI generation failed: ${error.message}`);
     }
   }

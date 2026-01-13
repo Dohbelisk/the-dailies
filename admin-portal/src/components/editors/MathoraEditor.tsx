@@ -98,7 +98,7 @@ const generateRandomPuzzle = (difficulty: 'easy' | 'medium' | 'hard'): {
           value = mulOps[Math.floor(Math.random() * mulOps.length)]
           newValue = currentValue * value
           break
-        case 'divide':
+        case 'divide': {
           // Find a divisor that works
           const validDivisors = divOps.filter(d => currentValue % d === 0)
           if (validDivisors.length === 0) {
@@ -108,6 +108,7 @@ const generateRandomPuzzle = (difficulty: 'easy' | 'medium' | 'hard'): {
           value = validDivisors[Math.floor(Math.random() * validDivisors.length)]
           newValue = currentValue / value
           break
+        }
       }
     }
 

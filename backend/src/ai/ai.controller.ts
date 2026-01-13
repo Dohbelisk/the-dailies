@@ -1,9 +1,9 @@
-import { Controller, Post, Body, UseGuards, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, Min, Max } from 'class-validator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
-import { AiService, CrosswordWord, ConnectionsCategory } from './ai.service';
+import { Controller, Post, Body, UseGuards, Get } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { IsString, IsOptional, IsNumber, Min, Max } from "class-validator";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { AdminGuard } from "../auth/guards/admin.guard";
+import { AiService, CrosswordWord, ConnectionsCategory } from "./ai.service";
 
 class GenerateCrosswordWordsDto {
   @IsString()
@@ -34,24 +34,26 @@ class GenerateConnectionsDto {
   theme?: string;
 }
 
-@ApiTags('ai')
-@Controller('ai')
+@ApiTags("ai")
+@Controller("ai")
 @UseGuards(JwtAuthGuard, AdminGuard)
 @ApiBearerAuth()
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
-  @Get('status')
-  @ApiOperation({ summary: 'Check if AI service is available' })
+  @Get("status")
+  @ApiOperation({ summary: "Check if AI service is available" })
   getStatus() {
     return {
       available: this.aiService.isAvailable(),
     };
   }
 
-  @Post('crossword-words')
-  @ApiOperation({ summary: 'Generate crossword words and clues for a theme' })
-  async generateCrosswordWords(@Body() dto: GenerateCrosswordWordsDto): Promise<{ theme: string; words: CrosswordWord[] }> {
+  @Post("crossword-words")
+  @ApiOperation({ summary: "Generate crossword words and clues for a theme" })
+  async generateCrosswordWords(
+    @Body() dto: GenerateCrosswordWordsDto,
+  ): Promise<{ theme: string; words: CrosswordWord[] }> {
     const words = await this.aiService.generateCrosswordWords(
       dto.theme,
       dto.count || 10,
@@ -65,9 +67,13 @@ export class AiController {
     };
   }
 
-  @Post('connections')
-  @ApiOperation({ summary: 'Generate a complete Connections puzzle with 4 categories' })
-  async generateConnections(@Body() dto: GenerateConnectionsDto): Promise<{ theme?: string; categories: ConnectionsCategory[] }> {
+  @Post("connections")
+  @ApiOperation({
+    summary: "Generate a complete Connections puzzle with 4 categories",
+  })
+  async generateConnections(
+    @Body() dto: GenerateConnectionsDto,
+  ): Promise<{ theme?: string; categories: ConnectionsCategory[] }> {
     const categories = await this.aiService.generateConnections(dto.theme);
 
     return {

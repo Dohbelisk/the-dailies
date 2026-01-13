@@ -50,7 +50,11 @@ export interface WordLadderValidationResult {
 export interface NumberTargetValidationResult {
   isValid: boolean;
   errors: ValidationError[];
-  targetSolutions?: { target: number; expression: string; reachable: boolean }[];
+  targetSolutions?: {
+    target: number;
+    expression: string;
+    reachable: boolean;
+  }[];
 }
 
 // Word Forge interfaces
