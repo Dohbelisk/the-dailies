@@ -75,7 +75,7 @@ export default function PuzzleEdit() {
       queryClient.invalidateQueries({ queryKey: ['puzzles'] })
       queryClient.invalidateQueries({ queryKey: ['puzzle', id] })
       toast.success('Puzzle updated successfully!')
-      navigate('/puzzles')
+      navigate(-1)
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to update puzzle')
@@ -87,7 +87,7 @@ export default function PuzzleEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['puzzles'] })
       toast.success('Puzzle deleted')
-      navigate('/puzzles')
+      navigate(-1)
     },
     onError: () => {
       toast.error('Failed to delete puzzle')
