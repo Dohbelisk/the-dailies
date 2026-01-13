@@ -303,11 +303,81 @@ export class KillerSudokuGenerator {
     // Generate cages based on difficulty
     const cages = this.generateCages(difficulty);
 
+    // Add pre-set (given) numbers based on difficulty
+    this.addGivens(difficulty, cages);
+
     return {
       grid: this.grid,
       solution: this.solution,
       cages,
     };
+  }
+
+  private addGivens(
+    difficulty: "easy" | "medium" | "hard" | "expert",
+    cages: Array<{ sum: number; cells: number[][] }>,
+  ): void {
+    // Number of givens based on difficulty
+    const givensCount = {
+      easy: { min: 10, max: 14 },
+      medium: { min: 6, max: 9 },
+      hard: { min: 3, max: 5 },
+      expert: { min: 0, max: 2 },
+    }[difficulty];
+
+    const targetGivens =
+      Math.floor(Math.random() * (givensCount.max - givensCount.min + 1)) +
+      givensCount.min;
+
+    if (targetGivens === 0) return;
+
+    // Collect all cells and shuffle them
+    const allCells: number[][] = [];
+    for (let row = 0; row < 9; row++) {
+      for (let col = 0; col < 9; col++) {
+        allCells.push([row, col]);
+      }
+    }
+
+    // Shuffle cells
+    for (let i = allCells.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allCells[i], allCells[j]] = [allCells[j], allCells[i]];
+    }
+
+    // Try to spread givens across different cages for better distribution
+    const cageMap = new Map<string, number>();
+    cages.forEach((cage, idx) => {
+      cage.cells.forEach(([r, c]) => {
+        cageMap.set(`${r},${c}`, idx);
+      });
+    });
+
+    const cagesWithGivens = new Set<number>();
+    let givensAdded = 0;
+
+    // First pass: try to add one given per cage until we hit target or run out
+    for (const [row, col] of allCells) {
+      if (givensAdded >= targetGivens) break;
+
+      const cageIdx = cageMap.get(`${row},${col}`);
+      if (cageIdx !== undefined && !cagesWithGivens.has(cageIdx)) {
+        this.grid[row][col] = this.solution[row][col];
+        cagesWithGivens.add(cageIdx);
+        givensAdded++;
+      }
+    }
+
+    // Second pass: if we need more givens, add from any remaining cells
+    if (givensAdded < targetGivens) {
+      for (const [row, col] of allCells) {
+        if (givensAdded >= targetGivens) break;
+        if (this.grid[row][col] === 0) {
+          this.grid[row][col] = this.solution[row][col];
+          givensAdded++;
+        }
+      }
+    }
   }
 
   private generateCages(
