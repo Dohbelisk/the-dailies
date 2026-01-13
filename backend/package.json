@@ -23,6 +23,7 @@
     "seed:spelling-bee": "ts-node src/seeds/seed-spelling-bee-dictionary.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.0.0",

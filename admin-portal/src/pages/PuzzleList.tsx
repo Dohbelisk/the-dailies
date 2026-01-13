@@ -25,6 +25,7 @@ import {
   Link2,
   Calendar,
   X,
+  Calculator,
 } from 'lucide-react'
 import { puzzlesApi } from '../lib/api'
 
@@ -41,6 +42,7 @@ const gameTypeIcons: Record<string, typeof Grid3X3> = {
   lightsOut: Lightbulb,
   wordLadder: ArrowUpDown,
   connections: Link2,
+  mathora: Calculator,
 }
 
 const gameTypes = [
@@ -56,6 +58,7 @@ const gameTypes = [
   { value: 'lightsOut', label: 'Lights Out' },
   { value: 'wordLadder', label: 'Word Ladder' },
   { value: 'connections', label: 'Connections' },
+  { value: 'mathora', label: 'Mathora' },
 ]
 
 const difficulties = [
@@ -329,6 +332,12 @@ export default function PuzzleList() {
                     wordForge: 'Word Forge',
                     nonogram: 'Nonogram',
                     numberTarget: 'Number Target',
+                    ballSort: 'Ball Sort',
+                    pipes: 'Pipes',
+                    lightsOut: 'Lights Out',
+                    wordLadder: 'Word Ladder',
+                    connections: 'Connections',
+                    mathora: 'Mathora',
                   }
                   const displayType = displayTypeMap[puzzle.gameType] || puzzle.gameType
 
