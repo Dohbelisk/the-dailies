@@ -306,11 +306,248 @@ export class KillerSudokuGenerator {
     // Add pre-set (given) numbers based on difficulty
     this.addGivens(difficulty, cages);
 
+    // Verify unique solution and add more givens if needed
+    this.ensureUniqueSolution(cages);
+
     return {
       grid: this.grid,
       solution: this.solution,
       cages,
     };
+  }
+
+  /**
+   * Ensures the puzzle has a unique solution by adding givens if necessary
+   */
+  private ensureUniqueSolution(
+    cages: Array<{ sum: number; cells: number[][] }>,
+  ): void {
+    const maxAttempts = 30; // Safety limit
+    let attempts = 0;
+
+    while (!this.hasUniqueSolution(cages) && attempts < maxAttempts) {
+      attempts++;
+      // Find an empty cell and add the solution value as a given
+      const emptyCell = this.findStrategicEmptyCell(cages);
+      if (emptyCell) {
+        const [row, col] = emptyCell;
+        this.grid[row][col] = this.solution[row][col];
+      } else {
+        break; // No more empty cells to fill
+      }
+    }
+  }
+
+  /**
+   * Find an empty cell that would help constrain the puzzle
+   * Prioritizes cells in larger cages or cells with fewer constraints
+   */
+  private findStrategicEmptyCell(
+    cages: Array<{ sum: number; cells: number[][] }>,
+  ): [number, number] | null {
+    // Collect empty cells with their cage sizes
+    const emptyCells: { cell: [number, number]; cageSize: number }[] = [];
+
+    for (const cage of cages) {
+      for (const [row, col] of cage.cells) {
+        if (this.grid[row][col] === 0) {
+          emptyCells.push({ cell: [row, col], cageSize: cage.cells.length });
+        }
+      }
+    }
+
+    if (emptyCells.length === 0) return null;
+
+    // Prioritize cells in larger cages (more ambiguous)
+    emptyCells.sort((a, b) => b.cageSize - a.cageSize);
+
+    // Pick from top candidates with some randomness
+    const topCandidates = emptyCells.slice(
+      0,
+      Math.min(5, emptyCells.length),
+    );
+    const chosen =
+      topCandidates[Math.floor(Math.random() * topCandidates.length)];
+    return chosen.cell;
+  }
+
+  /**
+   * Check if the puzzle has exactly one solution
+   * Uses MRV (Minimum Remaining Values) heuristic for efficiency
+   */
+  private hasUniqueSolution(
+    cages: Array<{ sum: number; cells: number[][] }>,
+  ): boolean {
+    const testGrid = this.grid.map((row) => [...row]);
+    let solutionCount = 0;
+    let iterations = 0;
+    const maxIterations = 100000; // Limit to prevent infinite loops
+
+    const countSolutions = (g: number[][]): void => {
+      if (solutionCount > 1) return; // Early exit
+      if (iterations++ > maxIterations) {
+        solutionCount = 2; // Assume not unique if too complex
+        return;
+      }
+
+      const emptyCell = this.findBestEmptyCell(g, cages);
+      if (!emptyCell) {
+        solutionCount++;
+        return;
+      }
+
+      const [row, col] = emptyCell;
+
+      for (let num = 1; num <= 9; num++) {
+        if (this.isValidKillerPlacement(g, row, col, num, cages)) {
+          g[row][col] = num;
+          countSolutions(g);
+          if (solutionCount > 1) return;
+          g[row][col] = 0;
+        }
+      }
+    };
+
+    countSolutions(testGrid);
+    return solutionCount === 1;
+  }
+
+  /**
+   * Find the empty cell with fewest valid candidates (MRV heuristic)
+   */
+  private findBestEmptyCell(
+    grid: number[][],
+    cages: Array<{ sum: number; cells: number[][] }>,
+  ): [number, number] | null {
+    let bestCell: [number, number] | null = null;
+    let minOptions = 10;
+
+    for (let row = 0; row < 9; row++) {
+      for (let col = 0; col < 9; col++) {
+        if (grid[row][col] === 0) {
+          let options = 0;
+          for (let num = 1; num <= 9; num++) {
+            if (this.isValidKillerPlacement(grid, row, col, num, cages)) {
+              options++;
+            }
+          }
+          if (options < minOptions) {
+            minOptions = options;
+            bestCell = [row, col];
+            if (options === 0) return bestCell; // No valid options, will backtrack
+            if (options === 1) return bestCell; // Only one option, best choice
+          }
+        }
+      }
+    }
+
+    return bestCell;
+  }
+
+  /**
+   * Check if placing num at (row, col) is valid for Killer Sudoku
+   */
+  private isValidKillerPlacement(
+    grid: number[][],
+    row: number,
+    col: number,
+    num: number,
+    cages: Array<{ sum: number; cells: number[][] }>,
+  ): boolean {
+    // Standard Sudoku checks - row
+    if (grid[row].includes(num)) return false;
+
+    // Column check
+    for (let i = 0; i < 9; i++) {
+      if (grid[i][col] === num) return false;
+    }
+
+    // 3x3 box check
+    const boxRow = Math.floor(row / 3) * 3;
+    const boxCol = Math.floor(col / 3) * 3;
+    for (let i = boxRow; i < boxRow + 3; i++) {
+      for (let j = boxCol; j < boxCol + 3; j++) {
+        if (grid[i][j] === num) return false;
+      }
+    }
+
+    // Find the cage containing this cell
+    const cage = cages.find((c) =>
+      c.cells.some(([r, c]) => r === row && c === col),
+    );
+    if (!cage) return false;
+
+    // Check no duplicate in cage
+    for (const [r, c] of cage.cells) {
+      if ((r !== row || c !== col) && grid[r][c] === num) {
+        return false;
+      }
+    }
+
+    // Check cage sum constraint
+    let sum = num;
+    let emptyCount = 0;
+    for (const [r, c] of cage.cells) {
+      if (r === row && c === col) continue;
+      if (grid[r][c] === 0) {
+        emptyCount++;
+      } else {
+        sum += grid[r][c];
+      }
+    }
+
+    // If cage is complete, sum must equal target
+    if (emptyCount === 0 && sum !== cage.sum) {
+      return false;
+    }
+
+    // If cage is incomplete, sum must not exceed target
+    if (sum > cage.sum) {
+      return false;
+    }
+
+    // Check if remaining sum is achievable with remaining empty cells
+    const remainingSum = cage.sum - sum;
+    const usedDigits = new Set<number>();
+    usedDigits.add(num);
+    for (const [r, c] of cage.cells) {
+      if (grid[r][c] !== 0) {
+        usedDigits.add(grid[r][c]);
+      }
+    }
+
+    if (!this.canAchieveSum(remainingSum, emptyCount, usedDigits)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Check if remaining sum can be achieved with n more unique digits
+   */
+  private canAchieveSum(
+    sum: number,
+    n: number,
+    usedDigits: Set<number>,
+  ): boolean {
+    if (n === 0) return sum === 0;
+    if (sum <= 0) return false;
+
+    // Get available digits
+    const available: number[] = [];
+    for (let d = 1; d <= 9; d++) {
+      if (!usedDigits.has(d)) available.push(d);
+    }
+
+    if (available.length < n) return false;
+
+    // Check min/max achievable
+    const sortedAvailable = [...available].sort((a, b) => a - b);
+    const minPossible = sortedAvailable.slice(0, n).reduce((a, b) => a + b, 0);
+    const maxPossible = sortedAvailable.slice(-n).reduce((a, b) => a + b, 0);
+
+    return sum >= minPossible && sum <= maxPossible;
   }
 
   private addGivens(

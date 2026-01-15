@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import * as fs from "fs";
+import * as readline from "readline";
 import * as path from "path";
 
 const MONGODB_URI =
@@ -28,12 +29,67 @@ interface WordEntry {
   distinctLetters: number;
 }
 
-interface DictionaryData {
-  metadata: {
-    totalWords: number;
-    generatedAt: string;
-  };
-  words: WordEntry[];
+/**
+ * Memory-efficient streaming JSON parser for the dictionary file.
+ * Processes line by line instead of loading entire file into memory.
+ */
+async function* streamWords(
+  filePath: string,
+): AsyncGenerator<WordEntry, void, unknown> {
+  const fileStream = fs.createReadStream(filePath, { encoding: "utf-8" });
+  const rl = readline.createInterface({
+    input: fileStream,
+    crlfDelay: Infinity,
+  });
+
+  let inWordsArray = false;
+  let currentEntry: Partial<WordEntry> = {};
+  let braceDepth = 0;
+
+  for await (const line of rl) {
+    const trimmed = line.trim();
+
+    // Detect when we enter the "words" array
+    if (trimmed.includes('"words"')) {
+      inWordsArray = true;
+      continue;
+    }
+
+    if (!inWordsArray) continue;
+
+    // Track object boundaries
+    if (trimmed.startsWith("{")) {
+      braceDepth++;
+      currentEntry = {};
+    }
+
+    // Parse word entry fields
+    const wordMatch = trimmed.match(/"word":\s*"([^"]+)"/);
+    if (wordMatch) currentEntry.word = wordMatch[1];
+
+    const clueMatch = trimmed.match(/"clue":\s*"([^"]+)"/);
+    if (clueMatch) currentEntry.clue = clueMatch[1];
+
+    const lengthMatch = trimmed.match(/"length":\s*(\d+)/);
+    if (lengthMatch) currentEntry.length = parseInt(lengthMatch[1], 10);
+
+    const distinctMatch = trimmed.match(/"distinctLetters":\s*(\d+)/);
+    if (distinctMatch)
+      currentEntry.distinctLetters = parseInt(distinctMatch[1], 10);
+
+    // End of object - yield if we have a complete entry
+    if (trimmed.startsWith("}") || trimmed.endsWith("},") || trimmed === "}") {
+      braceDepth--;
+      if (
+        braceDepth === 0 &&
+        currentEntry.word &&
+        currentEntry.length !== undefined
+      ) {
+        yield currentEntry as WordEntry;
+        currentEntry = {};
+      }
+    }
+  }
 }
 
 async function seedDictionary() {
@@ -41,14 +97,8 @@ async function seedDictionary() {
     await mongoose.connect(MONGODB_URI);
     console.log("Connected to MongoDB");
 
-    // Load dictionary JSON
     const dataPath = path.join(__dirname, "data", "dictionary-with-clues.json");
-    console.log(`Loading dictionary from ${dataPath}...`);
-
-    const rawData = fs.readFileSync(dataPath, "utf-8");
-    const data: DictionaryData = JSON.parse(rawData);
-
-    console.log(`Loaded ${data.words.length.toLocaleString()} words`);
+    console.log(`Streaming dictionary from ${dataPath}...`);
 
     // Get existing word count
     const existingCount = await Dictionary.countDocuments();
@@ -56,12 +106,14 @@ async function seedDictionary() {
       `Existing dictionary entries: ${existingCount.toLocaleString()}`,
     );
 
-    // Prepare bulk operations
-    console.log("Preparing bulk upsert operations...");
-    const bulkOps = data.words.map((entry) => {
-      // Calculate sorted unique letters for the word
-      const letters = [...new Set(entry.word.toUpperCase().split(""))].sort();
+    const BATCH_SIZE = 1000;
+    let batch: ReturnType<typeof createBulkOp>[] = [];
+    let processed = 0;
+    let upserted = 0;
+    let modified = 0;
 
+    function createBulkOp(entry: WordEntry) {
+      const letters = [...new Set(entry.word.toUpperCase().split(""))].sort();
       return {
         updateOne: {
           filter: { word: entry.word.toUpperCase() },
@@ -70,37 +122,44 @@ async function seedDictionary() {
               word: entry.word.toUpperCase(),
               length: entry.length,
               letters: letters,
-              clue: entry.clue,
+              clue: entry.clue || "",
             },
           },
           upsert: true,
         },
       };
-    });
+    }
 
-    // Execute in batches of 10000 for better performance
-    const BATCH_SIZE = 10000;
-    let processed = 0;
-    let upserted = 0;
-    let modified = 0;
+    console.log(`Processing words in batches of ${BATCH_SIZE}...`);
 
-    console.log(
-      `Processing ${bulkOps.length.toLocaleString()} words in batches of ${BATCH_SIZE}...`,
-    );
+    for await (const entry of streamWords(dataPath)) {
+      batch.push(createBulkOp(entry));
 
-    for (let i = 0; i < bulkOps.length; i += BATCH_SIZE) {
-      const batch = bulkOps.slice(i, i + BATCH_SIZE);
+      if (batch.length >= BATCH_SIZE) {
+        const result = await Dictionary.bulkWrite(batch, { ordered: false });
+        upserted += result.upsertedCount;
+        modified += result.modifiedCount;
+        processed += batch.length;
+
+        console.log(
+          `  Processed ${processed.toLocaleString()} words - ${result.upsertedCount} new, ${result.modifiedCount} updated`,
+        );
+
+        batch = []; // Clear batch
+
+        // Force garbage collection hint
+        if (global.gc) global.gc();
+      }
+    }
+
+    // Process remaining batch
+    if (batch.length > 0) {
       const result = await Dictionary.bulkWrite(batch, { ordered: false });
-
       upserted += result.upsertedCount;
       modified += result.modifiedCount;
       processed += batch.length;
-
-      const percent = ((processed / bulkOps.length) * 100).toFixed(1);
       console.log(
-        `  Batch ${Math.floor(i / BATCH_SIZE) + 1}: ` +
-          `${processed.toLocaleString()}/${bulkOps.length.toLocaleString()} (${percent}%) - ` +
-          `${result.upsertedCount} new, ${result.modifiedCount} updated`,
+        `  Processed ${processed.toLocaleString()} words - ${result.upsertedCount} new, ${result.modifiedCount} updated`,
       );
     }
 
