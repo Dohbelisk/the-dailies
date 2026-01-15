@@ -17,12 +17,14 @@ import {
   PuzzleQueryDto,
 } from "./dto/puzzle.dto";
 import { ValidateService } from "./validate.service";
+import { DictionaryService } from "../dictionary/dictionary.service";
 
 @Injectable()
 export class PuzzlesService {
   constructor(
     @InjectModel(Puzzle.name) private puzzleModel: Model<PuzzleDocument>,
     private validateService: ValidateService,
+    private dictionaryService: DictionaryService,
   ) {}
 
   async create(createPuzzleDto: CreatePuzzleDto): Promise<Puzzle> {
@@ -584,6 +586,7 @@ export class PuzzlesService {
 
   /**
    * Get Word Forge puzzle words for a specific date
+   * Computes valid words from dictionary based on puzzle letters
    */
   async getWordForgeWords(
     date: string,
@@ -605,8 +608,20 @@ export class PuzzlesService {
       return null;
     }
 
+    const puzzleData = puzzle.puzzleData as Record<string, any>;
     const solution = puzzle.solution as Record<string, any>;
-    const words = solution?.allWords || [];
+
+    // First try to get stored words
+    let words = solution?.allWords || puzzleData?.validWords || [];
+
+    // If no stored words, compute from dictionary
+    if (words.length === 0 && puzzleData?.letters && puzzleData?.centerLetter) {
+      words = await this.dictionaryService.findValidWords(
+        puzzleData.letters,
+        puzzleData.centerLetter,
+        4, // minLength
+      );
+    }
 
     return {
       puzzleId: puzzle._id.toString(),
