@@ -65,6 +65,14 @@ export class PuzzlesController {
     return this.puzzlesService.findByTypeAndDate(gameType, date);
   }
 
+  @Get("word-forge/:date/words")
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get Word Forge words for a specific date (Admin only)" })
+  getWordForgeWords(@Param("date") date: string) {
+    return this.puzzlesService.getWordForgeWords(date);
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "Get a puzzle by ID" })
   findOne(@Param("id") id: string) {
@@ -146,14 +154,6 @@ export class PuzzlesController {
   @ApiOperation({ summary: "Delete a puzzle (Admin only)" })
   remove(@Param("id") id: string) {
     return this.puzzlesService.remove(id);
-  }
-
-  @Get("word-forge/:date/words")
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "Get Word Forge words for a specific date (Admin only)" })
-  getWordForgeWords(@Param("date") date: string) {
-    return this.puzzlesService.getWordForgeWords(date);
   }
 
   @Patch("word-forge/remove-words")
