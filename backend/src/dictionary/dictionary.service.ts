@@ -340,6 +340,17 @@ export class DictionaryService {
   }
 
   /**
+   * Bulk delete words from the dictionary
+   */
+  async deleteWordsBulk(words: string[]): Promise<{ deleted: number }> {
+    const upperWords = words.map((w) => w.toUpperCase());
+    const result = await this.dictionaryModel.deleteMany({
+      word: { $in: upperWords },
+    });
+    return { deleted: result.deletedCount };
+  }
+
+  /**
    * Find all pangrams (words with exactly 7 distinct letters)
    * Used for Word Forge puzzle generation
    */

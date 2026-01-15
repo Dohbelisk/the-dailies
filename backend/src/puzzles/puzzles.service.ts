@@ -581,4 +581,122 @@ export class PuzzlesService {
     }
     return { isValid: true };
   }
+
+  /**
+   * Get Word Forge puzzle words for a specific date
+   */
+  async getWordForgeWords(
+    date: string,
+  ): Promise<{ puzzleId: string; date: Date; words: string[] } | null> {
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    const puzzle = await this.puzzleModel
+      .findOne({
+        gameType: GameType.WORD_FORGE,
+        date: { $gte: targetDate, $lt: nextDay },
+      })
+      .exec();
+
+    if (!puzzle) {
+      return null;
+    }
+
+    const solution = puzzle.solution as Record<string, any>;
+    const words = solution?.allWords || [];
+
+    return {
+      puzzleId: puzzle._id.toString(),
+      date: puzzle.date,
+      words,
+    };
+  }
+
+  /**
+   * Remove words from all future Word Forge puzzles
+   * Returns the number of puzzles updated
+   */
+  async removeWordsFromFutureWordForge(
+    wordsToRemove: string[],
+  ): Promise<{ puzzlesUpdated: number; wordsRemoved: number }> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const upperWords = new Set(wordsToRemove.map((w) => w.toUpperCase()));
+
+    // Find all future Word Forge puzzles
+    const futurePuzzles = await this.puzzleModel
+      .find({
+        gameType: GameType.WORD_FORGE,
+        date: { $gte: today },
+      })
+      .exec();
+
+    let puzzlesUpdated = 0;
+    let totalWordsRemoved = 0;
+
+    for (const puzzle of futurePuzzles) {
+      const puzzleData = puzzle.puzzleData as Record<string, any>;
+      const solution = puzzle.solution as Record<string, any>;
+
+      let modified = false;
+
+      // Remove from puzzleData.validWords if it exists
+      if (puzzleData?.validWords && Array.isArray(puzzleData.validWords)) {
+        const originalLength = puzzleData.validWords.length;
+        puzzleData.validWords = puzzleData.validWords.filter(
+          (w: string) => !upperWords.has(w.toUpperCase()),
+        );
+        if (puzzleData.validWords.length < originalLength) {
+          modified = true;
+          totalWordsRemoved += originalLength - puzzleData.validWords.length;
+        }
+      }
+
+      // Remove from solution.allWords
+      if (solution?.allWords && Array.isArray(solution.allWords)) {
+        const originalLength = solution.allWords.length;
+        solution.allWords = solution.allWords.filter(
+          (w: string) => !upperWords.has(w.toUpperCase()),
+        );
+        if (solution.allWords.length < originalLength) {
+          modified = true;
+          // Don't double-count if already counted from validWords
+          if (!puzzleData?.validWords) {
+            totalWordsRemoved += originalLength - solution.allWords.length;
+          }
+        }
+      }
+
+      // Remove from solution.pangrams
+      if (solution?.pangrams && Array.isArray(solution.pangrams)) {
+        solution.pangrams = solution.pangrams.filter(
+          (w: string) => !upperWords.has(w.toUpperCase()),
+        );
+      }
+
+      // Recalculate maxScore
+      if (solution?.allWords) {
+        solution.maxScore = solution.allWords.reduce((score: number, word: string) => {
+          const len = word.length;
+          if (len === 4) return score + 1;
+          const wordScore = len;
+          const isPangram = solution.pangrams?.includes(word);
+          return score + wordScore + (isPangram ? 7 : 0);
+        }, 0);
+      }
+
+      if (modified) {
+        puzzle.puzzleData = puzzleData;
+        puzzle.solution = solution;
+        await puzzle.save();
+        puzzlesUpdated++;
+      }
+    }
+
+    return { puzzlesUpdated, wordsRemoved: totalWordsRemoved };
+  }
 }
