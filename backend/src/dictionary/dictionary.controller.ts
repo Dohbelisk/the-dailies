@@ -73,6 +73,13 @@ class BulkAddWordsDto {
   words: string[];
 }
 
+class BulkDeleteWordsDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  words: string[];
+}
+
 class WordClueItem {
   @IsString()
   word: string;
@@ -206,6 +213,13 @@ export class DictionaryController {
   async bulkAddWords(@Body() dto: BulkAddWordsDto) {
     const count = await this.dictionaryService.bulkAddWords(dto.words);
     return { added: count };
+  }
+
+  @Delete("words/bulk")
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiOperation({ summary: "Bulk delete words from the dictionary" })
+  async bulkDeleteWords(@Body() dto: BulkDeleteWordsDto) {
+    return this.dictionaryService.deleteWordsBulk(dto.words);
   }
 
   @Patch("words/bulk-clues")

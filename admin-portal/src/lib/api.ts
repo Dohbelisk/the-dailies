@@ -158,6 +158,16 @@ export const dictionaryApi = {
     api.post('/dictionary/words/bulk', { words }),
   updateCluesBulk: (clues: { word: string; clue: string }[]) =>
     api.patch<{ updated: number; notFound: string[] }>('/dictionary/words/bulk-clues', { clues }),
+  bulkDeleteWords: (words: string[]) =>
+    api.delete<{ deleted: number }>('/dictionary/words/bulk', { data: { words } }),
+}
+
+// Word Forge puzzle management
+export const wordForgeApi = {
+  getWordsForDate: (date: string) =>
+    api.get<{ puzzleId: string; date: string; words: string[] } | null>(`/puzzles/word-forge/${date}/words`),
+  removeWordsFromFuture: (words: string[]) =>
+    api.patch<{ puzzlesUpdated: number; wordsRemoved: number }>('/puzzles/word-forge/remove-words', { words }),
 }
 
 // Generate

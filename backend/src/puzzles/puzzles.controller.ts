@@ -15,6 +15,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from "@nestjs/swagger";
+import { IsArray, IsString, ArrayMinSize } from "class-validator";
 import { PuzzlesService } from "./puzzles.service";
 import {
   CreatePuzzleDto,
@@ -25,6 +26,13 @@ import {
 import { GameType } from "./schemas/puzzle.schema";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminGuard } from "../auth/guards/admin.guard";
+
+class RemoveWordsFromWordForgeDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  words: string[];
+}
 
 @ApiTags("puzzles")
 @Controller("puzzles")
@@ -138,5 +146,21 @@ export class PuzzlesController {
   @ApiOperation({ summary: "Delete a puzzle (Admin only)" })
   remove(@Param("id") id: string) {
     return this.puzzlesService.remove(id);
+  }
+
+  @Get("word-forge/:date/words")
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get Word Forge words for a specific date (Admin only)" })
+  getWordForgeWords(@Param("date") date: string) {
+    return this.puzzlesService.getWordForgeWords(date);
+  }
+
+  @Patch("word-forge/remove-words")
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Remove words from all future Word Forge puzzles (Admin only)" })
+  removeWordsFromFutureWordForge(@Body() dto: RemoveWordsFromWordForgeDto) {
+    return this.puzzlesService.removeWordsFromFutureWordForge(dto.words);
   }
 }
