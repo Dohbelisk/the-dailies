@@ -284,6 +284,52 @@ export class DictionaryService {
   }
 
   /**
+   * Update clues for multiple words in bulk
+   */
+  async updateCluesBulk(
+    clues: { word: string; clue: string }[],
+  ): Promise<{ updated: number; notFound: string[] }> {
+    const notFound: string[] = [];
+    let updated = 0;
+
+    // Use bulkWrite for efficiency
+    const operations = clues.map((c) => ({
+      updateOne: {
+        filter: { word: c.word.toUpperCase() },
+        update: { $set: { clue: c.clue } },
+      },
+    }));
+
+    const result = await this.dictionaryModel.bulkWrite(operations, {
+      ordered: false,
+    });
+
+    updated = result.modifiedCount + result.upsertedCount;
+
+    // Find which words weren't updated (didn't exist)
+    if (updated < clues.length) {
+      const updatedWords = new Set(
+        (
+          await this.dictionaryModel
+            .find({
+              word: { $in: clues.map((c) => c.word.toUpperCase()) },
+            })
+            .select("word")
+            .lean()
+        ).map((w) => w.word),
+      );
+
+      for (const c of clues) {
+        if (!updatedWords.has(c.word.toUpperCase())) {
+          notFound.push(c.word);
+        }
+      }
+    }
+
+    return { updated, notFound };
+  }
+
+  /**
    * Delete a word from the dictionary
    */
   async deleteWord(word: string): Promise<{ deleted: boolean }> {

@@ -171,6 +171,84 @@ Generate the 4 categories now:`;
     }
   }
 
+  async generateWordClues(
+    words: string[],
+  ): Promise<{ word: string; clue: string }[]> {
+    if (!this.client) {
+      throw new Error("AI service not configured - ANTHROPIC_API_KEY not set");
+    }
+
+    if (words.length === 0) {
+      return [];
+    }
+
+    // Batch words to avoid token limits (max ~50 words per request)
+    const BATCH_SIZE = 50;
+    const results: { word: string; clue: string }[] = [];
+
+    for (let i = 0; i < words.length; i += BATCH_SIZE) {
+      const batch = words.slice(i, i + BATCH_SIZE);
+      const batchResults = await this.generateCluesBatch(batch);
+      results.push(...batchResults);
+    }
+
+    return results;
+  }
+
+  private async generateCluesBatch(
+    words: string[],
+  ): Promise<{ word: string; clue: string }[]> {
+    const wordList = words.map((w) => w.toUpperCase()).join(", ");
+
+    const prompt = `Generate short dictionary-style clues for these words: ${wordList}
+
+Requirements:
+- Each clue should be 3-8 words maximum
+- Clues should be simple definitions suitable for a word puzzle hint
+- Use the style of crossword puzzle clues (concise, no articles at the start)
+- For verbs, use infinitive form in the clue (e.g., "To walk slowly")
+- For nouns, give a brief definition (e.g., "Large body of water")
+- For adjectives, describe what it means (e.g., "Full of joy")
+
+Return ONLY a valid JSON array with no markdown formatting, like this:
+[{"word": "EXAMPLE", "clue": "Sample or specimen"}]
+
+Generate clues for all ${words.length} words:`;
+
+    try {
+      const response = await this.client.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2048,
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      });
+
+      const textContent = response.content.find(
+        (block) => block.type === "text",
+      );
+      if (!textContent || textContent.type !== "text") {
+        throw new Error("No text content in AI response");
+      }
+
+      const jsonText = textContent.text.trim();
+      const clues: { word: string; clue: string }[] = JSON.parse(jsonText);
+
+      return clues
+        .filter((c) => c.word && c.clue)
+        .map((c) => ({
+          word: c.word.toUpperCase().replace(/[^A-Z]/g, ""),
+          clue: c.clue.trim(),
+        }));
+    } catch (error) {
+      this.logger.error("Failed to generate word clues", error);
+      throw new Error(`AI clue generation failed: ${error.message}`);
+    }
+  }
+
   isAvailable(): boolean {
     return this.client !== null;
   }
