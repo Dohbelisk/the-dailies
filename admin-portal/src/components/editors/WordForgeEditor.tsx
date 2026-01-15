@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Wand2, Loader2, X, Star } from 'lucide-react'
-import { validateApi } from '../../lib/api'
+import { Wand2, Loader2, X, Star, Sparkles, Save, Check, Pencil } from 'lucide-react'
+import { validateApi, aiApi, dictionaryApi } from '../../lib/api'
 import LetterPicker from './shared/LetterPicker'
 import ValidationStatus from './shared/ValidationStatus'
 
@@ -42,6 +42,12 @@ export function WordForgeEditor({
   } | null>(initialSolution || null)
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
 
+  // Clue generation state
+  const [generatedClues, setGeneratedClues] = useState<{ word: string; clue: string }[]>([])
+  const [editingClue, setEditingClue] = useState<string | null>(null)
+  const [editedClueValue, setEditedClueValue] = useState('')
+  const [cluesSaved, setCluesSaved] = useState(false)
+
   // Notify parent of changes
   useEffect(() => {
     if (onChange && validationResult?.isValid && solution) {
@@ -67,6 +73,9 @@ export function WordForgeEditor({
           pangrams: result.pangrams || [],
           maxScore: result.maxScore || 0,
         })
+        // Clear any previous clues when generating new words
+        setGeneratedClues([])
+        setCluesSaved(false)
       } else {
         setSolution(null)
       }
@@ -83,6 +92,30 @@ export function WordForgeEditor({
         ],
       })
       setSolution(null)
+    },
+  })
+
+  // Generate clues mutation
+  const generateCluesMutation = useMutation({
+    mutationFn: (words: string[]) => aiApi.generateWordClues(words),
+    onSuccess: (response) => {
+      setGeneratedClues(response.data.clues)
+      setCluesSaved(false)
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to generate clues')
+    },
+  })
+
+  // Save clues mutation
+  const saveCluesMutation = useMutation({
+    mutationFn: (clues: { word: string; clue: string }[]) => dictionaryApi.updateCluesBulk(clues),
+    onSuccess: (response) => {
+      setCluesSaved(true)
+      alert(`Successfully updated ${response.data.updated} clues!${response.data.notFound.length > 0 ? `\n\nWords not found: ${response.data.notFound.join(', ')}` : ''}`)
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to save clues')
     },
   })
 
@@ -138,6 +171,36 @@ export function WordForgeEditor({
   }, [letters, centerLetter, validateMutation])
 
   const isValidating = validateMutation.isPending
+  const isGeneratingClues = generateCluesMutation.isPending
+  const isSavingClues = saveCluesMutation.isPending
+
+  const handleGenerateClues = useCallback(() => {
+    if (!solution?.allWords.length) return
+    generateCluesMutation.mutate(solution.allWords)
+  }, [solution, generateCluesMutation])
+
+  const handleEditClue = useCallback((word: string, currentClue: string) => {
+    setEditingClue(word)
+    setEditedClueValue(currentClue)
+  }, [])
+
+  const handleSaveEditedClue = useCallback((word: string) => {
+    setGeneratedClues(prev =>
+      prev.map(c => c.word === word ? { ...c, clue: editedClueValue } : c)
+    )
+    setEditingClue(null)
+    setEditedClueValue('')
+  }, [editedClueValue])
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingClue(null)
+    setEditedClueValue('')
+  }, [])
+
+  const handleSaveClues = useCallback(() => {
+    if (!generatedClues.length) return
+    saveCluesMutation.mutate(generatedClues)
+  }, [generatedClues, saveCluesMutation])
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -311,6 +374,129 @@ export function WordForgeEditor({
               </div>
             </div>
           </div>
+
+          {/* AI Clue Generator */}
+          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+            <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-3 flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              AI Clue Generator
+            </h4>
+            <p className="text-sm text-purple-600 dark:text-purple-400 mb-3">
+              Generate dictionary clues for all {solution.allWords.length} words. Review and edit before saving to the dictionary.
+            </p>
+            <button
+              type="button"
+              onClick={handleGenerateClues}
+              disabled={isGeneratingClues}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGeneratingClues ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {isGeneratingClues ? 'Generating Clues...' : 'Generate Clues with AI'}
+            </button>
+          </div>
+
+          {/* Generated Clues Review */}
+          {generatedClues.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h5 className="font-medium text-gray-700 dark:text-gray-300">
+                  Generated Clues ({generatedClues.length})
+                </h5>
+                <button
+                  type="button"
+                  onClick={handleSaveClues}
+                  disabled={isSavingClues || cluesSaved}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    cluesSaved
+                      ? 'bg-green-600 text-white'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {isSavingClues ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : cluesSaved ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {isSavingClues ? 'Saving...' : cluesSaved ? 'Saved!' : 'Save All Clues to Dictionary'}
+                </button>
+              </div>
+
+              <div className="max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Word</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Clue</th>
+                      <th className="px-4 py-2 w-20"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {generatedClues.map(({ word, clue }) => (
+                      <tr key={word} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                        <td className="px-4 py-2 font-mono font-medium text-gray-900 dark:text-gray-100">
+                          {word}
+                          {solution.pangrams.includes(word) && (
+                            <Star className="w-3 h-3 inline ml-1 text-amber-500" />
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          {editingClue === word ? (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={editedClueValue}
+                                onChange={(e) => setEditedClueValue(e.target.value)}
+                                className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveEditedClue(word)
+                                  if (e.key === 'Escape') handleCancelEdit()
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSaveEditedClue(word)}
+                                className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleCancelEdit}
+                                className="px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-gray-600 dark:text-gray-400">{clue}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          {editingClue !== word && (
+                            <button
+                              type="button"
+                              onClick={() => handleEditClue(word, clue)}
+                              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              title="Edit clue"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

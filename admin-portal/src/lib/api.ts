@@ -156,6 +156,8 @@ export const dictionaryApi = {
     api.post('/dictionary/word', { word, clue }),
   bulkAddWords: (words: string[]) =>
     api.post('/dictionary/words/bulk', { words }),
+  updateCluesBulk: (clues: { word: string; clue: string }[]) =>
+    api.patch<{ updated: number; notFound: string[] }>('/dictionary/words/bulk-clues', { clues }),
 }
 
 // Generate
@@ -220,6 +222,8 @@ export const aiApi = {
     api.post('/ai/crossword-words', { theme, count, minLength, maxLength }),
   generateConnections: (theme?: string) =>
     api.post('/ai/connections', { theme }),
+  generateWordClues: (words: string[]) =>
+    api.post<{ clues: { word: string; clue: string }[] }>('/ai/word-clues', { words }),
 }
 
 export default api

@@ -10,7 +10,15 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
-import { IsString, IsArray, IsOptional, MinLength } from "class-validator";
+import {
+  IsString,
+  IsArray,
+  IsOptional,
+  MinLength,
+  ValidateNested,
+  ArrayMinSize,
+} from "class-validator";
+import { Type } from "class-transformer";
 import { DictionaryService } from "./dictionary.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminGuard } from "../auth/guards/admin.guard";
@@ -63,6 +71,22 @@ class BulkAddWordsDto {
   @IsArray()
   @IsString({ each: true })
   words: string[];
+}
+
+class WordClueItem {
+  @IsString()
+  word: string;
+
+  @IsString()
+  clue: string;
+}
+
+class BulkUpdateCluesDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => WordClueItem)
+  clues: WordClueItem[];
 }
 
 @ApiTags("dictionary")
@@ -182,5 +206,12 @@ export class DictionaryController {
   async bulkAddWords(@Body() dto: BulkAddWordsDto) {
     const count = await this.dictionaryService.bulkAddWords(dto.words);
     return { added: count };
+  }
+
+  @Patch("words/bulk-clues")
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiOperation({ summary: "Bulk update clues for multiple words" })
+  async bulkUpdateClues(@Body() dto: BulkUpdateCluesDto) {
+    return this.dictionaryService.updateCluesBulk(dto.clues);
   }
 }

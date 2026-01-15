@@ -1,6 +1,15 @@
 import { Controller, Post, Body, UseGuards, Get } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
-import { IsString, IsOptional, IsNumber, Min, Max } from "class-validator";
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
+} from "class-validator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminGuard } from "../auth/guards/admin.guard";
 import { AiService, CrosswordWord, ConnectionsCategory } from "./ai.service";
@@ -32,6 +41,14 @@ class GenerateConnectionsDto {
   @IsOptional()
   @IsString()
   theme?: string;
+}
+
+class GenerateWordCluesDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(200)
+  @IsString({ each: true })
+  words: string[];
 }
 
 @ApiTags("ai")
@@ -79,6 +96,20 @@ export class AiController {
     return {
       theme: dto.theme,
       categories,
+    };
+  }
+
+  @Post("word-clues")
+  @ApiOperation({
+    summary: "Generate dictionary clues for a list of words",
+  })
+  async generateWordClues(
+    @Body() dto: GenerateWordCluesDto,
+  ): Promise<{ clues: { word: string; clue: string }[] }> {
+    const clues = await this.aiService.generateWordClues(dto.words);
+
+    return {
+      clues,
     };
   }
 }
