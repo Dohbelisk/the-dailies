@@ -375,7 +375,7 @@ export class PuzzlesService {
     puzzleData: Record<string, any>,
     solution: Record<string, any>,
   ): { isValid: boolean; error?: string } {
-    const { letters, centerLetter } = puzzleData;
+    const { letters, centerLetter, words } = puzzleData;
     if (!letters || letters.length !== 7) {
       return {
         isValid: false,
@@ -388,10 +388,17 @@ export class PuzzlesService {
         error: "Word Forge center letter must be one of the 7 letters",
       };
     }
-    if (!solution?.allWords || solution.allWords.length === 0) {
+    // Support both old format (solution.allWords) and new format (puzzleData.words)
+    const wordList = words || solution?.allWords;
+    if (!wordList || wordList.length === 0) {
       return { isValid: false, error: "Word Forge has no valid words" };
     }
-    if (!solution?.pangrams || solution.pangrams.length === 0) {
+    // Check for pangrams - either in solution.pangrams or by checking puzzleData.words for isPangram flag
+    const hasPangrams =
+      solution?.pangrams?.length > 0 ||
+      solution?.pangramCount > 0 ||
+      (Array.isArray(words) && words.some((w: any) => w.isPangram));
+    if (!hasPangrams) {
       return { isValid: false, error: "Word Forge has no pangrams" };
     }
     return { isValid: true };
@@ -552,18 +559,25 @@ export class PuzzlesService {
     puzzleData: Record<string, any>,
     solution: Record<string, any>,
   ): { isValid: boolean; error?: string } {
-    const { startValue, targetValue, maxMoves, operations } = puzzleData;
-    if (startValue === undefined || targetValue === undefined) {
+    // Support both old (startValue/targetValue) and new (startNumber/targetNumber) field names
+    const startNumber = puzzleData.startNumber ?? puzzleData.startValue;
+    const targetNumber = puzzleData.targetNumber ?? puzzleData.targetValue;
+    const moves = puzzleData.moves ?? puzzleData.maxMoves;
+    const { operations } = puzzleData;
+
+    if (startNumber === undefined || targetNumber === undefined) {
       return { isValid: false, error: "Mathora missing start or target value" };
     }
-    if (!maxMoves || maxMoves < 1) {
+    if (!moves || moves < 1) {
       return { isValid: false, error: "Mathora missing or invalid max moves" };
     }
     if (!operations || operations.length === 0) {
       return { isValid: false, error: "Mathora missing operations" };
     }
-    if (!solution?.moves || solution.moves.length === 0) {
-      return { isValid: false, error: "Mathora missing solution moves" };
+    // Support both old (moves) and new (steps) solution field names
+    const solutionSteps = solution?.steps ?? solution?.moves;
+    if (!solutionSteps || solutionSteps.length === 0) {
+      return { isValid: false, error: "Mathora missing solution steps" };
     }
     return { isValid: true };
   }
