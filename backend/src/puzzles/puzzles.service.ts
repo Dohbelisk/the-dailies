@@ -430,17 +430,23 @@ export class PuzzlesService {
     puzzleData: Record<string, any>,
     solution: Record<string, any>,
   ): { isValid: boolean; error?: string } {
-    const { numbers, target } = puzzleData;
+    const { numbers, target, targets } = puzzleData;
     if (!numbers || numbers.length !== 4) {
       return {
         isValid: false,
         error: "Number Target must have exactly 4 numbers",
       };
     }
-    if (target === undefined || target === null) {
+    // Support both single target and targets array formats
+    const hasTarget = target !== undefined && target !== null;
+    const hasTargets = targets && Array.isArray(targets) && targets.length > 0;
+    if (!hasTarget && !hasTargets) {
       return { isValid: false, error: "Number Target missing target value" };
     }
-    if (!solution?.expression) {
+    // Check for solution expression (support both formats)
+    const hasExpression = solution?.expression ||
+      (solution?.targetSolutions && solution.targetSolutions.length > 0);
+    if (!hasExpression) {
       return {
         isValid: false,
         error: "Number Target missing solution expression",
