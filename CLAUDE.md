@@ -155,3 +155,4 @@ db.dropDatabase()              # Reset (then re-seed)
 - [x] Google Sign-In authentication
 - [x] Push notifications backend
 - [x] Achievements system
+- [x] Super user puzzle editor (in-app editing for all 13 puzzle types)

@@ -6,6 +6,7 @@ import '../services/game_state_service.dart';
 import '../services/api_service.dart';
 import '../config/environment.dart';
 import '../models/game_models.dart';
+import 'admin/admin_puzzle_list_screen.dart';
 
 /// Hidden debug menu for developers and testers
 class DebugMenuScreen extends StatefulWidget {
@@ -114,6 +115,16 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             title: const Text('Test Custom Date'),
             subtitle: const Text('Pick any date to test puzzles'),
             onTap: _testCustomDatePuzzles,
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.edit_note, color: Colors.orange),
+            title: const Text('Edit Puzzles'),
+            subtitle: const Text('View and edit puzzles for any date'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminPuzzleListScreen()),
+            ),
           ),
         ] else
           const Padding(

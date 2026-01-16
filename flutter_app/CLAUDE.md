@@ -13,7 +13,7 @@ Cross-platform mobile application using Flutter with Provider pattern for state 
 
 | Service | Purpose |
 |---------|---------|
-| `ApiService` | HTTP client, offline mock data fallback |
+| `ApiService` | HTTP client, offline mock data fallback, admin puzzle updates |
 | `AuthService` | JWT auth, token persistence, user state, profile picture |
 | `GameService` | Puzzle fetching and parsing |
 | `GameStateService` | Persistent game state (in-progress detection) |
@@ -43,7 +43,9 @@ Cross-platform mobile application using Flutter with Provider pattern for state 
 | `ArchiveScreen` | Past puzzles with token access |
 | `StatsScreen` | User statistics |
 | `SettingsScreen` | Profile section, audio, theme, privacy, IAP, logout |
-| `DebugMenuScreen` | Hidden debug menu for feature flag overrides |
+| `DebugMenuScreen` | Hidden debug menu for feature flag overrides, super user features |
+| `AdminPuzzleListScreen` | Super user puzzle list (Today/Tomorrow/Custom date tabs) |
+| `AdminPuzzleEditScreen` | Super user puzzle editor with Visual/JSON toggle |
 | `FriendsScreen` | Friend list, requests, search |
 | `FriendProfileScreen` | Friend details, head-to-head stats |
 | `ChallengesScreen` | Pending, active, completed challenges |
@@ -70,6 +72,18 @@ Cross-platform mobile application using Flutter with Provider pattern for state 
 - `GoogleSignInButton`, `AchievementUnlockToast`
 - `DailyStatsBanner`, `HeroPuzzleCard`, `VibrantPuzzleCard`
 - `GameIcon`
+
+**Admin Widgets** (for super user puzzle editing):
+- `AdminNumberPad` - Reusable 1-9 number pad
+- `AdminColorPicker` - Color selection for Ball Sort/Pipes
+- `AdminValidationStatus` - Validation result display
+
+**Admin Editors** (13 visual editors + JSON fallback):
+- `AdminSudokuEditor`, `AdminKillerSudokuEditor`, `AdminCrosswordEditor`
+- `AdminWordSearchEditor`, `AdminWordForgeEditor`, `AdminNonogramEditor`
+- `AdminNumberTargetEditor`, `AdminBallSortEditor`, `AdminPipesEditor`
+- `AdminLightsOutEditor`, `AdminWordLadderEditor`, `AdminConnectionsEditor`
+- `AdminMathoraEditor`, `AdminJsonEditor`
 
 ## Game-Specific State in GameProvider
 
@@ -116,6 +130,15 @@ Final score clamped to 0-10000
 - Local overrides via debug menu for testing
 - Usage: `ConfigService().isFeatureEnabled('feature_key')`
 - **Access Debug Menu:** Settings Screen → Tap version number 7 times
+
+### Super User Puzzle Editor
+
+Available in Debug Menu when Super Account is enabled:
+- **Edit Puzzles** - View and edit puzzles for Today, Tomorrow, or any custom date
+- Visual editors for all 13 puzzle types with real-time validation
+- JSON editor fallback for direct data manipulation
+- Edit metadata: difficulty, target time, active status
+- Save changes directly to backend via `ApiService.updatePuzzle()`
 
 ### Version Checking
 
