@@ -2240,8 +2240,8 @@ class GameProvider extends ChangeNotifier {
     _wordLadderInput = '';
     notifyListeners();
 
-    // Check if reached target
-    if (word == _wordLadderPuzzle!.targetWord) {
+    // Check if paths have connected (either same word or differ by one letter)
+    if (_wordLadderPuzzle!.isComplete) {
       return WordLadderSubmitResult(success: true, message: 'Complete!', isComplete: true);
     }
 

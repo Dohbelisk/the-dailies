@@ -378,16 +378,35 @@ class _NonogramGridState extends State<NonogramGrid> {
               final availableWidth = constraints.maxWidth;
               final availableHeight = constraints.maxHeight;
 
-              // Calculate space needed for clues
-              const clueUnitSize = 20.0;
-              final rowClueWidth = maxRowClueLength * clueUnitSize + 8;
-              final colClueHeight = maxColClueLength * clueUnitSize + 8;
+              // We need to fit: rowClueWidth + (cols * cellSize) <= availableWidth
+              //                 colClueHeight + (rows * cellSize) <= availableHeight
+              // Where rowClueWidth = maxRowClueLength * clueUnitSize + 8
+              //       colClueHeight = maxColClueLength * clueUnitSize + 8
+              //
+              // For simplicity, use a ratio: clueUnitSize = cellSize * 0.8
+              // Then solve for cellSize that fits both constraints
 
-              // Calculate cell size
-              final gridWidth = availableWidth - rowClueWidth;
-              final gridHeight = availableHeight - colClueHeight;
-              final cellSize = (gridWidth / widget.puzzle.cols)
-                  .clamp(0.0, gridHeight / widget.puzzle.rows);
+              const cluePadding = 8.0;
+              const clueRatio = 0.8; // clue unit size relative to cell size
+
+              // Width constraint: maxRowClueLength * (cellSize * clueRatio) + padding + cols * cellSize <= availableWidth
+              // cellSize * (maxRowClueLength * clueRatio + cols) <= availableWidth - padding
+              final widthDivisor = maxRowClueLength * clueRatio + widget.puzzle.cols;
+              final cellSizeByWidth = (availableWidth - cluePadding) / widthDivisor;
+
+              // Height constraint: similar calculation
+              final heightDivisor = maxColClueLength * clueRatio + widget.puzzle.rows;
+              final cellSizeByHeight = (availableHeight - cluePadding) / heightDivisor;
+
+              // Use the smaller to fit both constraints
+              final cellSize = cellSizeByWidth < cellSizeByHeight
+                  ? cellSizeByWidth
+                  : cellSizeByHeight;
+
+              // Derive clue unit size from cell size
+              final clueUnitSize = cellSize * clueRatio;
+              final rowClueWidth = maxRowClueLength * clueUnitSize + cluePadding;
+              final colClueHeight = maxColClueLength * clueUnitSize + cluePadding;
 
               // Store for drag detection
               _cellSize = cellSize;

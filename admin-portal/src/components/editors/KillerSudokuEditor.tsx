@@ -126,7 +126,8 @@ export default function KillerSudokuEditor({
 
   // Validation mutation
   const validateMutation = useMutation({
-    mutationFn: (cagesData: Cage[]) => validateApi.validateKillerSudoku(cagesData),
+    mutationFn: ({ cagesData, gridData }: { cagesData: Cage[]; gridData: number[][] }) =>
+      validateApi.validateKillerSudoku(cagesData, gridData),
     onSuccess: (response) => {
       const data = response.data
       setValidationResult({
@@ -149,7 +150,8 @@ export default function KillerSudokuEditor({
 
   // Solve mutation
   const solveMutation = useMutation({
-    mutationFn: (cagesData: Cage[]) => validateApi.solveKillerSudoku(cagesData),
+    mutationFn: ({ cagesData, gridData }: { cagesData: Cage[]; gridData: number[][] }) =>
+      validateApi.solveKillerSudoku(cagesData, gridData),
     onSuccess: (response) => {
       const data = response.data
       if (data.success && data.solution) {
@@ -558,7 +560,7 @@ export default function KillerSudokuEditor({
       <div className="flex flex-wrap gap-3">
         <button
           type="button"
-          onClick={() => validateMutation.mutate(cages)}
+          onClick={() => validateMutation.mutate({ cagesData: cages, gridData: grid })}
           disabled={isLoading || cages.length === 0}
           className="btn btn-secondary"
         >
@@ -572,7 +574,7 @@ export default function KillerSudokuEditor({
 
         <button
           type="button"
-          onClick={() => solveMutation.mutate(cages)}
+          onClick={() => solveMutation.mutate({ cagesData: cages, gridData: grid })}
           disabled={isLoading || cages.length === 0}
           className="btn btn-primary"
         >

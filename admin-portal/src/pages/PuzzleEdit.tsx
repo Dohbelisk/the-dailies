@@ -500,6 +500,7 @@ export default function PuzzleEdit() {
               <PuzzleEditorWrapper
                 gameType={gameType as any}
                 puzzleData={visualPuzzleData || puzzle?.puzzleData}
+                solution={puzzle?.solution}
                 onChange={handleVisualDataChange}
               />
             ) : (

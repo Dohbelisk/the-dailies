@@ -10,8 +10,8 @@ interface NonogramEditorProps {
     colClues: number[][]
   }
   initialSolution?: {
-    grid: number[][]
-  }
+    grid?: number[][]  // Solution might be { grid: [...] }
+  } | number[][]       // Or solution might be direct array
   onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
 }
@@ -100,7 +100,20 @@ export function NonogramEditor({
 }: NonogramEditorProps) {
   const [rows, setRows] = useState(initialData?.rows || 5)
   const [cols, setCols] = useState(initialData?.cols || 5)
-  const [grid, setGrid] = useState<number[][]>(initialSolution?.grid || createEmptyGrid(5, 5))
+  const [grid, setGrid] = useState<number[][]>(() => {
+    // Handle solution as { grid: [...] } or direct array
+    if (initialSolution) {
+      if (Array.isArray(initialSolution)) {
+        return initialSolution
+      }
+      if (initialSolution.grid) {
+        return initialSolution.grid
+      }
+    }
+    const r = initialData?.rows || 5
+    const c = initialData?.cols || 5
+    return createEmptyGrid(r, c)
+  })
   const [validationResult, setValidationResult] = useState<{
     isValid: boolean
     hasUniqueSolution: boolean
