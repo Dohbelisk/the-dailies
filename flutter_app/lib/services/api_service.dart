@@ -5,9 +5,11 @@ import '../models/game_models.dart';
 import '../models/user_models.dart';
 import '../models/feedback_models.dart';
 import 'auth_service.dart';
+import 'logging_service.dart';
 
 class ApiService {
   final AuthService? authService;
+  final LoggingService _log = LoggingService();
 
   // API URL from environment configuration
   static String get baseUrl => Environment.apiUrl;
@@ -28,54 +30,106 @@ class ApiService {
 
     return headers;
   }
+
+  /// Make a GET request with logging
+  Future<http.Response> _get(String url, {Map<String, String>? headers}) async {
+    final start = DateTime.now();
+    final requestHeaders = headers ?? _getHeaders();
+
+    _log.logApiRequest(method: 'GET', url: url, headers: requestHeaders);
+
+    try {
+      final response = await http.get(Uri.parse(url), headers: requestHeaders);
+      final duration = DateTime.now().difference(start);
+
+      _log.logApiResponse(
+        method: 'GET',
+        url: url,
+        statusCode: response.statusCode,
+        body: response.body,
+        duration: duration,
+      );
+
+      return response;
+    } catch (e, stack) {
+      _log.logApiError(method: 'GET', url: url, exception: e, stackTrace: stack);
+      rethrow;
+    }
+  }
+
+  /// Make a POST request with logging
+  Future<http.Response> _post(String url, {Map<String, String>? headers, dynamic body}) async {
+    final start = DateTime.now();
+    final requestHeaders = headers ?? _getHeaders();
+
+    _log.logApiRequest(method: 'POST', url: url, headers: requestHeaders, body: body);
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: requestHeaders,
+        body: body != null ? json.encode(body) : null,
+      );
+      final duration = DateTime.now().difference(start);
+
+      _log.logApiResponse(
+        method: 'POST',
+        url: url,
+        statusCode: response.statusCode,
+        body: response.body,
+        duration: duration,
+      );
+
+      return response;
+    } catch (e, stack) {
+      _log.logApiError(method: 'POST', url: url, exception: e, stackTrace: stack);
+      rethrow;
+    }
+  }
   
   Future<List<DailyPuzzle>> getTodaysPuzzles() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/puzzles/today'),
-        headers: _getHeaders(),
-      );
+      final response = await _get('$baseUrl/puzzles/today');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => DailyPuzzle.fromJson(json)).toList();
       }
+      _log.warning('Failed to load today\'s puzzles: ${response.statusCode}', tag: 'Puzzles');
       throw Exception('Failed to load puzzles');
     } catch (e) {
-      // Return mock data for development
+      _log.info('Using mock puzzles due to error: $e', tag: 'Puzzles');
       return _getMockPuzzles();
     }
   }
 
   Future<DailyPuzzle?> getPuzzle(String id) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/puzzles/$id'),
-        headers: _getHeaders(),
-      );
-      
+      final response = await _get('$baseUrl/puzzles/$id');
+
       if (response.statusCode == 200) {
         return DailyPuzzle.fromJson(json.decode(response.body));
       }
+      _log.warning('Puzzle not found: $id (status: ${response.statusCode})', tag: 'Puzzles');
       return null;
     } catch (e) {
+      _log.error('Failed to get puzzle: $id', tag: 'Puzzles', exception: e);
       return null;
     }
   }
 
   Future<List<DailyPuzzle>> getPuzzlesByType(GameType type) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/puzzles/type/${type.apiValue}'),
-        headers: _getHeaders(),
-      );
-      
+      final response = await _get('$baseUrl/puzzles/type/${type.apiValue}');
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => DailyPuzzle.fromJson(json)).toList();
       }
+      _log.warning('Failed to load puzzles by type ${type.apiValue}: ${response.statusCode}', tag: 'Puzzles');
       throw Exception('Failed to load puzzles');
     } catch (e) {
+      _log.error('Error loading puzzles by type: ${type.apiValue}', tag: 'Puzzles', exception: e);
       return [];
     }
   }
@@ -83,17 +137,15 @@ class ApiService {
   Future<DailyPuzzle?> getPuzzleByTypeAndDate(GameType type, DateTime date) async {
     try {
       final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      final response = await http.get(
-        Uri.parse('$baseUrl/puzzles/type/${type.apiValue}/date/$dateStr'),
-        headers: _getHeaders(),
-      );
+      final response = await _get('$baseUrl/puzzles/type/${type.apiValue}/date/$dateStr');
 
       if (response.statusCode == 200) {
         return DailyPuzzle.fromJson(json.decode(response.body));
       }
+      _log.debug('Puzzle not found for ${type.apiValue} on $dateStr', tag: 'Puzzles');
       return null;
     } catch (e) {
-      // Return mock data for the specific type
+      _log.info('Using mock puzzle for ${type.apiValue} due to error', tag: 'Puzzles');
       final puzzles = _getMockPuzzles();
       return puzzles.firstWhere(
         (p) => p.gameType == type,
@@ -119,41 +171,42 @@ class ApiService {
 
   Future<bool> submitScore(String puzzleId, int time, int score) async {
     try {
-      print('Submitting score: puzzleId=$puzzleId, time=$time, score=$score');
-      print('Headers: ${_getHeaders()}');
-      final response = await http.post(
-        Uri.parse('$baseUrl/scores'),
-        headers: _getHeaders(),
-        body: json.encode({
-          'puzzleId': puzzleId,
-          'time': time,
-          'score': score,
-        }),
-      );
+      _log.info('Submitting score', tag: 'Scores', data: {
+        'puzzleId': puzzleId,
+        'time': time,
+        'score': score,
+      });
 
-      print('Score submit response: ${response.statusCode} - ${response.body}');
-      return response.statusCode == 201;
+      final response = await _post('$baseUrl/scores', body: {
+        'puzzleId': puzzleId,
+        'time': time,
+        'score': score,
+      });
+
+      if (response.statusCode == 201) {
+        _log.info('Score submitted successfully', tag: 'Scores');
+        return true;
+      }
+      _log.warning('Score submit failed: ${response.statusCode}', tag: 'Scores');
+      return false;
     } catch (e) {
-      print('Score submit error: $e');
+      _log.warning('Score submit error (offline mode)', tag: 'Scores');
       return true; // Offline mode - assume success
     }
   }
 
   Future<UserStats> getUserStats() async {
     try {
-      print('Fetching stats with headers: ${_getHeaders()}');
-      final response = await http.get(
-        Uri.parse('$baseUrl/scores/stats'),
-        headers: _getHeaders(),
-      );
+      final response = await _get('$baseUrl/scores/stats');
 
-      print('Stats response: ${response.statusCode} - ${response.body}');
       if (response.statusCode == 200) {
+        _log.debug('Stats fetched successfully', tag: 'Stats');
         return UserStats.fromJson(json.decode(response.body));
       }
+      _log.warning('Failed to fetch stats: ${response.statusCode}', tag: 'Stats');
       return UserStats.empty();
     } catch (e) {
-      print('Stats fetch error: $e');
+      _log.error('Stats fetch error', tag: 'Stats', exception: e);
       return UserStats.empty();
     }
   }
@@ -162,13 +215,12 @@ class ApiService {
 
   Future<LoginResult> login(String email, String password) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
+      _log.info('Login attempt', tag: 'Auth', data: {'email': email});
+
+      final response = await _post(
+        '$baseUrl/auth/login',
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
+        body: {'email': email, 'password': password},
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -176,17 +228,22 @@ class ApiService {
         final user = User.fromJson(data['user']);
         final token = data['token'] ?? data['access_token'];
 
-        // Set authenticated user in AuthService
         if (authService != null) {
           await authService!.setAuthenticatedUser(token, user);
         }
 
+        _log.info('Login successful', tag: 'Auth', data: {'userId': user.id});
+        _log.setUserContext(userId: user.id, email: user.email, isAnonymous: false);
+
         return LoginResult.success(user, token);
       } else {
         final data = json.decode(response.body);
-        return LoginResult.failure(data['message'] ?? 'Login failed');
+        final message = data['message'] ?? 'Login failed';
+        _log.warning('Login failed: $message', tag: 'Auth');
+        return LoginResult.failure(message);
       }
     } catch (e) {
+      _log.error('Login error', tag: 'Auth', exception: e);
       return LoginResult.failure('Login failed: $e');
     }
   }
@@ -197,14 +254,12 @@ class ApiService {
     String username,
   ) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/register'),
+      _log.info('Registration attempt', tag: 'Auth', data: {'email': email, 'username': username});
+
+      final response = await _post(
+        '$baseUrl/auth/register',
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'password': password,
-          'username': username,
-        }),
+        body: {'email': email, 'password': password, 'username': username},
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -212,27 +267,34 @@ class ApiService {
         final user = User.fromJson(data['user']);
         final token = data['token'] ?? data['access_token'];
 
-        // Set authenticated user in AuthService
         if (authService != null) {
           await authService!.setAuthenticatedUser(token, user);
         }
 
+        _log.info('Registration successful', tag: 'Auth', data: {'userId': user.id});
+        _log.setUserContext(userId: user.id, email: user.email, isAnonymous: false);
+
         return RegisterResult.success(user, token);
       } else {
         final data = json.decode(response.body);
-        return RegisterResult.failure(data['message'] ?? 'Registration failed');
+        final message = data['message'] ?? 'Registration failed';
+        _log.warning('Registration failed: $message', tag: 'Auth');
+        return RegisterResult.failure(message);
       }
     } catch (e) {
+      _log.error('Registration error', tag: 'Auth', exception: e);
       return RegisterResult.failure('Registration failed: $e');
     }
   }
 
   Future<LoginResult> googleSignIn(String idToken) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/google'),
+      _log.info('Google Sign-In attempt', tag: 'Auth');
+
+      final response = await _post(
+        '$baseUrl/auth/google',
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'idToken': idToken}),
+        body: {'idToken': idToken},
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -240,52 +302,55 @@ class ApiService {
         final user = User.fromJson(data['user']);
         final token = data['token'] ?? data['access_token'];
 
-        // Set authenticated user in AuthService
         if (authService != null) {
           await authService!.setAuthenticatedUser(token, user);
         }
 
+        _log.info('Google Sign-In successful', tag: 'Auth', data: {'userId': user.id});
+        _log.setUserContext(userId: user.id, email: user.email, isAnonymous: false);
+
         return LoginResult.success(user, token);
       } else {
         final data = json.decode(response.body);
-        return LoginResult.failure(data['message'] ?? 'Google Sign-In failed');
+        final message = data['message'] ?? 'Google Sign-In failed';
+        _log.warning('Google Sign-In failed: $message', tag: 'Auth');
+        return LoginResult.failure(message);
       }
     } catch (e) {
+      _log.error('Google Sign-In error', tag: 'Auth', exception: e);
       return LoginResult.failure('Google Sign-In failed: $e');
     }
   }
 
   Future<User?> getCurrentUser() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/auth/me'),
-        headers: _getHeaders(),
-      );
+      final response = await _get('$baseUrl/auth/me');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return User.fromJson(data);
+        final user = User.fromJson(data);
+        _log.debug('Current user fetched', tag: 'Auth', data: {'userId': user.id});
+        return user;
       }
+      _log.debug('No current user (status: ${response.statusCode})', tag: 'Auth');
       return null;
     } catch (e) {
-      print('Error fetching current user: $e');
+      _log.error('Error fetching current user', tag: 'Auth', exception: e);
       return null;
     }
   }
 
   Future<DailyPuzzle?> getPuzzleByDate(GameType type, String dateStr) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/puzzles/type/${type.apiValue}/date/$dateStr'),
-        headers: _getHeaders(),
-      );
+      final response = await _get('$baseUrl/puzzles/type/${type.apiValue}/date/$dateStr');
 
       if (response.statusCode == 200) {
         return DailyPuzzle.fromJson(json.decode(response.body));
       }
+      _log.debug('Puzzle not found for ${type.apiValue} on $dateStr', tag: 'Puzzles');
       return null;
     } catch (e) {
-      print('Error fetching puzzle by date: $e');
+      _log.error('Error fetching puzzle by date', tag: 'Puzzles', exception: e);
       return null;
     }
   }
@@ -294,15 +359,22 @@ class ApiService {
 
   Future<bool> submitFeedback(FeedbackSubmission feedback) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/feedback'),
+      _log.info('Submitting feedback', tag: 'Feedback', data: {'type': feedback.type});
+
+      final response = await _post(
+        '$baseUrl/feedback',
         headers: {'Content-Type': 'application/json'},
-        body: json.encode(feedback.toJson()),
+        body: feedback.toJson(),
       );
 
-      return response.statusCode == 201;
+      if (response.statusCode == 201) {
+        _log.info('Feedback submitted successfully', tag: 'Feedback');
+        return true;
+      }
+      _log.warning('Feedback submission failed: ${response.statusCode}', tag: 'Feedback');
+      return false;
     } catch (e) {
-      print('Error submitting feedback: $e');
+      _log.error('Error submitting feedback', tag: 'Feedback', exception: e);
       return false;
     }
   }

@@ -2015,8 +2015,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               gameProvider.continuePipesPath(color);
               _audioService.playTap();
             },
-            onPathExtend: (row, col) {
-              gameProvider.extendPipesPath(row, col);
+            onPathTruncateAndContinue: (color, index) {
+              gameProvider.truncatePipesPathAndContinue(color, index);
+              _audioService.playTap();
+            },
+            onPathExtend: (row, col, dragVelocity) {
+              gameProvider.extendPipesPath(
+                row, col,
+                dragDx: dragVelocity?.dx,
+                dragDy: dragVelocity?.dy,
+              );
             },
             onPathEnd: () {
               gameProvider.endPipesPath();

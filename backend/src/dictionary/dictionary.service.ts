@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
+import * as crypto from "crypto";
 import { Dictionary, DictionaryDocument } from "./schemas/dictionary.schema";
 
 @Injectable()
@@ -422,5 +423,81 @@ export class DictionaryService {
       if (a.word.length !== b.word.length) return b.word.length - a.word.length;
       return a.word.localeCompare(b.word);
     });
+  }
+
+  // ============ Mobile App Sync Methods ============
+
+  /**
+   * Get dictionary version hash for mobile apps to check if update is needed
+   * Hash is based on word count and most recent update timestamp
+   */
+  async getDictionaryVersion(): Promise<{
+    version: string;
+    wordCount: number;
+    lastModified: Date | null;
+  }> {
+    const [wordCount, latestWord] = await Promise.all([
+      this.dictionaryModel.countDocuments(),
+      this.dictionaryModel
+        .findOne()
+        .sort({ updatedAt: -1 })
+        .select("updatedAt")
+        .lean(),
+    ]);
+
+    const lastModified = latestWord?.updatedAt || null;
+
+    // Create a version hash based on count and timestamp
+    const versionString = `${wordCount}-${lastModified?.toISOString() || "none"}`;
+    const version = crypto
+      .createHash("md5")
+      .update(versionString)
+      .digest("hex")
+      .substring(0, 12);
+
+    return { version, wordCount, lastModified };
+  }
+
+  /**
+   * Get all words for mobile app sync (compact format)
+   * Returns only words, newline-separated for minimal size
+   */
+  async getAllWordsForSync(): Promise<string> {
+    const words = await this.dictionaryModel
+      .find({})
+      .select("word")
+      .sort({ word: 1 })
+      .lean();
+
+    return words.map((w) => w.word).join("\n");
+  }
+
+  /**
+   * Stream all words for mobile app sync (memory efficient)
+   */
+  async *streamWordsForSync(): AsyncGenerator<string> {
+    const batchSize = 5000;
+    let skip = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const words = await this.dictionaryModel
+        .find({})
+        .select("word")
+        .sort({ word: 1 })
+        .skip(skip)
+        .limit(batchSize)
+        .lean();
+
+      if (words.length < batchSize) {
+        hasMore = false;
+      }
+
+      for (const word of words) {
+        yield word.word + "\n";
+      }
+
+      skip += batchSize;
+    }
   }
 }

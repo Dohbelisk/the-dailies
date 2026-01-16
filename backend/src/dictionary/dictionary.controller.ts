@@ -8,7 +8,11 @@ import {
   Param,
   Query,
   UseGuards,
+  Res,
+  Header,
+  Headers,
 } from "@nestjs/common";
+import { Response } from "express";
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import {
   IsString,
@@ -141,6 +145,49 @@ export class DictionaryController {
       wordCount: count,
       minWordLength: 4,
     };
+  }
+
+  // ============ Mobile App Sync Endpoints ============
+
+  @Get("sync/version")
+  @ApiOperation({
+    summary: "Get dictionary version for mobile apps to check if update needed",
+  })
+  async getSyncVersion() {
+    return this.dictionaryService.getDictionaryVersion();
+  }
+
+  @Get("sync/words")
+  @Header("Content-Type", "text/plain; charset=utf-8")
+  @ApiOperation({
+    summary:
+      "Get all words for mobile app dictionary sync (newline-separated, gzip compressed)",
+  })
+  async getSyncWords(
+    @Res() res: Response,
+    @Headers("if-none-match") ifNoneMatch?: string,
+  ) {
+    // Get version for ETag
+    const { version, wordCount } = await this.dictionaryService.getDictionaryVersion();
+    const etag = `"${version}"`;
+
+    // Check if client already has current version
+    if (ifNoneMatch === etag) {
+      res.status(304).end();
+      return;
+    }
+
+    // Set cache headers
+    res.setHeader("ETag", etag);
+    res.setHeader("X-Word-Count", wordCount.toString());
+    res.setHeader("X-Dictionary-Version", version);
+    res.setHeader("Cache-Control", "public, max-age=3600"); // Cache for 1 hour
+
+    // Stream words for memory efficiency
+    for await (const word of this.dictionaryService.streamWordsForSync()) {
+      res.write(word);
+    }
+    res.end();
   }
 
   // ============ Admin Endpoints ============
