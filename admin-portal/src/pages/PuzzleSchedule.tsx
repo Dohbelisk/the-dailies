@@ -230,9 +230,15 @@ export default function PuzzleSchedule() {
               {puzzle.difficulty}
             </span>
             {puzzle.isActive ? (
-              <CheckCircle className="w-5 h-5 text-green-500" />
+              <span className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                <CheckCircle className="w-3.5 h-3.5" />
+                Active
+              </span>
             ) : (
-              <XCircle className="w-5 h-5 text-gray-400" />
+              <span className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                <XCircle className="w-3.5 h-3.5" />
+                Pending
+              </span>
             )}
           </div>
         </div>
