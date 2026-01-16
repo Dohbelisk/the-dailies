@@ -429,33 +429,25 @@ export class DictionaryService {
 
   /**
    * Get dictionary version hash for mobile apps to check if update is needed
-   * Hash is based on word count and most recent update timestamp
+   * Hash is based on word count (changes when words are added/removed)
    */
   async getDictionaryVersion(): Promise<{
     version: string;
     wordCount: number;
     lastModified: Date | null;
   }> {
-    const [wordCount, latestWord] = await Promise.all([
-      this.dictionaryModel.countDocuments(),
-      this.dictionaryModel
-        .findOne()
-        .sort({ updatedAt: -1 })
-        .select("updatedAt")
-        .lean(),
-    ]);
+    const wordCount = await this.dictionaryModel.countDocuments();
 
-    const lastModified = latestWord?.updatedAt || null;
-
-    // Create a version hash based on count and timestamp
-    const versionString = `${wordCount}-${lastModified?.toISOString() || "none"}`;
+    // Create a version hash based on word count
+    // This will change whenever words are added or removed
+    const versionString = `dictionary-v1-${wordCount}`;
     const version = crypto
       .createHash("md5")
       .update(versionString)
       .digest("hex")
       .substring(0, 12);
 
-    return { version, wordCount, lastModified };
+    return { version, wordCount, lastModified: null };
   }
 
   /**
