@@ -6,6 +6,7 @@ import ValidationStatus, { ValidationError } from './shared/ValidationStatus'
 import { validateApi, Cage } from '../../lib/api'
 
 interface KillerSudokuEditorProps {
+  initialGrid?: number[][]
   initialCages?: Cage[]
   initialSolution?: number[][]
   onChange: (data: { grid: number[][]; solution: number[][]; cages: Cage[]; isValid?: boolean }) => void
@@ -81,10 +82,12 @@ const createEmptyGrid = (): number[][] =>
   Array(9).fill(null).map(() => Array(9).fill(0))
 
 export default function KillerSudokuEditor({
+  initialGrid,
   initialCages,
   initialSolution,
   onChange,
 }: KillerSudokuEditorProps) {
+  const [grid, setGrid] = useState<number[][]>(initialGrid ?? createEmptyGrid())
   const [cages, setCages] = useState<Cage[]>(initialCages ?? [])
   const [solution, setSolution] = useState<number[][]>(initialSolution ?? createEmptyGrid())
   const [selectedCell, setSelectedCell] = useState<[number, number] | null>(null)
@@ -111,15 +114,15 @@ export default function KillerSudokuEditor({
     return computeCageColors(cages, cellToCageMap)
   }, [cages, cellToCageMap])
 
-  // Update parent when cages or solution changes
+  // Update parent when grid, cages, or solution changes
   useEffect(() => {
     onChange({
-      grid: createEmptyGrid(),
+      grid,
       solution,
       cages,
       isValid: validationResult?.isValid && validationResult?.hasUniqueSolution
     })
-  }, [cages, solution, onChange, validationResult])
+  }, [grid, cages, solution, onChange, validationResult])
 
   // Validation mutation
   const validateMutation = useMutation({
@@ -283,7 +286,20 @@ export default function KillerSudokuEditor({
     setValidationResult({ errors: [] })
   }, [selectedCell, selectedCageIndex, cellToCageMap])
 
-  // Keyboard shortcut: Enter or T to toggle cell in cage
+  // Handle setting a preset number in the selected cell
+  const handleCellValueChange = useCallback((value: number) => {
+    if (selectedCell === null) return
+
+    const [row, col] = selectedCell
+    setGrid(prev => {
+      const newGrid = prev.map(r => [...r])
+      newGrid[row][col] = value
+      return newGrid
+    })
+    setValidationResult({ errors: [] })
+  }, [selectedCell])
+
+  // Keyboard shortcuts: Enter/T to toggle cell in cage, 0-9 to set preset number
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if typing in an input
@@ -291,15 +307,31 @@ export default function KillerSudokuEditor({
         return
       }
 
+      // Toggle cell in cage
       if ((e.key === 'Enter' || e.key === 't' || e.key === 'T') && selectedCell && selectedCageIndex !== null) {
         e.preventDefault()
         handleToggleCellInCage()
+        return
+      }
+
+      // Number input for preset values
+      if (selectedCell) {
+        if (e.key >= '0' && e.key <= '9') {
+          e.preventDefault()
+          handleCellValueChange(parseInt(e.key))
+          return
+        }
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+          e.preventDefault()
+          handleCellValueChange(0)
+          return
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleToggleCellInCage, selectedCell, selectedCageIndex])
+  }, [handleToggleCellInCage, handleCellValueChange, selectedCell, selectedCageIndex])
 
   const handleAddCage = useCallback(() => {
     setCages(prev => [...prev, { sum: 0, cells: [] }])
@@ -328,6 +360,7 @@ export default function KillerSudokuEditor({
   }, [])
 
   const handleReset = useCallback(() => {
+    setGrid(createEmptyGrid())
     setCages([])
     setSolution(createEmptyGrid())
     setSelectedCell(null)
@@ -387,7 +420,14 @@ export default function KillerSudokuEditor({
                       {cage.sum || '?'}
                     </span>
                   )}
-                  {solution[rowIdx][colIdx] !== 0 && (
+                  {/* Preset number (given) - bold and dark */}
+                  {grid[rowIdx][colIdx] !== 0 && (
+                    <span className="text-gray-900 dark:text-white font-bold">
+                      {grid[rowIdx][colIdx]}
+                    </span>
+                  )}
+                  {/* Solution number (only show if no preset) - lighter */}
+                  {grid[rowIdx][colIdx] === 0 && solution[rowIdx][colIdx] !== 0 && (
                     <span className="text-gray-400 text-sm">
                       {solution[rowIdx][colIdx]}
                     </span>
@@ -409,7 +449,9 @@ export default function KillerSudokuEditor({
           <h3 className="font-medium text-gray-900 dark:text-white">Killer Sudoku Grid</h3>
           {renderGrid()}
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Click cells to select. Press <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">Enter</kbd> or <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">T</kbd> to toggle cell in selected cage.
+            Click cells to select. Press <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">1-9</kbd> to set preset, <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">0</kbd>/<kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">Del</kbd> to clear.
+            <br />
+            Press <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">Enter</kbd>/<kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">T</kbd> to toggle cell in selected cage.
           </p>
         </div>
 

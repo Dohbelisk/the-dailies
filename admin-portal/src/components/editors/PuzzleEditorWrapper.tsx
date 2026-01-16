@@ -53,6 +53,7 @@ export default function PuzzleEditorWrapper({
     case 'killerSudoku':
       return (
         <KillerSudokuEditor
+          initialGrid={puzzleData?.grid as number[][] | undefined}
           initialCages={puzzleData?.cages as any}
           initialSolution={solution?.grid as number[][] | undefined}
           onChange={handleKillerSudokuChange}
