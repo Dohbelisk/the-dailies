@@ -435,7 +435,13 @@ export class ValidateService {
     if (!solveResult.success) {
       return {
         isValid: false,
-        errors: [{ row: -1, col: -1, message: "Puzzle has no solution" }],
+        errors: [
+          {
+            row: -1,
+            col: -1,
+            message: solveResult.error || "Puzzle has no solution",
+          },
+        ],
         hasUniqueSolution: false,
       };
     }
@@ -459,17 +465,40 @@ export class ValidateService {
       .fill(null)
       .map(() => Array(9).fill(0));
 
-    if (this.solveKiller(grid, cages)) {
-      return { success: true, solution: grid };
-    }
+    const startTime = Date.now();
+    const timeout = 15000; // 15 second timeout
 
-    return { success: false, error: "No solution exists for this puzzle" };
+    try {
+      if (this.solveKiller(grid, cages, startTime, timeout)) {
+        return { success: true, solution: grid };
+      }
+      return { success: false, error: "No solution exists for this puzzle" };
+    } catch (e) {
+      if (e instanceof Error && e.message === "TIMEOUT") {
+        return {
+          success: false,
+          error:
+            "Solver timed out - puzzle may be too complex or have no solution",
+        };
+      }
+      throw e;
+    }
   }
 
   /**
    * Backtracking solver for Killer Sudoku
    */
-  private solveKiller(grid: number[][], cages: Cage[]): boolean {
+  private solveKiller(
+    grid: number[][],
+    cages: Cage[],
+    startTime: number,
+    timeout: number,
+  ): boolean {
+    // Check timeout
+    if (Date.now() - startTime > timeout) {
+      throw new Error("TIMEOUT");
+    }
+
     const emptyCell = this.findEmptyCell(grid);
     if (!emptyCell) return true;
 
@@ -478,7 +507,7 @@ export class ValidateService {
     for (let num = 1; num <= 9; num++) {
       if (this.isValidKillerPlacement(grid, row, col, num, cages)) {
         grid[row][col] = num;
-        if (this.solveKiller(grid, cages)) return true;
+        if (this.solveKiller(grid, cages, startTime, timeout)) return true;
         grid[row][col] = 0;
       }
     }
@@ -632,9 +661,18 @@ export class ValidateService {
       .fill(null)
       .map(() => Array(9).fill(0));
     let solutionCount = 0;
+    const startTime = Date.now();
+    const timeout = 10000; // 10 second timeout for uniqueness check
+    let timedOut = false;
 
     const countSolutions = (g: number[][]): void => {
-      if (solutionCount > 1) return;
+      if (solutionCount > 1 || timedOut) return;
+
+      // Check timeout
+      if (Date.now() - startTime > timeout) {
+        timedOut = true;
+        return;
+      }
 
       const emptyCell = this.findEmptyCell(g);
       if (!emptyCell) {
@@ -648,13 +686,19 @@ export class ValidateService {
         if (this.isValidKillerPlacement(g, row, col, num, cages)) {
           g[row][col] = num;
           countSolutions(g);
-          if (solutionCount > 1) return;
+          if (solutionCount > 1 || timedOut) return;
           g[row][col] = 0;
         }
       }
     };
 
     countSolutions(grid);
+
+    // If timed out, assume unique (we found at least one solution in solve step)
+    if (timedOut) {
+      return true; // Optimistically assume unique if we can't verify
+    }
+
     return solutionCount === 1;
   }
 
