@@ -232,6 +232,75 @@ export default function KillerSudokuEditor({
     setValidationResult({ errors: [] })
   }, [selectedCell, cellToCageMap])
 
+  // Toggle cell in/out of selected cage
+  const handleToggleCellInCage = useCallback(() => {
+    if (selectedCell === null || selectedCageIndex === null) return
+
+    const [row, col] = selectedCell
+    const cellKey = `${row},${col}`
+    const existingCageIdx = cellToCageMap.get(cellKey)
+
+    // If cell is already in the selected cage, remove it
+    if (existingCageIdx === selectedCageIndex) {
+      setCages(prev => prev.map((cage, idx) => {
+        if (idx === selectedCageIndex) {
+          return {
+            ...cage,
+            cells: cage.cells.filter(([r, c]) => !(r === row && c === col)),
+          }
+        }
+        return cage
+      }).filter(cage => cage.cells.length > 0))
+    } else {
+      // Remove from existing cage if in one
+      if (existingCageIdx !== undefined) {
+        setCages(prev => prev.map((cage, idx) => {
+          if (idx === existingCageIdx) {
+            return {
+              ...cage,
+              cells: cage.cells.filter(([r, c]) => !(r === row && c === col)),
+            }
+          }
+          return cage
+        }).filter(cage => cage.cells.length > 0))
+      }
+
+      // Add to selected cage
+      setCages(prev => prev.map((cage, idx) => {
+        if (idx === selectedCageIndex) {
+          if (cage.cells.some(([r, c]) => r === row && c === col)) {
+            return cage
+          }
+          return {
+            ...cage,
+            cells: [...cage.cells, [row, col] as [number, number]],
+          }
+        }
+        return cage
+      }))
+    }
+
+    setValidationResult({ errors: [] })
+  }, [selectedCell, selectedCageIndex, cellToCageMap])
+
+  // Keyboard shortcut: Enter or T to toggle cell in cage
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      if ((e.key === 'Enter' || e.key === 't' || e.key === 'T') && selectedCell && selectedCageIndex !== null) {
+        e.preventDefault()
+        handleToggleCellInCage()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleToggleCellInCage, selectedCell, selectedCageIndex])
+
   const handleAddCage = useCallback(() => {
     setCages(prev => [...prev, { sum: 0, cells: [] }])
     setSelectedCageIndex(cages.length)
@@ -340,7 +409,7 @@ export default function KillerSudokuEditor({
           <h3 className="font-medium text-gray-900 dark:text-white">Killer Sudoku Grid</h3>
           {renderGrid()}
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Click cells to select. Use cage list to assign cells to cages.
+            Click cells to select. Press <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">Enter</kbd> or <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">T</kbd> to toggle cell in selected cage.
           </p>
         </div>
 
