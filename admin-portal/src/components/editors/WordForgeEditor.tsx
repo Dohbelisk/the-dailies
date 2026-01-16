@@ -9,11 +9,15 @@ interface WordForgeEditorProps {
   initialData?: {
     letters: string[]
     centerLetter: string
+    words?: { word: string; clue: string; isPangram: boolean }[]  // Stored format
   }
   initialSolution?: {
-    allWords: string[]
-    pangrams: string[]
-    maxScore: number
+    allWords?: string[]
+    pangrams?: string[]
+    maxScore?: number
+    // Stored format alternatives
+    pangramCount?: number
+    totalWords?: number
   }
   onChange?: (puzzleData: any, solution: any, isValid?: boolean) => void
   className?: string
@@ -39,7 +43,27 @@ export function WordForgeEditor({
     allWords: string[]
     pangrams: string[]
     maxScore: number
-  } | null>(initialSolution || null)
+  } | null>(() => {
+    // Handle stored format where words are in puzzleData.words
+    if (initialData?.words && initialData.words.length > 0) {
+      const allWords = initialData.words.map(w => w.word)
+      const pangrams = initialData.words.filter(w => w.isPangram).map(w => w.word)
+      return {
+        allWords,
+        pangrams,
+        maxScore: initialSolution?.maxScore || 0,
+      }
+    }
+    // Handle validation response format
+    if (initialSolution?.allWords) {
+      return {
+        allWords: initialSolution.allWords,
+        pangrams: initialSolution.pangrams || [],
+        maxScore: initialSolution.maxScore || 0,
+      }
+    }
+    return null
+  })
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
 
   // Clue generation state
