@@ -23,6 +23,9 @@ class SudokuGridDto {
 class KillerSudokuCagesDto {
   @IsArray()
   cages: Cage[];
+
+  @IsArray()
+  grid?: number[][]; // Optional preset numbers (0 = empty)
 }
 
 class WordLadderDto {
@@ -78,7 +81,7 @@ export class ValidateController {
   validateKillerSudoku(
     @Body() dto: KillerSudokuCagesDto,
   ): KillerSudokuValidationResult {
-    return this.validateService.validateKillerSudoku(dto.cages);
+    return this.validateService.validateKillerSudoku(dto.cages, dto.grid);
   }
 
   @Post("killer-sudoku/solve")
@@ -86,7 +89,7 @@ export class ValidateController {
   solveKillerSudoku(
     @Body() dto: KillerSudokuCagesDto,
   ): KillerSudokuSolveResult {
-    return this.validateService.solveKillerSudoku(dto.cages);
+    return this.validateService.solveKillerSudoku(dto.cages, dto.grid);
   }
 
   @Post("word-ladder")

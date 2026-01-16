@@ -328,8 +328,13 @@ export class ValidateService {
 
   /**
    * Validates a Killer Sudoku puzzle
+   * @param cages - The cage definitions
+   * @param presetGrid - Optional preset numbers (0 = empty)
    */
-  validateKillerSudoku(cages: Cage[]): KillerSudokuValidationResult {
+  validateKillerSudoku(
+    cages: Cage[],
+    presetGrid?: number[][],
+  ): KillerSudokuValidationResult {
     const errors: ValidationError[] = [];
 
     // Validate cages exist
@@ -430,7 +435,7 @@ export class ValidateService {
     }
 
     // Try to solve
-    const solveResult = this.solveKillerSudoku(cages);
+    const solveResult = this.solveKillerSudoku(cages, presetGrid);
 
     if (!solveResult.success) {
       return {
@@ -447,7 +452,7 @@ export class ValidateService {
     }
 
     // Check for unique solution
-    const hasUnique = this.hasUniqueKillerSolution(cages);
+    const hasUnique = this.hasUniqueKillerSolution(cages, presetGrid);
 
     return {
       isValid: true,
@@ -459,11 +464,19 @@ export class ValidateService {
 
   /**
    * Solves a Killer Sudoku puzzle
+   * @param cages - The cage definitions
+   * @param presetGrid - Optional preset numbers (0 = empty)
    */
-  solveKillerSudoku(cages: Cage[]): KillerSudokuSolveResult {
-    const grid: number[][] = Array(9)
-      .fill(null)
-      .map(() => Array(9).fill(0));
+  solveKillerSudoku(
+    cages: Cage[],
+    presetGrid?: number[][],
+  ): KillerSudokuSolveResult {
+    // Initialize grid with preset numbers if provided
+    const grid: number[][] = presetGrid
+      ? presetGrid.map((row) => [...row])
+      : Array(9)
+          .fill(null)
+          .map(() => Array(9).fill(0));
 
     const startTime = Date.now();
     const timeout = 30000; // 30 second timeout (increased from 15)
@@ -811,11 +824,19 @@ export class ValidateService {
   /**
    * Check if Killer Sudoku has unique solution
    * Uses MRV heuristic for faster search
+   * @param cages - The cage definitions
+   * @param presetGrid - Optional preset numbers (0 = empty)
    */
-  private hasUniqueKillerSolution(cages: Cage[]): boolean {
-    const grid: number[][] = Array(9)
-      .fill(null)
-      .map(() => Array(9).fill(0));
+  private hasUniqueKillerSolution(
+    cages: Cage[],
+    presetGrid?: number[][],
+  ): boolean {
+    // Initialize grid with preset numbers if provided
+    const grid: number[][] = presetGrid
+      ? presetGrid.map((row) => [...row])
+      : Array(9)
+          .fill(null)
+          .map(() => Array(9).fill(0));
     let solutionCount = 0;
     const startTime = Date.now();
     const timeout = 20000; // 20 second timeout for uniqueness check (increased from 10)

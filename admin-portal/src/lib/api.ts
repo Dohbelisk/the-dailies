@@ -213,10 +213,10 @@ export const validateApi = {
     api.post('/validate/sudoku', { grid }),
   solveSudoku: (grid: number[][]) =>
     api.post('/validate/sudoku/solve', { grid }),
-  validateKillerSudoku: (cages: Cage[]) =>
-    api.post('/validate/killer-sudoku', { cages }),
-  solveKillerSudoku: (cages: Cage[]) =>
-    api.post('/validate/killer-sudoku/solve', { cages }),
+  validateKillerSudoku: (cages: Cage[], grid?: number[][]) =>
+    api.post('/validate/killer-sudoku', { cages, grid }),
+  solveKillerSudoku: (cages: Cage[], grid?: number[][]) =>
+    api.post('/validate/killer-sudoku/solve', { cages, grid }),
   validateWordLadder: (startWord: string, targetWord: string, wordLength: number) =>
     api.post('/validate/word-ladder', { startWord, targetWord, wordLength }),
   validateNumberTarget: (numbers: number[], targets: { target: number; difficulty: string }[]) =>
