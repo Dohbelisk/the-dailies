@@ -42,7 +42,6 @@ export default function PuzzleEdit() {
   const [visualPuzzleData, setVisualPuzzleData] = useState<any>(null)
   const [isPuzzleValid, setIsPuzzleValid] = useState(false)
   const [showActivateModal, setShowActivateModal] = useState(false)
-  const [savedPuzzleDate, setSavedPuzzleDate] = useState<string | null>(null)
 
   const { data: puzzle, isLoading } = useQuery({
     queryKey: ['puzzle', id],
@@ -95,7 +94,6 @@ export default function PuzzleEdit() {
       const puzzleDate = variables.date || puzzle?.date
 
       if (puzzleDate && isToday(puzzleDate) && currentStatus !== 'active') {
-        setSavedPuzzleDate(puzzleDate)
         setShowActivateModal(true)
       } else {
         navigate(-1)
