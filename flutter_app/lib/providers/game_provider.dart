@@ -1921,7 +1921,7 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void extendPipesPath(int row, int col) {
+  void extendPipesPath(int row, int col, {double? dragDx, double? dragDy}) {
     if (_pipesPuzzle == null || _pipesPuzzle!.selectedColor == null) return;
     final color = _pipesPuzzle!.selectedColor!;
     final path = _pipesPuzzle!.currentPaths[color] ?? [];
@@ -1947,15 +1947,26 @@ class GameProvider extends ChangeNotifier {
       }
     }
 
+    // Try to extend to the target cell, or use fuzzy logic to find alternative
+    final targetCell = _findValidExtensionCell(
+      row, col, color, path,
+      dragDx: dragDx, dragDy: dragDy,
+    );
+
+    if (targetCell == null) return;
+
+    final targetRow = targetCell[0];
+    final targetCol = targetCell[1];
+
     // Check if this is an adjacent cell
     final lastCell = path.last;
-    final rowDiff = (row - lastCell[0]).abs();
-    final colDiff = (col - lastCell[1]).abs();
+    final rowDiff = (targetRow - lastCell[0]).abs();
+    final colDiff = (targetCol - lastCell[1]).abs();
 
     // Only allow adjacent cells (no diagonal)
     if ((rowDiff == 1 && colDiff == 0) || (rowDiff == 0 && colDiff == 1)) {
       // Check if this cell is already in the path (backtracking)
-      final existingIdx = path.indexWhere((c) => c[0] == row && c[1] == col);
+      final existingIdx = path.indexWhere((c) => c[0] == targetRow && c[1] == targetCol);
       if (existingIdx != -1) {
         // Remove everything after this point (backtracking)
         while (path.length > existingIdx + 1) {
@@ -1963,36 +1974,153 @@ class GameProvider extends ChangeNotifier {
         }
         notifyListeners();
       } else {
-        // Check if this cell contains an endpoint of a DIFFERENT color
-        final endpointAtCell = _pipesPuzzle!.getEndpointAt(row, col);
-        if (endpointAtCell != null && endpointAtCell.color != color) {
-          // Can't go through another color's endpoint
-          return;
-        }
+        // Add to path (already validated in _findValidExtensionCell)
+        _pipesPuzzle!.addToPath(color, targetRow, targetCol);
+        notifyListeners();
+      }
+    }
+  }
 
-        // Check if this cell is occupied by another color's path
-        for (final entry in _pipesPuzzle!.currentPaths.entries) {
-          if (entry.key != color) {
-            for (final cell in entry.value) {
-              if (cell[0] == row && cell[1] == col) {
-                // Can't go through another color's path
-                return;
-              }
+  /// Find a valid cell to extend the path to, using fuzzy logic if the target is blocked
+  List<int>? _findValidExtensionCell(
+    int row, int col, String color, List<List<int>> path,
+    {double? dragDx, double? dragDy}
+  ) {
+    final lastCell = path.last;
+
+    // Helper to check if a cell is valid for this color's path
+    bool isCellValid(int r, int c) {
+      // Must be within bounds
+      if (r < 0 || r >= _pipesPuzzle!.rows || c < 0 || c >= _pipesPuzzle!.cols) {
+        return false;
+      }
+
+      // Must be adjacent to current path end
+      final rowDiff = (r - lastCell[0]).abs();
+      final colDiff = (c - lastCell[1]).abs();
+      if (!((rowDiff == 1 && colDiff == 0) || (rowDiff == 0 && colDiff == 1))) {
+        return false;
+      }
+
+      // Check if already in path (backtracking is allowed)
+      final existingIdx = path.indexWhere((cell) => cell[0] == r && cell[1] == c);
+      if (existingIdx != -1) {
+        return true; // Backtracking is valid
+      }
+
+      // Check if blocked by another color's endpoint
+      final endpointAtCell = _pipesPuzzle!.getEndpointAt(r, c);
+      if (endpointAtCell != null && endpointAtCell.color != color) {
+        return false;
+      }
+
+      // Check if blocked by another color's path
+      for (final entry in _pipesPuzzle!.currentPaths.entries) {
+        if (entry.key != color) {
+          for (final cell in entry.value) {
+            if (cell[0] == r && cell[1] == c) {
+              return false;
+            }
+          }
+        }
+      }
+
+      return true;
+    }
+
+    // First, try the exact target cell
+    if (isCellValid(row, col)) {
+      return [row, col];
+    }
+
+    // If blocked and we have drag velocity, try fuzzy logic
+    if (dragDx != null && dragDy != null) {
+      // Determine primary drag direction
+      final absDx = dragDx.abs();
+      final absDy = dragDy.abs();
+
+      // Calculate candidate cells based on drag direction
+      final candidates = <List<int>>[];
+
+      // Get all adjacent cells to current path end
+      final adjacentCells = [
+        [lastCell[0] - 1, lastCell[1]], // up
+        [lastCell[0] + 1, lastCell[1]], // down
+        [lastCell[0], lastCell[1] - 1], // left
+        [lastCell[0], lastCell[1] + 1], // right
+      ];
+
+      // Score each adjacent cell based on how well it matches the drag direction
+      for (final cell in adjacentCells) {
+        if (!isCellValid(cell[0], cell[1])) continue;
+
+        // Skip the cell we already tried
+        if (cell[0] == row && cell[1] == col) continue;
+
+        // Calculate direction from last cell to this candidate
+        final cellDy = (cell[0] - lastCell[0]).toDouble(); // positive = down
+        final cellDx = (cell[1] - lastCell[1]).toDouble(); // positive = right
+
+        // Score based on alignment with drag direction
+        // dragDy is positive when dragging down, dragDx positive when dragging right
+        double score = 0;
+        if (absDx > absDy) {
+          // Primarily horizontal drag
+          if ((dragDx > 0 && cellDx > 0) || (dragDx < 0 && cellDx < 0)) {
+            score = 2.0; // Perfect horizontal match
+          } else if (cellDx == 0) {
+            // Vertical cell, check if it's in the general direction
+            if ((dragDy > 0 && cellDy > 0) || (dragDy < 0 && cellDy < 0)) {
+              score = 1.0; // Reasonable secondary direction
+            }
+          }
+        } else {
+          // Primarily vertical drag
+          if ((dragDy > 0 && cellDy > 0) || (dragDy < 0 && cellDy < 0)) {
+            score = 2.0; // Perfect vertical match
+          } else if (cellDy == 0) {
+            // Horizontal cell, check if it's in the general direction
+            if ((dragDx > 0 && cellDx > 0) || (dragDx < 0 && cellDx < 0)) {
+              score = 1.0; // Reasonable secondary direction
             }
           }
         }
 
-        // Add to path
-        _pipesPuzzle!.addToPath(color, row, col);
-        notifyListeners();
+        if (score > 0) {
+          candidates.add([cell[0], cell[1], score.toInt()]);
+        }
+      }
+
+      // Sort by score (highest first) and return best candidate
+      if (candidates.isNotEmpty) {
+        candidates.sort((a, b) => b[2].compareTo(a[2]));
+        return [candidates.first[0], candidates.first[1]];
       }
     }
+
+    return null; // No valid cell found
   }
 
   void continuePipesPath(String color) {
     if (_pipesPuzzle == null) return;
     // Just set the selected color without clearing the path
     // This allows continuing from where the path left off
+    _pipesPuzzle!.selectedColor = color;
+    notifyListeners();
+  }
+
+  void truncatePipesPathAndContinue(String color, int keepUntilIndex) {
+    if (_pipesPuzzle == null) return;
+
+    final path = _pipesPuzzle!.currentPaths[color];
+    if (path == null || path.isEmpty) return;
+
+    // Truncate the path to keep only cells from 0 to keepUntilIndex (inclusive)
+    while (path.length > keepUntilIndex + 1) {
+      path.removeLast();
+    }
+
+    // Set this as the active color for continuing
     _pipesPuzzle!.selectedColor = color;
     notifyListeners();
   }

@@ -5,8 +5,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Loader2, Upload, Code, Grid3X3 } from 'lucide-react'
-import { puzzlesApi } from '../lib/api'
+import { ArrowLeft, Loader2, Upload, Code, Grid3X3, CheckSquare } from 'lucide-react'
+import { puzzlesApi, validateApi } from '../lib/api'
 import PuzzleEditorWrapper from '../components/editors/PuzzleEditorWrapper'
 
 const puzzleSchema = z.object({
@@ -30,6 +30,8 @@ export default function PuzzleCreate() {
   const [editorMode, setEditorMode] = useState<EditorMode>('visual')
   const [visualPuzzleData, setVisualPuzzleData] = useState<any>(null)
   const [isPuzzleValid, setIsPuzzleValid] = useState(false)
+  const [jsonValidationResult, setJsonValidationResult] = useState<{ valid: boolean; message: string } | null>(null)
+  const [isValidating, setIsValidating] = useState(false)
 
   const {
     register,
@@ -64,6 +66,134 @@ export default function PuzzleCreate() {
     setVisualPuzzleData(data)
     setIsPuzzleValid(isValid ?? false)
   }, [])
+
+  // Sync data when switching editor modes
+  const handleModeSwitch = useCallback((newMode: EditorMode) => {
+    if (newMode === 'visual' && editorMode === 'json') {
+      // Switching from JSON to Visual - parse JSON and update visual data
+      if (puzzleDataJson.trim()) {
+        try {
+          const parsed = JSON.parse(puzzleDataJson)
+          setVisualPuzzleData(parsed)
+          setJsonError('')
+        } catch {
+          toast.error('Invalid JSON - cannot switch to visual mode')
+          return // Don't switch if JSON is invalid
+        }
+      }
+    } else if (newMode === 'json' && editorMode === 'visual') {
+      // Switching from Visual to JSON - stringify visual data
+      if (visualPuzzleData) {
+        setPuzzleDataJson(JSON.stringify(visualPuzzleData, null, 2))
+      }
+    }
+    setJsonValidationResult(null)
+    setEditorMode(newMode)
+  }, [editorMode, puzzleDataJson, visualPuzzleData])
+
+  // Validate JSON puzzle data
+  const handleValidateJson = useCallback(async () => {
+    setIsValidating(true)
+    setJsonValidationResult(null)
+
+    try {
+      // First, parse the JSON
+      let parsed
+      try {
+        parsed = JSON.parse(puzzleDataJson)
+      } catch {
+        setJsonValidationResult({ valid: false, message: 'Invalid JSON format' })
+        setIsValidating(false)
+        return
+      }
+
+      // Call appropriate validation endpoint based on gameType
+      try {
+        switch (gameType) {
+          case 'sudoku': {
+            const grid = parsed.grid || parsed
+            const result = await validateApi.validateSudoku(grid)
+            if (result.data.isValid) {
+              setJsonValidationResult({ valid: true, message: result.data.hasUniqueSolution ? 'Valid Sudoku with unique solution' : 'Valid Sudoku' })
+            } else {
+              setJsonValidationResult({ valid: false, message: result.data.error || 'Invalid Sudoku' })
+            }
+            break
+          }
+          case 'killerSudoku': {
+            const cages = parsed.cages
+            if (!cages) {
+              setJsonValidationResult({ valid: false, message: 'Missing cages array in puzzle data' })
+              break
+            }
+            const result = await validateApi.solveKillerSudoku(cages)
+            if (result.data.success) {
+              setJsonValidationResult({ valid: true, message: 'Valid Killer Sudoku with solution' })
+            } else {
+              setJsonValidationResult({ valid: false, message: result.data.error || 'Invalid Killer Sudoku' })
+            }
+            break
+          }
+          case 'wordLadder': {
+            const { startWord, targetWord, wordLength } = parsed
+            if (!startWord || !targetWord) {
+              setJsonValidationResult({ valid: false, message: 'Missing startWord or targetWord' })
+              break
+            }
+            const result = await validateApi.validateWordLadder(startWord, targetWord, wordLength || startWord.length)
+            if (result.data.isValid) {
+              setJsonValidationResult({ valid: true, message: `Valid Word Ladder (${result.data.solutionPath?.length || 0} steps)` })
+            } else {
+              setJsonValidationResult({ valid: false, message: result.data.error || 'Invalid Word Ladder' })
+            }
+            break
+          }
+          case 'numberTarget': {
+            const { numbers, targets, target } = parsed
+            if (!numbers) {
+              setJsonValidationResult({ valid: false, message: 'Missing numbers array' })
+              break
+            }
+            // Support both single target and targets array
+            const targetsArr = targets || (target ? [{ target, difficulty: 'medium' }] : null)
+            if (!targetsArr) {
+              setJsonValidationResult({ valid: false, message: 'Missing target value' })
+              break
+            }
+            const result = await validateApi.validateNumberTarget(numbers, targetsArr)
+            if (result.data.isValid) {
+              setJsonValidationResult({ valid: true, message: 'Valid Number Target with solutions' })
+            } else {
+              setJsonValidationResult({ valid: false, message: result.data.error || 'Invalid Number Target' })
+            }
+            break
+          }
+          case 'wordForge': {
+            const { letters, centerLetter } = parsed
+            if (!letters || !centerLetter) {
+              setJsonValidationResult({ valid: false, message: 'Missing letters or centerLetter' })
+              break
+            }
+            const result = await validateApi.validateWordForge(letters, centerLetter)
+            if (result.data.isValid) {
+              setJsonValidationResult({ valid: true, message: `Valid Word Forge (${result.data.wordCount} words)` })
+            } else {
+              setJsonValidationResult({ valid: false, message: result.data.error || 'Invalid Word Forge' })
+            }
+            break
+          }
+          default:
+            // For other game types, just validate JSON structure
+            setJsonValidationResult({ valid: true, message: 'JSON is valid (no specific validation for this game type)' })
+        }
+      } catch (error: any) {
+        const errorMsg = error.response?.data?.message || error.message || 'Validation failed'
+        setJsonValidationResult({ valid: false, message: errorMsg })
+      }
+    } finally {
+      setIsValidating(false)
+    }
+  }, [puzzleDataJson, gameType])
 
   const onSubmit = (data: PuzzleFormData) => {
     let puzzleData
@@ -255,6 +385,7 @@ export default function PuzzleCreate() {
     }
     setPuzzleDataJson(JSON.stringify(examples[gameType], null, 2))
     setJsonError('')
+    setJsonValidationResult(null)
   }
 
   return (
@@ -361,7 +492,7 @@ export default function PuzzleCreate() {
               <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
                 <button
                   type="button"
-                  onClick={() => setEditorMode('visual')}
+                  onClick={() => handleModeSwitch('visual')}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     editorMode === 'visual'
                       ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
@@ -373,7 +504,7 @@ export default function PuzzleCreate() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setEditorMode('json')}
+                  onClick={() => handleModeSwitch('json')}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     editorMode === 'json'
                       ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
@@ -389,10 +520,11 @@ export default function PuzzleCreate() {
             {editorMode === 'visual' ? (
               <PuzzleEditorWrapper
                 gameType={gameType as any}
+                puzzleData={visualPuzzleData}
                 onChange={handleVisualDataChange}
               />
             ) : (
-              <>
+              <div className="space-y-3">
                 <div className="flex justify-end">
                   <button
                     type="button"
@@ -407,11 +539,32 @@ export default function PuzzleCreate() {
                   onChange={(e) => {
                     setPuzzleDataJson(e.target.value)
                     setJsonError('')
+                    setJsonValidationResult(null)
                   }}
                   className="input font-mono text-sm h-96"
                   placeholder="Paste puzzle JSON data here..."
                 />
-              </>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleValidateJson}
+                    disabled={isValidating || !puzzleDataJson.trim()}
+                    className="btn btn-secondary"
+                  >
+                    {isValidating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckSquare className="w-4 h-4" />
+                    )}
+                    Validate
+                  </button>
+                  {jsonValidationResult && (
+                    <span className={`text-sm font-medium ${jsonValidationResult.valid ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {jsonValidationResult.valid ? '✓' : '✗'} {jsonValidationResult.message}
+                    </span>
+                  )}
+                </div>
+              </div>
             )}
             {jsonError && (
               <p className="text-sm text-red-500">{jsonError}</p>

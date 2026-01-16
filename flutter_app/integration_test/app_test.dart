@@ -411,7 +411,14 @@ void main() {
                   puzzle: provider.pipesPuzzle!,
                   onPathStart: provider.startPipesPath,
                   onPathContinue: provider.continuePipesPath,
-                  onPathExtend: provider.extendPipesPath,
+                  onPathTruncateAndContinue: provider.truncatePipesPathAndContinue,
+                  onPathExtend: (row, col, dragVelocity) {
+                    provider.extendPipesPath(
+                      row, col,
+                      dragDx: dragVelocity?.dx,
+                      dragDy: dragVelocity?.dy,
+                    );
+                  },
                   onPathEnd: provider.endPipesPath,
                   onReset: provider.resetPipesPuzzle,
                 ),

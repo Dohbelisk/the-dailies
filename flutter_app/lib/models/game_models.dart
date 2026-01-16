@@ -946,7 +946,7 @@ class NonogramPuzzle {
 
   factory NonogramPuzzle.fromJson(Map<String, dynamic> json) {
     final puzzleData = json;
-    final solutionData = json['solution'] ?? json;
+    final solutionData = json['solution'] as Map<String, dynamic>?;
 
     final rows = puzzleData['rows'] as int;
     final cols = puzzleData['cols'] as int;
@@ -959,9 +959,21 @@ class NonogramPuzzle {
       return (col as List).map<int>((c) => c as int).toList();
     }).toList();
 
-    final solution = (solutionData['grid'] as List).map<List<int>>((row) {
-      return (row as List).map<int>((c) => c as int).toList();
-    }).toList();
+    // Parse solution - support both solution.grid and direct grid in puzzleData
+    List<List<int>> solution;
+    if (solutionData != null && solutionData['grid'] != null) {
+      solution = (solutionData['grid'] as List).map<List<int>>((row) {
+        return (row as List).map<int>((c) => c as int).toList();
+      }).toList();
+    } else if (puzzleData['grid'] != null) {
+      // Fallback: grid might be directly in puzzleData
+      solution = (puzzleData['grid'] as List).map<List<int>>((row) {
+        return (row as List).map<int>((c) => c as int).toList();
+      }).toList();
+    } else {
+      // No solution available - create empty grid (game won't be playable but won't crash)
+      solution = List.generate(rows, (_) => List<int>.filled(cols, 0));
+    }
 
     return NonogramPuzzle(
       rows: rows,
@@ -1072,11 +1084,34 @@ class NumberTargetPuzzle {
       }
     }
 
+    // Get target - support both 'target' field and first value from 'targets' array
+    int target;
+    if (puzzleData['target'] != null) {
+      target = puzzleData['target'] as int;
+    } else if (targets.isNotEmpty) {
+      target = targets.first.target;
+    } else {
+      // Fallback - should never happen but prevents crash
+      target = 0;
+    }
+
+    // Get solution - support both 'expression' and 'targetSolutions' formats
+    String solution = '';
+    if (solutionData['expression'] != null) {
+      solution = solutionData['expression'] as String;
+    } else if (solutionData['targetSolutions'] != null) {
+      final targetSolutions = solutionData['targetSolutions'] as List;
+      if (targetSolutions.isNotEmpty) {
+        final firstSolution = targetSolutions.first as Map<String, dynamic>;
+        solution = firstSolution['expression'] as String? ?? '';
+      }
+    }
+
     return NumberTargetPuzzle(
       numbers: List<int>.from(puzzleData['numbers'] ?? []),
-      target: puzzleData['target'] as int,
+      target: target,
       targets: targets,
-      solution: solutionData['expression'] ?? '',
+      solution: solution,
       alternates: List<String>.from(solutionData['alternates'] ?? []),
     );
   }

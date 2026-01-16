@@ -5,7 +5,8 @@ class PipesGrid extends StatelessWidget {
   final PipesPuzzle puzzle;
   final Function(String color, int row, int col) onPathStart;
   final Function(String color) onPathContinue;
-  final Function(int row, int col) onPathExtend;
+  final Function(String color, int index) onPathTruncateAndContinue;
+  final Function(int row, int col, Offset? dragVelocity) onPathExtend;
   final VoidCallback onPathEnd;
   final VoidCallback onReset;
 
@@ -14,6 +15,7 @@ class PipesGrid extends StatelessWidget {
     required this.puzzle,
     required this.onPathStart,
     required this.onPathContinue,
+    required this.onPathTruncateAndContinue,
     required this.onPathExtend,
     required this.onPathEnd,
     required this.onReset,
@@ -112,16 +114,20 @@ class PipesGrid extends StatelessWidget {
               return;
             }
 
-            // Check if this is the tip of an existing partial path
+            // Check if this cell is anywhere along an existing path
             for (final entry in puzzle.currentPaths.entries) {
               final color = entry.key;
               final path = entry.value;
               if (path.isNotEmpty) {
-                final last = path.last;
-                if (last[0] == row && last[1] == col) {
-                  // This is the tip of a partial path - continue from here
-                  onPathContinue(color);
-                  return;
+                // Find if this cell is in the path
+                for (int i = 0; i < path.length; i++) {
+                  if (path[i][0] == row && path[i][1] == col) {
+                    // Found the cell in this path
+                    // Truncate at this position and continue from here
+                    // The path keeps cells from 0 to i (inclusive)
+                    onPathTruncateAndContinue(color, i);
+                    return;
+                  }
                 }
               }
             }
@@ -130,7 +136,8 @@ class PipesGrid extends StatelessWidget {
         onPanUpdate: (details) {
           final cellPos = _getCellFromPosition(details.localPosition, cellSize);
           if (cellPos != null) {
-            onPathExtend(cellPos[0], cellPos[1]);
+            // Pass velocity for fuzzy logic
+            onPathExtend(cellPos[0], cellPos[1], details.delta);
           }
         },
         onPanEnd: (_) => onPathEnd(),
@@ -213,7 +220,7 @@ class _PipesGridPainter extends CustomPainter {
       );
     }
 
-    // Draw paths
+    // Draw paths with rounded corners
     for (final entry in puzzle.currentPaths.entries) {
       final color = getColor(entry.key);
       final path = entry.value;
@@ -223,18 +230,70 @@ class _PipesGridPainter extends CustomPainter {
         ..color = color
         ..strokeWidth = cellSize * 0.4
         ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
         ..style = PaintingStyle.stroke;
 
       final pathPath = Path();
-      for (int i = 0; i < path.length; i++) {
-        final centerX = (path[i][1] + 0.5) * cellSize;
-        final centerY = (path[i][0] + 0.5) * cellSize;
-        if (i == 0) {
-          pathPath.moveTo(centerX, centerY);
+
+      // Calculate cell centers for the path
+      final centers = path.map((cell) => Offset(
+        (cell[1] + 0.5) * cellSize,
+        (cell[0] + 0.5) * cellSize,
+      )).toList();
+
+      // Start at first cell
+      pathPath.moveTo(centers[0].dx, centers[0].dy);
+
+      // For each segment, check if there's a turn and use bezier curve
+      for (int i = 1; i < centers.length; i++) {
+        if (i < centers.length - 1) {
+          // Check if there's a turn at this point
+          final prev = centers[i - 1];
+          final curr = centers[i];
+          final next = centers[i + 1];
+
+          // Calculate direction vectors
+          final dir1 = Offset(curr.dx - prev.dx, curr.dy - prev.dy);
+          final dir2 = Offset(next.dx - curr.dx, next.dy - curr.dy);
+
+          // Check if direction changes (turn detected)
+          final isTurn = (dir1.dx != 0 && dir2.dy != 0) || (dir1.dy != 0 && dir2.dx != 0);
+
+          if (isTurn) {
+            // Use quadratic bezier for smooth corner
+            // Calculate the corner radius (fraction of cell size)
+            final cornerRadius = cellSize * 0.35;
+
+            // Calculate points before and after the corner
+            final dir1Norm = dir1.distance > 0
+                ? Offset(dir1.dx / dir1.distance, dir1.dy / dir1.distance)
+                : Offset.zero;
+            final dir2Norm = dir2.distance > 0
+                ? Offset(dir2.dx / dir2.distance, dir2.dy / dir2.distance)
+                : Offset.zero;
+
+            final beforeCorner = Offset(
+              curr.dx - dir1Norm.dx * cornerRadius,
+              curr.dy - dir1Norm.dy * cornerRadius,
+            );
+            final afterCorner = Offset(
+              curr.dx + dir2Norm.dx * cornerRadius,
+              curr.dy + dir2Norm.dy * cornerRadius,
+            );
+
+            // Draw line to before corner, then curve to after corner
+            pathPath.lineTo(beforeCorner.dx, beforeCorner.dy);
+            pathPath.quadraticBezierTo(curr.dx, curr.dy, afterCorner.dx, afterCorner.dy);
+          } else {
+            // Straight segment
+            pathPath.lineTo(curr.dx, curr.dy);
+          }
         } else {
-          pathPath.lineTo(centerX, centerY);
+          // Last segment - just draw to end
+          pathPath.lineTo(centers[i].dx, centers[i].dy);
         }
       }
+
       canvas.drawPath(pathPath, pathPaint);
     }
 

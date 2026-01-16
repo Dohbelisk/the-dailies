@@ -20,6 +20,8 @@ import 'services/firebase_service.dart';
 import 'services/remote_config_service.dart';
 import 'services/notification_service.dart';
 import 'services/achievements_service.dart';
+import 'services/dictionary_service.dart';
+import 'services/logging_service.dart';
 import 'providers/theme_provider.dart';
 import 'providers/game_provider.dart';
 import 'screens/home_screen.dart';
@@ -30,48 +32,147 @@ import 'widgets/shake_feedback_wrapper.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  final log = LoggingService();
+
   // Print environment config in debug mode
   if (kDebugMode) {
     Environment.printConfig();
   }
 
+  log.info('App starting', tag: 'Init');
+
   // Initialize Firebase Core (must be first)
-  await FirebaseService().initialize();
+  try {
+    await FirebaseService().initialize();
+    log.logServiceInit('Firebase');
+  } catch (e) {
+    log.logServiceInit('Firebase', success: false, error: e.toString());
+  }
 
   // Initialize Auth Service
   final authService = AuthService();
-  await authService.initialize();
+  try {
+    await authService.initialize();
+    log.logServiceInit('AuthService');
+    if (authService.currentUser != null) {
+      log.setUserContext(
+        userId: authService.currentUser!.id,
+        email: authService.currentUser!.email,
+        isAnonymous: false,
+      );
+    } else {
+      log.setUserContext(isAnonymous: true);
+    }
+  } catch (e) {
+    log.logServiceInit('AuthService', success: false, error: e.toString());
+  }
 
   // Initialize Consent Service (needed before AdMob/Crashlytics for GDPR compliance)
-  await ConsentService().initialize();
+  try {
+    await ConsentService().initialize();
+    log.logServiceInit('ConsentService');
+  } catch (e) {
+    log.logServiceInit('ConsentService', success: false, error: e.toString());
+  }
 
   // Initialize Crashlytics (respects consent settings)
-  await FirebaseService().initializeCrashlytics();
+  try {
+    await FirebaseService().initializeCrashlytics();
+    log.logServiceInit('Crashlytics');
+  } catch (e) {
+    log.logServiceInit('Crashlytics', success: false, error: e.toString());
+  }
 
   // Initialize AdMob (will respect consent settings)
-  await AdMobService().initialize();
+  try {
+    await AdMobService().initialize();
+    log.logServiceInit('AdMob');
+  } catch (e) {
+    log.logServiceInit('AdMob', success: false, error: e.toString());
+  }
 
   // Initialize Remote Config Service (replaces backend config)
-  await RemoteConfigService().initialize();
+  try {
+    await RemoteConfigService().initialize();
+    log.logServiceInit('RemoteConfig');
+  } catch (e) {
+    log.logServiceInit('RemoteConfig', success: false, error: e.toString());
+  }
 
   // Initialize FCM and Notification Service
-  await FirebaseService().initializeFCM();
-  await NotificationService().initialize();
+  try {
+    await FirebaseService().initializeFCM();
+    log.logServiceInit('FCM');
+  } catch (e) {
+    log.logServiceInit('FCM', success: false, error: e.toString());
+  }
+
+  try {
+    await NotificationService().initialize();
+    log.logServiceInit('NotificationService');
+  } catch (e) {
+    log.logServiceInit('NotificationService', success: false, error: e.toString());
+  }
 
   // Initialize Hint Service
-  await HintService().initialize();
+  try {
+    await HintService().initialize();
+    log.logServiceInit('HintService');
+  } catch (e) {
+    log.logServiceInit('HintService', success: false, error: e.toString());
+  }
 
   // Initialize Token Service
-  await TokenService().initialize();
+  try {
+    await TokenService().initialize();
+    log.logServiceInit('TokenService');
+  } catch (e) {
+    log.logServiceInit('TokenService', success: false, error: e.toString());
+  }
 
   // Initialize Purchase Service
-  await PurchaseService().initialize();
+  try {
+    await PurchaseService().initialize();
+    log.logServiceInit('PurchaseService');
+  } catch (e) {
+    log.logServiceInit('PurchaseService', success: false, error: e.toString());
+  }
 
   // Initialize Audio Service
-  await AudioService().initialize();
+  try {
+    await AudioService().initialize();
+    log.logServiceInit('AudioService');
+  } catch (e) {
+    log.logServiceInit('AudioService', success: false, error: e.toString());
+  }
 
   // Initialize Achievements Service
-  await AchievementsService().initialize();
+  try {
+    await AchievementsService().initialize();
+    log.logServiceInit('AchievementsService');
+  } catch (e) {
+    log.logServiceInit('AchievementsService', success: false, error: e.toString());
+  }
+
+  // Initialize Dictionary Service (load from cache/assets first)
+  try {
+    await DictionaryService().load();
+    log.logServiceInit('DictionaryService', success: true);
+    log.info('Dictionary loaded: ${DictionaryService().wordCount} words', tag: 'Dictionary');
+  } catch (e) {
+    log.logServiceInit('DictionaryService', success: false, error: e.toString());
+  }
+
+  // Sync dictionary in background (non-blocking)
+  DictionaryService().syncFromServer().then((updated) {
+    if (updated) {
+      log.info('Dictionary synced from server: ${DictionaryService().wordCount} words', tag: 'Dictionary');
+    }
+  }).catchError((e) {
+    log.warning('Dictionary sync failed: $e', tag: 'Dictionary');
+  });
+
+  log.info('App initialization complete', tag: 'Init');
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
