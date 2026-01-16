@@ -5,9 +5,19 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Loader2, Save, Trash2, Code, Grid3X3, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, Trash2, Code, Grid3X3, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { puzzlesApi, PuzzleStatus } from '../lib/api'
 import PuzzleEditorWrapper from '../components/editors/PuzzleEditorWrapper'
+
+function isToday(dateString: string): boolean {
+  const puzzleDate = new Date(dateString)
+  const today = new Date()
+  return (
+    puzzleDate.getFullYear() === today.getFullYear() &&
+    puzzleDate.getMonth() === today.getMonth() &&
+    puzzleDate.getDate() === today.getDate()
+  )
+}
 
 const puzzleSchema = z.object({
   gameType: z.enum(['sudoku', 'killerSudoku', 'crossword', 'wordSearch', 'wordForge', 'nonogram', 'numberTarget', 'ballSort', 'pipes', 'lightsOut', 'wordLadder', 'connections', 'mathora']),
@@ -31,6 +41,8 @@ export default function PuzzleEdit() {
   const [editorMode, setEditorMode] = useState<EditorMode>('visual')
   const [visualPuzzleData, setVisualPuzzleData] = useState<any>(null)
   const [isPuzzleValid, setIsPuzzleValid] = useState(false)
+  const [showActivateModal, setShowActivateModal] = useState(false)
+  const [savedPuzzleDate, setSavedPuzzleDate] = useState<string | null>(null)
 
   const { data: puzzle, isLoading } = useQuery({
     queryKey: ['puzzle', id],
@@ -73,11 +85,21 @@ export default function PuzzleEdit() {
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => puzzlesApi.update(id!, data),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['puzzles'] })
       queryClient.invalidateQueries({ queryKey: ['puzzle', id] })
       toast.success('Puzzle updated successfully!')
-      navigate(-1)
+
+      // Check if puzzle is for today and not already active
+      const currentStatus = puzzle?.status || (puzzle?.isActive ? 'active' : 'inactive')
+      const puzzleDate = variables.date || puzzle?.date
+
+      if (puzzleDate && isToday(puzzleDate) && currentStatus !== 'active') {
+        setSavedPuzzleDate(puzzleDate)
+        setShowActivateModal(true)
+      } else {
+        navigate(-1)
+      }
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to update puzzle')
@@ -400,6 +422,60 @@ export default function PuzzleEdit() {
           </button>
         </div>
       </form>
+
+      {/* Activate Puzzle Modal */}
+      {showActivateModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => {
+            setShowActivateModal(false)
+            navigate(-1)
+          }} />
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
+                    <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Puzzle Saved!</h2>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  This puzzle is scheduled for today. Would you like to activate it now so players can access it?
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setShowActivateModal(false)
+                      navigate(-1)
+                    }}
+                    className="btn btn-secondary"
+                  >
+                    Not Now
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await puzzlesApi.updateStatus(id!, 'active')
+                        queryClient.invalidateQueries({ queryKey: ['puzzles'] })
+                        queryClient.invalidateQueries({ queryKey: ['puzzle', id] })
+                        toast.success('Puzzle activated!')
+                        setShowActivateModal(false)
+                        navigate(-1)
+                      } catch (error: any) {
+                        toast.error(error.response?.data?.message || 'Failed to activate puzzle')
+                      }
+                    }}
+                    className="btn btn-primary"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Activate Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
