@@ -29,6 +29,7 @@ export default function PuzzleCreate() {
   const [jsonError, setJsonError] = useState('')
   const [editorMode, setEditorMode] = useState<EditorMode>('visual')
   const [visualPuzzleData, setVisualPuzzleData] = useState<any>(null)
+  const [visualSolution, setVisualSolution] = useState<any>(null)
   const [isPuzzleValid, setIsPuzzleValid] = useState(false)
   const [jsonValidationResult, setJsonValidationResult] = useState<{ valid: boolean; message: string } | null>(null)
   const [isValidating, setIsValidating] = useState(false)
@@ -62,8 +63,9 @@ export default function PuzzleCreate() {
     },
   })
 
-  const handleVisualDataChange = useCallback((data: any, _solution: any, isValid?: boolean) => {
+  const handleVisualDataChange = useCallback((data: any, solution: any, isValid?: boolean) => {
     setVisualPuzzleData(data)
+    setVisualSolution(solution)
     setIsPuzzleValid(isValid ?? false)
   }, [])
 
@@ -197,6 +199,7 @@ export default function PuzzleCreate() {
 
   const onSubmit = (data: PuzzleFormData) => {
     let puzzleData
+    let solution
 
     if (editorMode === 'visual') {
       if (!visualPuzzleData) {
@@ -204,6 +207,7 @@ export default function PuzzleCreate() {
         return
       }
       puzzleData = visualPuzzleData
+      solution = visualSolution
     } else {
       // Validate JSON
       try {
@@ -218,6 +222,7 @@ export default function PuzzleCreate() {
     createMutation.mutate({
       ...data,
       puzzleData,
+      ...(solution && { solution }),
     })
   }
 

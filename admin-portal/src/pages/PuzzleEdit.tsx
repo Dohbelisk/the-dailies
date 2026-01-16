@@ -40,6 +40,7 @@ export default function PuzzleEdit() {
   const [jsonError, setJsonError] = useState('')
   const [editorMode, setEditorMode] = useState<EditorMode>('visual')
   const [visualPuzzleData, setVisualPuzzleData] = useState<any>(null)
+  const [visualSolution, setVisualSolution] = useState<any>(null)
   const [isPuzzleValid, setIsPuzzleValid] = useState(false)
   const [showActivateModal, setShowActivateModal] = useState(false)
   const [jsonValidationResult, setJsonValidationResult] = useState<{ valid: boolean; message: string } | null>(null)
@@ -79,8 +80,9 @@ export default function PuzzleEdit() {
     }
   }, [puzzle, reset])
 
-  const handleVisualDataChange = useCallback((data: any, _solution: any, isValid?: boolean) => {
+  const handleVisualDataChange = useCallback((data: any, solution: any, isValid?: boolean) => {
     setVisualPuzzleData(data)
+    setVisualSolution(solution)
     setIsPuzzleValid(isValid ?? false)
   }, [])
 
@@ -258,6 +260,7 @@ export default function PuzzleEdit() {
 
   const onSubmit = (data: PuzzleFormData) => {
     let puzzleData
+    let solution
 
     if (editorMode === 'visual') {
       if (!visualPuzzleData) {
@@ -265,6 +268,7 @@ export default function PuzzleEdit() {
         return
       }
       puzzleData = visualPuzzleData
+      solution = visualSolution
     } else {
       try {
         puzzleData = JSON.parse(puzzleDataJson)
@@ -278,6 +282,7 @@ export default function PuzzleEdit() {
     updateMutation.mutate({
       ...data,
       puzzleData,
+      ...(solution && { solution }),
     })
   }
 
