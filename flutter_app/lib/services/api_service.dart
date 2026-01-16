@@ -86,6 +86,36 @@ class ApiService {
       rethrow;
     }
   }
+
+  /// Make a PATCH request with logging
+  Future<http.Response> _patch(String url, {Map<String, String>? headers, dynamic body}) async {
+    final start = DateTime.now();
+    final requestHeaders = headers ?? _getHeaders();
+
+    _log.logApiRequest(method: 'PATCH', url: url, headers: requestHeaders, body: body);
+
+    try {
+      final response = await http.patch(
+        Uri.parse(url),
+        headers: requestHeaders,
+        body: body != null ? json.encode(body) : null,
+      );
+      final duration = DateTime.now().difference(start);
+
+      _log.logApiResponse(
+        method: 'PATCH',
+        url: url,
+        statusCode: response.statusCode,
+        body: response.body,
+        duration: duration,
+      );
+
+      return response;
+    } catch (e, stack) {
+      _log.logApiError(method: 'PATCH', url: url, exception: e, stackTrace: stack);
+      rethrow;
+    }
+  }
   
   Future<List<DailyPuzzle>> getTodaysPuzzles() async {
     try {
@@ -351,6 +381,27 @@ class ApiService {
       return null;
     } catch (e) {
       _log.error('Error fetching puzzle by date', tag: 'Puzzles', exception: e);
+      return null;
+    }
+  }
+
+  // ==================== ADMIN ENDPOINTS ====================
+
+  /// Update a puzzle (admin operation)
+  Future<DailyPuzzle?> updatePuzzle(String id, Map<String, dynamic> data) async {
+    try {
+      _log.info('Updating puzzle', tag: 'Admin', data: {'id': id});
+
+      final response = await _patch('$baseUrl/puzzles/$id', body: data);
+
+      if (response.statusCode == 200) {
+        _log.info('Puzzle updated successfully', tag: 'Admin');
+        return DailyPuzzle.fromJson(json.decode(response.body));
+      }
+      _log.warning('Failed to update puzzle: ${response.statusCode}', tag: 'Admin');
+      return null;
+    } catch (e) {
+      _log.error('Error updating puzzle', tag: 'Admin', exception: e);
       return null;
     }
   }
