@@ -466,10 +466,13 @@ export class ValidateService {
       .map(() => Array(9).fill(0));
 
     const startTime = Date.now();
-    const timeout = 15000; // 15 second timeout
+    const timeout = 30000; // 30 second timeout (increased from 15)
+
+    // Build cage lookup for faster access
+    const cageLookup = this.buildCageLookup(cages);
 
     try {
-      if (this.solveKiller(grid, cages, startTime, timeout)) {
+      if (this.solveKillerMRV(grid, cages, cageLookup, startTime, timeout)) {
         return { success: true, solution: grid };
       }
       return { success: false, error: "No solution exists for this puzzle" };
@@ -486,7 +489,159 @@ export class ValidateService {
   }
 
   /**
-   * Backtracking solver for Killer Sudoku
+   * Build a lookup map from cell coordinates to cage index
+   */
+  private buildCageLookup(cages: Cage[]): Map<string, number> {
+    const lookup = new Map<string, number>();
+    for (let i = 0; i < cages.length; i++) {
+      for (const [row, col] of cages[i].cells) {
+        lookup.set(`${row},${col}`, i);
+      }
+    }
+    return lookup;
+  }
+
+  /**
+   * Backtracking solver with MRV (Minimum Remaining Values) heuristic
+   * Picks the cell with fewest valid candidates first for better pruning
+   */
+  private solveKillerMRV(
+    grid: number[][],
+    cages: Cage[],
+    cageLookup: Map<string, number>,
+    startTime: number,
+    timeout: number,
+  ): boolean {
+    // Check timeout
+    if (Date.now() - startTime > timeout) {
+      throw new Error("TIMEOUT");
+    }
+
+    // Find empty cell with minimum remaining values (MRV heuristic)
+    const cellInfo = this.findBestEmptyCellKiller(grid, cages, cageLookup);
+    if (!cellInfo) return true; // Puzzle solved
+
+    const { row, col, candidates } = cellInfo;
+
+    // If no candidates, this branch has no solution
+    if (candidates.length === 0) return false;
+
+    for (const num of candidates) {
+      grid[row][col] = num;
+      if (this.solveKillerMRV(grid, cages, cageLookup, startTime, timeout)) {
+        return true;
+      }
+      grid[row][col] = 0;
+    }
+
+    return false;
+  }
+
+  /**
+   * Find empty cell with fewest valid candidates (MRV heuristic)
+   */
+  private findBestEmptyCellKiller(
+    grid: number[][],
+    cages: Cage[],
+    cageLookup: Map<string, number>,
+  ): { row: number; col: number; candidates: number[] } | null {
+    let bestCell: { row: number; col: number; candidates: number[] } | null =
+      null;
+    let minCandidates = 10;
+
+    for (let row = 0; row < 9; row++) {
+      for (let col = 0; col < 9; col++) {
+        if (grid[row][col] === 0) {
+          const candidates = this.getCandidatesKiller(
+            grid,
+            row,
+            col,
+            cages,
+            cageLookup,
+          );
+          if (candidates.length < minCandidates) {
+            minCandidates = candidates.length;
+            bestCell = { row, col, candidates };
+            // Early exit if we find a cell with only 1 candidate
+            if (minCandidates === 1) return bestCell;
+          }
+        }
+      }
+    }
+
+    return bestCell;
+  }
+
+  /**
+   * Get valid candidates for a cell in Killer Sudoku
+   */
+  private getCandidatesKiller(
+    grid: number[][],
+    row: number,
+    col: number,
+    cages: Cage[],
+    cageLookup: Map<string, number>,
+  ): number[] {
+    const candidates: number[] = [];
+
+    // Get cage for this cell
+    const cageIdx = cageLookup.get(`${row},${col}`);
+    const cage = cageIdx !== undefined ? cages[cageIdx] : null;
+
+    for (let num = 1; num <= 9; num++) {
+      // Check standard Sudoku constraints
+      if (!this.isValidPlacement(grid, row, col, num)) continue;
+
+      // Check cage constraints
+      if (cage) {
+        // No duplicate in cage
+        let hasDuplicate = false;
+        for (const [r, c] of cage.cells) {
+          if ((r !== row || c !== col) && grid[r][c] === num) {
+            hasDuplicate = true;
+            break;
+          }
+        }
+        if (hasDuplicate) continue;
+
+        // Check sum constraint
+        let sum = num;
+        let emptyCount = 0;
+        const usedDigits = new Set<number>([num]);
+
+        for (const [r, c] of cage.cells) {
+          if (r === row && c === col) continue;
+          if (grid[r][c] === 0) {
+            emptyCount++;
+          } else {
+            sum += grid[r][c];
+            usedDigits.add(grid[r][c]);
+          }
+        }
+
+        // If sum already exceeds target, skip
+        if (sum > cage.sum) continue;
+
+        // If cage complete, sum must match
+        if (emptyCount === 0 && sum !== cage.sum) continue;
+
+        // Check if remaining sum is achievable
+        if (
+          emptyCount > 0 &&
+          !this.canAchieveSum(cage.sum - sum, emptyCount, usedDigits)
+        ) {
+          continue;
+        }
+      }
+
+      candidates.push(num);
+    }
+
+    return candidates;
+  }
+
+  /**
+   * Legacy backtracking solver (kept for compatibility)
    */
   private solveKiller(
     grid: number[][],
@@ -655,6 +810,7 @@ export class ValidateService {
 
   /**
    * Check if Killer Sudoku has unique solution
+   * Uses MRV heuristic for faster search
    */
   private hasUniqueKillerSolution(cages: Cage[]): boolean {
     const grid: number[][] = Array(9)
@@ -662,8 +818,11 @@ export class ValidateService {
       .map(() => Array(9).fill(0));
     let solutionCount = 0;
     const startTime = Date.now();
-    const timeout = 10000; // 10 second timeout for uniqueness check
+    const timeout = 20000; // 20 second timeout for uniqueness check (increased from 10)
     let timedOut = false;
+
+    // Build cage lookup for faster access
+    const cageLookup = this.buildCageLookup(cages);
 
     const countSolutions = (g: number[][]): void => {
       if (solutionCount > 1 || timedOut) return;
@@ -674,21 +833,23 @@ export class ValidateService {
         return;
       }
 
-      const emptyCell = this.findEmptyCell(g);
-      if (!emptyCell) {
+      // Use MRV heuristic
+      const cellInfo = this.findBestEmptyCellKiller(g, cages, cageLookup);
+      if (!cellInfo) {
         solutionCount++;
         return;
       }
 
-      const [row, col] = emptyCell;
+      const { row, col, candidates } = cellInfo;
 
-      for (let num = 1; num <= 9; num++) {
-        if (this.isValidKillerPlacement(g, row, col, num, cages)) {
-          g[row][col] = num;
-          countSolutions(g);
-          if (solutionCount > 1 || timedOut) return;
-          g[row][col] = 0;
-        }
+      // If no candidates, this branch has no solution
+      if (candidates.length === 0) return;
+
+      for (const num of candidates) {
+        g[row][col] = num;
+        countSolutions(g);
+        if (solutionCount > 1 || timedOut) return;
+        g[row][col] = 0;
       }
     };
 
