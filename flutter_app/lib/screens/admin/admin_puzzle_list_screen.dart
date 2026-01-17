@@ -87,14 +87,17 @@ class _AdminPuzzleListScreenState extends State<AdminPuzzleListScreen>
   }
 
   void _openPuzzleEditor(DailyPuzzle puzzle) {
+    final currentTab = _tabController.index;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminPuzzleEditScreen(puzzle: puzzle),
+        builder: (_) => AdminPuzzleEditScreen(
+          puzzle: puzzle,
+          sourceTabIndex: currentTab,
+        ),
       ),
     ).then((_) {
       // Refresh the list when returning from editor
-      final currentTab = _tabController.index;
       if (currentTab == 0) {
         _loadTodayPuzzles();
       } else if (currentTab == 1) {

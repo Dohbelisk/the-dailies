@@ -27,8 +27,13 @@ typedef EditorOnChange = void Function(
 /// Admin screen to edit a specific puzzle
 class AdminPuzzleEditScreen extends StatefulWidget {
   final DailyPuzzle puzzle;
+  final int? sourceTabIndex;
 
-  const AdminPuzzleEditScreen({super.key, required this.puzzle});
+  const AdminPuzzleEditScreen({
+    super.key,
+    required this.puzzle,
+    this.sourceTabIndex,
+  });
 
   @override
   State<AdminPuzzleEditScreen> createState() => _AdminPuzzleEditScreenState();
@@ -80,6 +85,33 @@ class _AdminPuzzleEditScreenState extends State<AdminPuzzleEditScreen> {
       return;
     }
 
+    // If puzzle is inactive, prompt to activate
+    if (!_isActive) {
+      final shouldActivate = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Activate Puzzle?'),
+          content: const Text(
+            'This puzzle is currently inactive. Would you like to activate it so players can see it?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Keep Inactive'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Activate'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldActivate == true) {
+        setState(() => _isActive = true);
+      }
+    }
+
     setState(() => _isSaving = true);
 
     try {
@@ -102,6 +134,8 @@ class _AdminPuzzleEditScreenState extends State<AdminPuzzleEditScreen> {
             ),
           );
           setState(() => _hasChanges = false);
+          // Navigate back to the schedule list
+          Navigator.pop(context);
         }
       } else {
         if (mounted) {
