@@ -185,18 +185,31 @@ class ApiService {
   }
 
   /// Fetch all puzzles for a specific date (used by super accounts for testing future puzzles)
+  /// Uses admin endpoint to get all puzzles including inactive ones
   Future<List<DailyPuzzle>> getPuzzlesForDate(DateTime date) async {
-    final puzzles = <DailyPuzzle>[];
+    try {
+      final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      // Use admin endpoint with date filter to get ALL puzzles (including inactive)
+      final response = await _get('$baseUrl/puzzles?startDate=$dateStr&endDate=$dateStr');
 
-    // Fetch puzzles for each game type
-    for (final gameType in GameType.values) {
-      final puzzle = await getPuzzleByTypeAndDate(gameType, date);
-      if (puzzle != null) {
-        puzzles.add(puzzle);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => DailyPuzzle.fromJson(json)).toList();
       }
+      _log.debug('No puzzles found for $dateStr', tag: 'Puzzles');
+      return [];
+    } catch (e) {
+      _log.warning('Error fetching puzzles for date: $e', tag: 'Puzzles');
+      // Fallback to fetching active puzzles per type
+      final puzzles = <DailyPuzzle>[];
+      for (final gameType in GameType.values) {
+        final puzzle = await getPuzzleByTypeAndDate(gameType, date);
+        if (puzzle != null) {
+          puzzles.add(puzzle);
+        }
+      }
+      return puzzles;
     }
-
-    return puzzles;
   }
 
   Future<bool> submitScore(String puzzleId, int time, int score) async {
