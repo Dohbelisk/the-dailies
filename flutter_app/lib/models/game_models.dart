@@ -98,6 +98,7 @@ class DailyPuzzle {
   final int? completionTime;
   final int? score;
   final bool isActive;
+  final String? status; // pending, active, inactive
 
   DailyPuzzle({
     required this.id,
@@ -111,9 +112,19 @@ class DailyPuzzle {
     this.completionTime,
     this.score,
     this.isActive = true,
+    this.status,
   });
 
   factory DailyPuzzle.fromJson(Map<String, dynamic> json) {
+    // Determine active status from 'status' field first, then fall back to 'isActive'
+    final status = json['status'] as String?;
+    bool isActive;
+    if (status != null) {
+      isActive = status == 'active';
+    } else {
+      isActive = json['isActive'] ?? true;
+    }
+
     return DailyPuzzle(
       id: json['id'] ?? json['_id'] ?? '',
       gameType: GameType.values.firstWhere(
@@ -131,7 +142,8 @@ class DailyPuzzle {
       isCompleted: json['isCompleted'] ?? false,
       completionTime: json['completionTime'],
       score: json['score'],
-      isActive: json['isActive'] ?? true,
+      isActive: isActive,
+      status: status,
     );
   }
 
@@ -148,6 +160,7 @@ class DailyPuzzle {
       'completionTime': completionTime,
       'score': score,
       'isActive': isActive,
+      'status': status,
     };
   }
 
@@ -162,6 +175,8 @@ class DailyPuzzle {
     bool? isCompleted,
     int? completionTime,
     int? score,
+    bool? isActive,
+    String? status,
   }) {
     return DailyPuzzle(
       id: id ?? this.id,
@@ -174,6 +189,8 @@ class DailyPuzzle {
       isCompleted: isCompleted ?? this.isCompleted,
       completionTime: completionTime ?? this.completionTime,
       score: score ?? this.score,
+      isActive: isActive ?? this.isActive,
+      status: status ?? this.status,
     );
   }
 }

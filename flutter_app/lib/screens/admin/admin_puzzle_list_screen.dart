@@ -152,6 +152,18 @@ class _AdminPuzzleListScreenState extends State<AdminPuzzleListScreen>
     }
   }
 
+  String _getStatusText(DailyPuzzle puzzle) {
+    if (puzzle.status == 'pending') return 'Pending';
+    if (puzzle.status == 'active' || puzzle.isActive) return 'Active';
+    return 'Inactive';
+  }
+
+  Color _getStatusColor(DailyPuzzle puzzle) {
+    if (puzzle.status == 'pending') return Colors.orange;
+    if (puzzle.status == 'active' || puzzle.isActive) return Colors.green;
+    return Colors.grey;
+  }
+
   Widget _buildPuzzleList(List<DailyPuzzle> puzzles, bool isLoading, VoidCallback onRefresh) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -250,15 +262,13 @@ class _AdminPuzzleListScreenState extends State<AdminPuzzleListScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: puzzle.isActive
-                                ? Colors.green.withValues(alpha: 0.1)
-                                : Colors.grey.withValues(alpha: 0.1),
+                            color: _getStatusColor(puzzle).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            puzzle.isActive ? 'Active' : 'Inactive',
+                            _getStatusText(puzzle),
                             style: TextStyle(
-                              color: puzzle.isActive ? Colors.green : Colors.grey,
+                              color: _getStatusColor(puzzle),
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
