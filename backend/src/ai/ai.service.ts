@@ -423,7 +423,6 @@ Generate ${count} unique word/clue pairs:`;
     const target = targetClueCount || Math.floor(gridSize * 1.5);
     const maxIterations = 5;
     const allWords: CrosswordWord[] = [];
-    const placedWords: Set<string> = new Set();
 
     // Initial generation - more words for larger grids
     const initialCount = Math.max(15, gridSize * 2);
