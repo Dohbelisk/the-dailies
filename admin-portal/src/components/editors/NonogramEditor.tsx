@@ -63,15 +63,15 @@ const generateClues = (grid: number[][]): { rowClues: number[][]; colClues: numb
   return { rowClues, colClues }
 }
 
-// Generate a random pattern
-const generateRandomPattern = (rows: number, cols: number, fillRatio: number = 0.4): number[][] => {
+// Generate a random pattern (may not be solvable)
+const generateRandomPatternUnchecked = (rows: number, cols: number, fillRatio: number = 0.4): number[][] => {
   return Array(rows).fill(null).map(() =>
     Array(cols).fill(null).map(() => Math.random() < fillRatio ? 1 : 0)
   )
 }
 
-// Generate a simple symmetric pattern
-const generateSymmetricPattern = (rows: number, cols: number): number[][] => {
+// Generate a simple symmetric pattern (may not be solvable)
+const generateSymmetricPatternUnchecked = (rows: number, cols: number): number[][] => {
   const grid = createEmptyGrid(rows, cols)
   const centerR = Math.floor(rows / 2)
   const centerC = Math.floor(cols / 2)
@@ -291,6 +291,59 @@ const isLogicallySolvable = (
   return { solvable: unsolvedCount === 0, unsolvedCount }
 }
 
+// ============ Solvable Pattern Generators ============
+
+/**
+ * Generate a solvable random pattern by retrying until one is found
+ * Returns null if no solvable pattern found within max attempts
+ */
+const generateSolvableRandomPattern = (
+  rows: number,
+  cols: number,
+  maxAttempts: number = 100
+): number[][] | null => {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Vary fill ratio slightly for diversity
+    const fillRatio = 0.35 + Math.random() * 0.15 // 35-50%
+    const grid = generateRandomPatternUnchecked(rows, cols, fillRatio)
+    const { rowClues, colClues } = generateClues(grid)
+    const result = isLogicallySolvable(rowClues, colClues)
+    if (result.solvable) {
+      return grid
+    }
+  }
+  return null
+}
+
+/**
+ * Generate a solvable symmetric pattern
+ * Falls back to a simple cross pattern if diamond isn't solvable
+ */
+const generateSolvableSymmetricPattern = (rows: number, cols: number): number[][] => {
+  // Try diamond pattern first
+  const diamond = generateSymmetricPatternUnchecked(rows, cols)
+  const diamondClues = generateClues(diamond)
+  if (isLogicallySolvable(diamondClues.rowClues, diamondClues.colClues).solvable) {
+    return diamond
+  }
+
+  // Fallback to guaranteed solvable cross pattern
+  const grid = createEmptyGrid(rows, cols)
+  const mid = Math.floor(rows / 2)
+
+  // Horizontal line
+  for (let c = 1; c < cols - 1; c++) {
+    grid[mid][c] = 1
+  }
+
+  // Vertical line
+  for (let r = 1; r < rows - 1; r++) {
+    grid[r][mid] = 1
+  }
+
+  return grid
+}
+
 export function NonogramEditor({
   initialData,
   initialSolution,
@@ -354,14 +407,36 @@ export function NonogramEditor({
     setValidationResult(null)
   }, [rows, cols])
 
+  const [isGenerating, setIsGenerating] = useState(false)
+
   const handleRandomPattern = useCallback(() => {
-    setGrid(generateRandomPattern(rows, cols))
+    setIsGenerating(true)
     setValidationResult(null)
+
+    // Use setTimeout to allow UI to update before potentially slow generation
+    setTimeout(() => {
+      const solvableGrid = generateSolvableRandomPattern(rows, cols)
+      if (solvableGrid) {
+        setGrid(solvableGrid)
+        setValidationResult({ isValid: true, hasUniqueSolution: true, errors: [] })
+      } else {
+        // Fallback to symmetric pattern if random fails
+        const fallbackGrid = generateSolvableSymmetricPattern(rows, cols)
+        setGrid(fallbackGrid)
+        setValidationResult({
+          isValid: true,
+          hasUniqueSolution: true,
+          errors: [{ row: -1, col: -1, message: 'Could not generate random solvable pattern, using symmetric fallback.' }]
+        })
+      }
+      setIsGenerating(false)
+    }, 10)
   }, [rows, cols])
 
   const handleSymmetricPattern = useCallback(() => {
-    setGrid(generateSymmetricPattern(rows, cols))
-    setValidationResult(null)
+    const solvableGrid = generateSolvableSymmetricPattern(rows, cols)
+    setGrid(solvableGrid)
+    setValidationResult({ isValid: true, hasUniqueSolution: true, errors: [] })
   }, [rows, cols])
 
   const handleValidate = useCallback(() => {
@@ -513,15 +588,17 @@ export function NonogramEditor({
         <button
           type="button"
           onClick={handleRandomPattern}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-md hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+          disabled={isGenerating}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-md hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Wand2 className="w-4 h-4" />
-          Random Pattern
+          <Wand2 className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+          {isGenerating ? 'Generating...' : 'Random Pattern'}
         </button>
         <button
           type="button"
           onClick={handleSymmetricPattern}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+          disabled={isGenerating}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Wand2 className="w-4 h-4" />
           Diamond Pattern
