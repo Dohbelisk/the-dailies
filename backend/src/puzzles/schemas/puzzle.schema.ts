@@ -63,7 +63,7 @@ export class Puzzle {
     description:
       "Whether the puzzle is active/published (deprecated, use status)",
   })
-  @Prop({ default: true })
+  @Prop({ default: false })
   isActive: boolean;
 
   @ApiProperty({
