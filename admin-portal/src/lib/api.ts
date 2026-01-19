@@ -234,6 +234,11 @@ export const aiApi = {
     api.post('/ai/connections', { theme }),
   generateWordClues: (words: string[]) =>
     api.post<{ clues: { word: string; clue: string }[] }>('/ai/word-clues', { words }),
+  buildCrossword: (theme: string, gridSize: number, targetClueCount?: number) =>
+    api.post<{ theme: string; gridSize: number; words: { word: string; clue: string }[]; iterations: number }>(
+      '/ai/build-crossword',
+      { theme, gridSize, targetClueCount }
+    ),
 }
 
 export default api

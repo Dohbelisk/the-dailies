@@ -51,6 +51,22 @@ class GenerateWordCluesDto {
   words: string[];
 }
 
+class BuildCrosswordGridDto {
+  @IsString()
+  theme: string;
+
+  @IsNumber()
+  @Min(5)
+  @Max(15)
+  gridSize: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(5)
+  @Max(30)
+  targetClueCount?: number;
+}
+
 @ApiTags("ai")
 @Controller("ai")
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -110,6 +126,33 @@ export class AiController {
 
     return {
       clues,
+    };
+  }
+
+  @Post("build-crossword")
+  @ApiOperation({
+    summary:
+      "Build a crossword grid iteratively - generates words optimized for grid placement",
+  })
+  async buildCrosswordGrid(
+    @Body() dto: BuildCrosswordGridDto,
+  ): Promise<{
+    theme: string;
+    gridSize: number;
+    words: CrosswordWord[];
+    iterations: number;
+  }> {
+    const result = await this.aiService.buildCrosswordGrid(
+      dto.theme,
+      dto.gridSize,
+      dto.targetClueCount,
+    );
+
+    return {
+      theme: dto.theme,
+      gridSize: dto.gridSize,
+      words: result.words,
+      iterations: result.iterations,
     };
   }
 }

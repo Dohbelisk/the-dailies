@@ -44,20 +44,31 @@ const buildCrosswordFromWords = (
       const existing = grid[r][c]
 
       if (existing !== null) {
+        // Cell already has a letter - must match for valid intersection
         if (existing !== letter) return false // Conflict
         hasIntersection = true
       } else {
-        // Check adjacent cells (perpendicular) aren't filled (avoid parallel words touching)
+        // Cell is empty - check that placing here doesn't create invalid parallel adjacencies
+        // For ACROSS words: check cells above and below
+        // For DOWN words: check cells to the left and right
         if (direction === 'across') {
-          if (r > 0 && grid[r - 1][c] !== null && i !== 0 && i !== len - 1) {
-            // Has letter above, check if it's part of an intersection
-            const above = grid[r - 1][c]
-            if (above !== null) {
-              // Only allow if this creates a valid crossing
-            }
+          // Check cell above - if filled, this would create parallel touching
+          if (r > 0 && grid[r - 1][c] !== null) {
+            return false
           }
+          // Check cell below - if filled, this would create parallel touching
           if (r < gridSize - 1 && grid[r + 1][c] !== null) {
-            // Similar check below
+            return false
+          }
+        } else {
+          // DOWN word - check left and right
+          // Check cell to the left - if filled, this would create parallel touching
+          if (c > 0 && grid[r][c - 1] !== null) {
+            return false
+          }
+          // Check cell to the right - if filled, this would create parallel touching
+          if (c < gridSize - 1 && grid[r][c + 1] !== null) {
+            return false
           }
         }
       }
@@ -222,11 +233,12 @@ export function CrosswordEditor({
   // AI generation state
   const [theme, setTheme] = useState('')
   const [aiSuggestions, setAiSuggestions] = useState<{ word: string; clue: string }[]>([])
+  const [buildProgress, setBuildProgress] = useState<string | null>(null)
 
-  // AI word generation mutation
+  // Simple word generation (for manual adding)
   const generateWordsMutation = useMutation({
     mutationFn: async (themeText: string) => {
-      const response = await aiApi.generateCrosswordWords(themeText, 10, 3, Math.min(rows, cols))
+      const response = await aiApi.generateCrosswordWords(themeText, 15, 3, Math.min(rows, cols))
       return response.data
     },
     onSuccess: (data) => {
@@ -237,13 +249,64 @@ export function CrosswordEditor({
     },
   })
 
+  // Smart grid building mutation - generates many words optimized for grid placement
+  const buildCrosswordMutation = useMutation({
+    mutationFn: async (themeText: string) => {
+      setBuildProgress('Generating words optimized for grid...')
+      const targetClues = Math.floor(rows * 1.2) // Aim for ~1.2 clues per row
+      const response = await aiApi.buildCrossword(themeText, rows, targetClues)
+      return response.data
+    },
+    onSuccess: (data) => {
+      setBuildProgress(`Generated ${data.words.length} words in ${data.iterations} iterations. Placing on grid...`)
+
+      // Try to place all words
+      const placedClues = buildCrosswordFromWords(data.words, rows)
+
+      if (placedClues.length === 0) {
+        setBuildProgress(null)
+        alert('Could not place any words. Try a different theme.')
+        return
+      }
+
+      // Renumber and set clues
+      const numberedClues = renumberClues(placedClues)
+      setClues(numberedClues)
+
+      // Keep unplaced words as suggestions
+      const placedWords = new Set(placedClues.map(c => c.answer))
+      const remaining = data.words.filter(s => !placedWords.has(s.word.toUpperCase()))
+      setAiSuggestions(remaining)
+
+      setBuildProgress(null)
+      setValidationResult(null)
+
+      const message = remaining.length > 0
+        ? `Placed ${placedClues.length} words. ${remaining.length} more words available to add manually.`
+        : `Successfully placed all ${placedClues.length} words!`
+      alert(message)
+    },
+    onError: (error: any) => {
+      setBuildProgress(null)
+      alert(error.response?.data?.message || 'Failed to build crossword')
+    },
+  })
+
   const handleGenerateWords = useCallback(() => {
     if (!theme.trim()) {
-      alert('Please enter a theme')
+      alert('Please enter at least one theme')
       return
     }
     generateWordsMutation.mutate(theme)
   }, [theme, generateWordsMutation])
+
+  const handleBuildGrid = useCallback(() => {
+    if (!theme.trim()) {
+      alert('Please enter at least one theme')
+      return
+    }
+    buildCrosswordMutation.mutate(theme)
+  }, [theme, buildCrosswordMutation])
 
   const handleAddSuggestion = useCallback((suggestion: { word: string; clue: string }) => {
     // Create a new clue from the suggestion
@@ -260,7 +323,7 @@ export function CrosswordEditor({
     setAiSuggestions(prev => prev.filter(s => s.word !== suggestion.word))
   }, [clues.length])
 
-  const handleBuildGrid = useCallback(() => {
+  const handlePlaceFromSuggestions = useCallback(() => {
     if (aiSuggestions.length === 0) {
       alert('No words to place. Generate some words first!')
       return
@@ -520,17 +583,33 @@ export function CrosswordEditor({
             type="text"
             value={theme}
             onChange={(e) => setTheme(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleGenerateWords()}
-            placeholder="Enter a theme (e.g., Space, Animals, Sports...)"
+            onKeyDown={(e) => e.key === 'Enter' && handleBuildGrid()}
+            placeholder="Enter themes (e.g., Space, Animals, Sports - comma-separated for mix)"
             className="flex-1 px-3 py-2 border border-purple-300 dark:border-purple-700 rounded-md
                        bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           />
           <button
             type="button"
+            onClick={handleBuildGrid}
+            disabled={buildCrosswordMutation.isPending || generateWordsMutation.isPending || !theme.trim()}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md
+                       hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Generates many words and automatically builds the best grid"
+          >
+            {buildCrosswordMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <LayoutGrid className="w-4 h-4" />
+            )}
+            Smart Build
+          </button>
+          <button
+            type="button"
             onClick={handleGenerateWords}
-            disabled={generateWordsMutation.isPending || !theme.trim()}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-md
-                       hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={generateWordsMutation.isPending || buildCrosswordMutation.isPending || !theme.trim()}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-400 text-white rounded-md
+                       hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Generate words to add manually"
           >
             {generateWordsMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -541,21 +620,31 @@ export function CrosswordEditor({
           </button>
         </div>
 
+        {/* Build progress */}
+        {buildProgress && (
+          <div className="mb-3 p-2 bg-purple-100 dark:bg-purple-800/30 rounded-md">
+            <p className="text-sm text-purple-700 dark:text-purple-300 flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {buildProgress}
+            </p>
+          </div>
+        )}
+
         {/* AI Suggestions */}
         {aiSuggestions.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-purple-600 dark:text-purple-400">
-                Click a word to add it manually, or build the entire grid:
+                {aiSuggestions.length} words available. Click to add manually, or place all:
               </p>
               <button
                 type="button"
-                onClick={handleBuildGrid}
-                className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-md
-                           hover:bg-purple-700 transition-colors text-sm font-medium"
+                onClick={handlePlaceFromSuggestions}
+                className="flex items-center gap-2 px-3 py-1.5 bg-purple-500 text-white rounded-md
+                           hover:bg-purple-600 transition-colors text-sm font-medium"
               >
                 <LayoutGrid className="w-4 h-4" />
-                Build Grid
+                Place Words
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
