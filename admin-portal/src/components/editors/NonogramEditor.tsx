@@ -92,6 +92,205 @@ const generateSymmetricPattern = (rows: number, cols: number): number[][] => {
   return grid
 }
 
+// ============ Nonogram Solver for Validation ============
+
+/**
+ * Generate all valid placements for clues on a line
+ */
+const generatePlacements = (
+  clues: number[],
+  len: number,
+  current: number[],
+): number[][] => {
+  const results: number[][] = []
+
+  const generate = (
+    clueIdx: number,
+    pos: number,
+    placement: number[],
+  ): void => {
+    if (clueIdx === clues.length) {
+      const final = placement.slice()
+      for (let i = pos; i < len; i++) {
+        final[i] = -1
+      }
+      let valid = true
+      for (let i = 0; i < len; i++) {
+        if (current[i] !== 0 && current[i] !== final[i]) {
+          valid = false
+          break
+        }
+      }
+      if (valid) {
+        results.push(final)
+      }
+      return
+    }
+
+    const clue = clues[clueIdx]
+    const remaining = clues.slice(clueIdx + 1).reduce((a, b) => a + b, 0)
+    const remainingSpaces = clues.length - clueIdx - 1
+    const maxStart = len - remaining - remainingSpaces - clue
+
+    for (let start = pos; start <= maxStart; start++) {
+      let canPlace = true
+
+      for (let i = pos; i < start; i++) {
+        if (current[i] === 1) {
+          canPlace = false
+          break
+        }
+      }
+      if (!canPlace) continue
+
+      for (let i = start; i < start + clue; i++) {
+        if (current[i] === -1) {
+          canPlace = false
+          break
+        }
+      }
+      if (!canPlace) continue
+
+      const newPlacement = placement.slice()
+      for (let i = pos; i < start; i++) {
+        newPlacement[i] = -1
+      }
+      for (let i = start; i < start + clue; i++) {
+        newPlacement[i] = 1
+      }
+
+      if (clueIdx < clues.length - 1) {
+        if (current[start + clue] === 1) {
+          continue
+        }
+        newPlacement[start + clue] = -1
+        generate(clueIdx + 1, start + clue + 1, newPlacement)
+      } else {
+        generate(clueIdx + 1, start + clue, newPlacement)
+      }
+    }
+  }
+
+  generate(0, 0, Array(len).fill(0))
+  return results
+}
+
+/**
+ * Solve a single line using line-solving logic
+ * Returns array with 1 (filled), -1 (empty), or 0 (unknown)
+ */
+const solveLine = (line: number[], clues: number[]): number[] => {
+  const len = line.length
+  const result = line.slice()
+
+  // Handle empty line (clue is [0])
+  if (clues.length === 1 && clues[0] === 0) {
+    return result.map((c) => (c === 0 ? -1 : c))
+  }
+
+  // Handle fully constrained line
+  const totalFilled = clues.reduce((a, b) => a + b, 0)
+  const minSpaces = clues.length - 1
+  if (totalFilled + minSpaces === len) {
+    let pos = 0
+    for (let i = 0; i < clues.length; i++) {
+      for (let j = 0; j < clues[i]; j++) {
+        result[pos++] = 1
+      }
+      if (i < clues.length - 1) {
+        result[pos++] = -1
+      }
+    }
+    return result
+  }
+
+  const placements = generatePlacements(clues, len, line)
+
+  if (placements.length === 0) {
+    return result
+  }
+
+  // Find cells that are the same across all valid placements
+  for (let i = 0; i < len; i++) {
+    if (result[i] !== 0) continue
+
+    const firstVal = placements[0][i]
+    let allSame = true
+    for (let p = 1; p < placements.length; p++) {
+      if (placements[p][i] !== firstVal) {
+        allSame = false
+        break
+      }
+    }
+    if (allSame) {
+      result[i] = firstVal
+    }
+  }
+
+  return result
+}
+
+/**
+ * Check if a nonogram can be solved using line-by-line logic alone (no guessing)
+ */
+const isLogicallySolvable = (
+  rowClues: number[][],
+  colClues: number[][],
+): { solvable: boolean; unsolvedCount: number } => {
+  const rows = rowClues.length
+  const cols = colClues.length
+
+  // 0 = unknown, 1 = filled, -1 = empty
+  const grid: number[][] = Array(rows)
+    .fill(null)
+    .map(() => Array(cols).fill(0))
+
+  let changed = true
+  let iterations = 0
+  const maxIterations = rows * cols * 2
+
+  while (changed && iterations < maxIterations) {
+    changed = false
+    iterations++
+
+    // Process each row
+    for (let r = 0; r < rows; r++) {
+      const line = grid[r].slice()
+      const newLine = solveLine(line, rowClues[r])
+      for (let c = 0; c < cols; c++) {
+        if (grid[r][c] === 0 && newLine[c] !== 0) {
+          grid[r][c] = newLine[c]
+          changed = true
+        }
+      }
+    }
+
+    // Process each column
+    for (let c = 0; c < cols; c++) {
+      const line = grid.map((row) => row[c])
+      const newLine = solveLine(line, colClues[c])
+      for (let r = 0; r < rows; r++) {
+        if (grid[r][c] === 0 && newLine[r] !== 0) {
+          grid[r][c] = newLine[r]
+          changed = true
+        }
+      }
+    }
+  }
+
+  // Count unsolved cells
+  let unsolvedCount = 0
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (grid[r][c] === 0) {
+        unsolvedCount++
+      }
+    }
+  }
+
+  return { solvable: unsolvedCount === 0, unsolvedCount }
+}
+
 export function NonogramEditor({
   initialData,
   initialSolution,
@@ -172,15 +371,28 @@ export function NonogramEditor({
     const filledCount = grid.flat().filter(c => c === 1).length
     if (filledCount === 0) {
       errors.push({ row: -1, col: -1, message: 'Draw a pattern first (click cells to fill)' })
+      setValidationResult({ isValid: false, hasUniqueSolution: false, errors })
+      return
     }
 
     // Check if pattern is too simple (less than 10% filled)
     const totalCells = rows * cols
     if (filledCount < totalCells * 0.1) {
       errors.push({ row: -1, col: -1, message: 'Pattern too simple. Add more filled cells.' })
+      setValidationResult({ isValid: false, hasUniqueSolution: false, errors })
+      return
     }
 
-    if (errors.length > 0) {
+    // Generate clues and check if puzzle is solvable with logic alone
+    const { rowClues: currentRowClues, colClues: currentColClues } = generateClues(grid)
+    const solverResult = isLogicallySolvable(currentRowClues, currentColClues)
+
+    if (!solverResult.solvable) {
+      errors.push({
+        row: -1,
+        col: -1,
+        message: `Puzzle requires guessing to solve (${solverResult.unsolvedCount} ambiguous cells). Try a different pattern.`
+      })
       setValidationResult({ isValid: false, hasUniqueSolution: false, errors })
     } else {
       setValidationResult({ isValid: true, hasUniqueSolution: true, errors: [] })

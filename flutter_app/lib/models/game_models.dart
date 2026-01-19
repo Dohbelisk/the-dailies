@@ -1002,13 +1002,52 @@ class NonogramPuzzle {
   }
 
   bool get isComplete {
+    // Validate against clues rather than stored solution
+    // This handles puzzles that may have multiple valid solutions
+
+    // Check all row clues
     for (int r = 0; r < rows; r++) {
-      for (int c = 0; c < cols; c++) {
-        // Only check filled cells - user must have marked them as filled
-        if (solution[r][c] == 1 && userGrid[r][c] != 1) return false;
-        // Also check that marked empty cells are correct
-        if (solution[r][c] == 0 && userGrid[r][c] == 1) return false;
+      final userRowClues = _extractClues(userGrid[r]);
+      if (!_cluesMatch(userRowClues, rowClues[r])) return false;
+    }
+
+    // Check all column clues
+    for (int c = 0; c < cols; c++) {
+      final columnCells = List.generate(rows, (r) => userGrid[r][c]);
+      final userColClues = _extractClues(columnCells);
+      if (!_cluesMatch(userColClues, colClues[c])) return false;
+    }
+
+    return true;
+  }
+
+  /// Extract clues (runs of filled cells) from a line
+  List<int> _extractClues(List<int?> line) {
+    final clues = <int>[];
+    int count = 0;
+
+    for (final cell in line) {
+      if (cell == 1) {
+        count++;
+      } else if (count > 0) {
+        clues.add(count);
+        count = 0;
       }
+    }
+
+    if (count > 0) {
+      clues.add(count);
+    }
+
+    // Empty line has clue [0]
+    return clues.isEmpty ? [0] : clues;
+  }
+
+  /// Check if two clue lists match
+  bool _cluesMatch(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
     }
     return true;
   }
@@ -1024,10 +1063,12 @@ class NonogramPuzzle {
   }
 
   int get totalToFill {
+    // Calculate from row clues (sum of all clue values)
+    // This is more reliable than using the solution for puzzles with multiple valid solutions
     int count = 0;
-    for (int r = 0; r < rows; r++) {
-      for (int c = 0; c < cols; c++) {
-        if (solution[r][c] == 1) count++;
+    for (final clueList in rowClues) {
+      for (final clue in clueList) {
+        count += clue;
       }
     }
     return count;
