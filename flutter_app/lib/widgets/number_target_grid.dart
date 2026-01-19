@@ -243,6 +243,11 @@ class _TargetCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Color scheme based on difficulty
     final (Color bgColor, Color fgColor, String label) = switch (target.difficulty) {
+      'extraEasy' => (
+        Colors.green.shade100,
+        Colors.green.shade900,
+        'EXTRA EASY',
+      ),
       'easy' => (
         theme.colorScheme.tertiaryContainer,
         theme.colorScheme.onTertiaryContainer,
@@ -257,6 +262,11 @@ class _TargetCard extends StatelessWidget {
         theme.colorScheme.errorContainer,
         theme.colorScheme.onErrorContainer,
         'HARD',
+      ),
+      'expert' => (
+        Colors.purple.shade100,
+        Colors.purple.shade900,
+        'EXPERT',
       ),
       _ => (
         theme.colorScheme.primaryContainer,

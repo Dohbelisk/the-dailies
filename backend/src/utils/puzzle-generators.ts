@@ -4162,12 +4162,14 @@ export class NonogramGenerator {
 }
 
 // Number Target Generator (Make 10/24/etc)
+type TargetDifficulty = "extraEasy" | "easy" | "medium" | "hard" | "expert";
+
 export class NumberTargetGenerator {
   generate(difficulty: "easy" | "medium" | "hard" | "expert"): {
     puzzleData: {
       numbers: number[];
       target: number;
-      targets?: { target: number; difficulty: "easy" | "medium" | "hard" }[];
+      targets?: { target: number; difficulty: TargetDifficulty }[];
     };
     solution: {
       expression: string;
@@ -4181,13 +4183,13 @@ export class NumberTargetGenerator {
     // Number ranges based on difficulty
     const ranges = {
       easy: { min: 1, max: 9 },
-      medium: { min: 1, max: 13 },
+      medium: { min: 1, max: 15 },
       hard: { min: 1, max: 25 },
-      expert: { min: 1, max: 100 },
+      expert: { min: 1, max: 50 },
     };
     const range = ranges[difficulty];
 
-    // Generate numbers and find 3 solvable targets with increasing difficulty
+    // Generate numbers and find 5 solvable targets with increasing difficulty
     let result = this.generateMultiTargetPuzzle(range, difficulty);
     let attempts = 0;
 
@@ -4197,27 +4199,21 @@ export class NumberTargetGenerator {
     }
 
     if (!result) {
-      // Fallback to known solvable puzzle
+      // Fallback to known solvable puzzle with 6 numbers
       result = {
-        numbers: [1, 2, 3, 4],
+        numbers: [1, 2, 3, 4, 5, 6],
         targets: [
-          { target: 10, difficulty: "easy" as const, expression: "(1+2+3)+4" },
-          {
-            target: 24,
-            difficulty: "medium" as const,
-            expression: "(1+2+3)*4",
-          },
-          {
-            target: 36,
-            difficulty: "hard" as const,
-            expression: "(1+2)*3*4+4",
-          },
+          { target: 3, difficulty: "extraEasy" as const, expression: "1+2" },
+          { target: 11, difficulty: "easy" as const, expression: "5+6" },
+          { target: 21, difficulty: "medium" as const, expression: "(1+2)*3+4+5+6" },
+          { target: 90, difficulty: "hard" as const, expression: "(1+2+3)*(4+5+6)" },
+          { target: 720, difficulty: "expert" as const, expression: "1*2*3*4*5*6" },
         ],
       };
     }
 
     // Use the medium target as the main target for backwards compatibility
-    const mainTarget = result.targets[1];
+    const mainTarget = result.targets[2]; // Medium is now index 2
 
     return {
       puzzleData: {
@@ -4246,13 +4242,13 @@ export class NumberTargetGenerator {
     numbers: number[];
     targets: {
       target: number;
-      difficulty: "easy" | "medium" | "hard";
+      difficulty: TargetDifficulty;
       expression: string;
     }[];
   } | null {
-    // Generate 4 random numbers
+    // Generate 6 random numbers
     const numbers: number[] = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       numbers.push(
         Math.floor(Math.random() * (range.max - range.min + 1)) + range.min,
       );
@@ -4261,56 +4257,73 @@ export class NumberTargetGenerator {
     // Find all possible targets we can make with these numbers
     const allTargets = this.findAllTargets(numbers);
 
-    if (allTargets.length < 3) {
-      return null; // Need at least 3 targets
+    if (allTargets.length < 5) {
+      return null; // Need at least 5 targets
     }
 
     // Sort targets by value to get increasing difficulty
     allTargets.sort((a, b) => a.target - b.target);
 
-    // Pick 3 targets: one small (easy), one medium, one larger (hard)
-    // Filter to reasonable target ranges
-    const smallTargets = allTargets.filter(
-      (t) => t.target >= 5 && t.target <= 20,
+    // Pick 5 targets across different difficulty ranges
+    // Extra Easy: 2-10, Easy: 10-25, Medium: 25-75, Hard: 75-200, Expert: 200-1000
+    const extraEasyTargets = allTargets.filter(
+      (t) => t.target >= 2 && t.target <= 10,
+    );
+    const easyTargets = allTargets.filter(
+      (t) => t.target > 10 && t.target <= 25,
     );
     const mediumTargets = allTargets.filter(
-      (t) => t.target > 20 && t.target <= 50,
+      (t) => t.target > 25 && t.target <= 75,
     );
-    const largeTargets = allTargets.filter(
-      (t) => t.target > 50 && t.target <= 200,
+    const hardTargets = allTargets.filter(
+      (t) => t.target > 75 && t.target <= 200,
+    );
+    const expertTargets = allTargets.filter(
+      (t) => t.target > 200 && t.target <= 1000,
     );
 
     if (
-      smallTargets.length === 0 ||
+      extraEasyTargets.length === 0 ||
+      easyTargets.length === 0 ||
       mediumTargets.length === 0 ||
-      largeTargets.length === 0
+      hardTargets.length === 0 ||
+      expertTargets.length === 0
     ) {
-      // Fallback: just pick 3 evenly spaced from all targets
-      const step = Math.floor(allTargets.length / 3);
+      // Fallback: pick 5 evenly spaced from all targets
+      const step = Math.floor(allTargets.length / 5);
+      if (step === 0) return null;
       return {
         numbers,
         targets: [
-          { ...allTargets[0], difficulty: "easy" as const },
-          { ...allTargets[step], difficulty: "medium" as const },
-          { ...allTargets[step * 2], difficulty: "hard" as const },
+          { ...allTargets[0], difficulty: "extraEasy" as const },
+          { ...allTargets[step], difficulty: "easy" as const },
+          { ...allTargets[step * 2], difficulty: "medium" as const },
+          { ...allTargets[step * 3], difficulty: "hard" as const },
+          { ...allTargets[step * 4], difficulty: "expert" as const },
         ],
       };
     }
 
     // Pick random targets from each difficulty tier
+    const extraEasyTarget =
+      extraEasyTargets[Math.floor(Math.random() * extraEasyTargets.length)];
     const easyTarget =
-      smallTargets[Math.floor(Math.random() * smallTargets.length)];
+      easyTargets[Math.floor(Math.random() * easyTargets.length)];
     const mediumTarget =
       mediumTargets[Math.floor(Math.random() * mediumTargets.length)];
     const hardTarget =
-      largeTargets[Math.floor(Math.random() * largeTargets.length)];
+      hardTargets[Math.floor(Math.random() * hardTargets.length)];
+    const expertTarget =
+      expertTargets[Math.floor(Math.random() * expertTargets.length)];
 
     return {
       numbers,
       targets: [
+        { ...extraEasyTarget, difficulty: "extraEasy" as const },
         { ...easyTarget, difficulty: "easy" as const },
         { ...mediumTarget, difficulty: "medium" as const },
         { ...hardTarget, difficulty: "hard" as const },
+        { ...expertTarget, difficulty: "expert" as const },
       ],
     };
   }
@@ -4319,47 +4332,80 @@ export class NumberTargetGenerator {
     numbers: number[],
   ): { target: number; expression: string }[] {
     const targetMap = new Map<number, string>();
-    const ops = ["+", "-", "*", "/"];
-    const perms = this.permutations(numbers);
 
-    for (const perm of perms) {
-      for (const op1 of ops) {
-        for (const op2 of ops) {
-          for (const op3 of ops) {
-            const expressions = [
-              `((${perm[0]}${op1}${perm[1]})${op2}${perm[2]})${op3}${perm[3]}`,
-              `(${perm[0]}${op1}(${perm[1]}${op2}${perm[2]}))${op3}${perm[3]}`,
-              `(${perm[0]}${op1}${perm[1]})${op2}(${perm[2]}${op3}${perm[3]})`,
-              `${perm[0]}${op1}((${perm[1]}${op2}${perm[2]})${op3}${perm[3]})`,
-              `${perm[0]}${op1}(${perm[1]}${op2}(${perm[2]}${op3}${perm[3]}))`,
-            ];
-
-            for (const expr of expressions) {
-              try {
-                const result = Function(`"use strict"; return (${expr})`)();
-                if (
-                  Number.isFinite(result) &&
-                  Number.isInteger(result) &&
-                  result > 0 &&
-                  result <= 1000
-                ) {
-                  if (!targetMap.has(result)) {
-                    targetMap.set(result, expr);
-                  }
-                }
-              } catch {
-                // Invalid expression
-              }
-            }
-          }
-        }
-      }
-    }
+    // Use recursive approach to find all possible expressions with 6 numbers
+    // This explores all ways to combine numbers with +, -, *, /
+    this.findTargetsRecursive(numbers, targetMap);
 
     return Array.from(targetMap.entries()).map(([target, expression]) => ({
       target,
       expression,
     }));
+  }
+
+  private findTargetsRecursive(
+    values: (number | string)[],
+    targetMap: Map<number, string>,
+  ): void {
+    // Base case: single value
+    if (values.length === 1) {
+      const val = values[0];
+      const numVal = typeof val === "string" ? this.evalExpr(val) : val;
+      const expr = typeof val === "string" ? val : String(val);
+
+      if (
+        numVal !== null &&
+        Number.isInteger(numVal) &&
+        numVal > 0 &&
+        numVal <= 1000 &&
+        !targetMap.has(numVal)
+      ) {
+        targetMap.set(numVal, expr);
+      }
+      return;
+    }
+
+    // Try all pairs of values and combine them
+    const ops = ["+", "-", "*", "/"];
+
+    for (let i = 0; i < values.length; i++) {
+      for (let j = i + 1; j < values.length; j++) {
+        const a = values[i];
+        const b = values[j];
+        const aExpr = typeof a === "string" ? a : String(a);
+        const bExpr = typeof b === "string" ? b : String(b);
+
+        // Remaining values after removing i and j
+        const remaining = values.filter((_, idx) => idx !== i && idx !== j);
+
+        for (const op of ops) {
+          // Try a op b
+          const expr1 = `(${aExpr}${op}${bExpr})`;
+          const val1 = this.evalExpr(expr1);
+          if (val1 !== null && Number.isFinite(val1)) {
+            this.findTargetsRecursive([...remaining, expr1], targetMap);
+          }
+
+          // Try b op a (for non-commutative ops)
+          if (op === "-" || op === "/") {
+            const expr2 = `(${bExpr}${op}${aExpr})`;
+            const val2 = this.evalExpr(expr2);
+            if (val2 !== null && Number.isFinite(val2)) {
+              this.findTargetsRecursive([...remaining, expr2], targetMap);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private evalExpr(expr: string): number | null {
+    try {
+      const result = Function(`"use strict"; return (${expr})`)();
+      return Number.isFinite(result) ? result : null;
+    } catch {
+      return null;
+    }
   }
 
   private randomTarget(): number {
@@ -4372,9 +4418,9 @@ export class NumberTargetGenerator {
     range: { min: number; max: number },
     _difficulty: string,
   ): { numbers: number[]; expression: string; alternates: string[] } | null {
-    // Generate 4 random numbers
+    // Generate 6 random numbers
     const numbers: number[] = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       numbers.push(
         Math.floor(Math.random() * (range.max - range.min + 1)) + range.min,
       );
@@ -4396,43 +4442,14 @@ export class NumberTargetGenerator {
 
   private findSolutions(numbers: number[], target: number): string[] {
     const solutions: string[] = [];
-    const ops = ["+", "-", "*", "/"];
+    const targetMap = new Map<number, string>();
 
-    // Generate all permutations of numbers
-    const perms = this.permutations(numbers);
+    // Use recursive approach to find all solutions
+    this.findTargetsRecursive(numbers, targetMap);
 
-    for (const perm of perms) {
-      // Try all combinations of operators
-      for (const op1 of ops) {
-        for (const op2 of ops) {
-          for (const op3 of ops) {
-            // Different groupings with parentheses
-            const expressions = [
-              `((${perm[0]}${op1}${perm[1]})${op2}${perm[2]})${op3}${perm[3]}`,
-              `(${perm[0]}${op1}(${perm[1]}${op2}${perm[2]}))${op3}${perm[3]}`,
-              `(${perm[0]}${op1}${perm[1]})${op2}(${perm[2]}${op3}${perm[3]})`,
-              `${perm[0]}${op1}((${perm[1]}${op2}${perm[2]})${op3}${perm[3]})`,
-              `${perm[0]}${op1}(${perm[1]}${op2}(${perm[2]}${op3}${perm[3]}))`,
-            ];
-
-            for (const expr of expressions) {
-              try {
-                // Safe evaluation using Function
-                const result = Function(`"use strict"; return (${expr})`)();
-                if (
-                  Math.abs(result - target) < 0.0001 &&
-                  !solutions.includes(expr)
-                ) {
-                  solutions.push(expr);
-                  if (solutions.length >= 5) return solutions;
-                }
-              } catch {
-                // Invalid expression, skip
-              }
-            }
-          }
-        }
-      }
+    // Find expressions that match the target
+    if (targetMap.has(target)) {
+      solutions.push(targetMap.get(target)!);
     }
 
     return solutions;

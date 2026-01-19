@@ -1038,7 +1038,7 @@ class NonogramPuzzle {
 /// Represents a single target with its difficulty level
 class NumberTarget {
   final int target;
-  final String difficulty; // 'easy', 'medium', 'hard'
+  final String difficulty; // 'extraEasy', 'easy', 'medium', 'hard', 'expert'
   final String? solution;
   bool completed;
 
@@ -1059,9 +1059,9 @@ class NumberTarget {
 }
 
 class NumberTargetPuzzle {
-  final List<int> numbers; // 4 numbers to use
+  final List<int> numbers; // 6 numbers to use
   final int target; // Main target (for backwards compatibility)
-  final List<NumberTarget> targets; // 3 targets with increasing difficulty
+  final List<NumberTarget> targets; // 5 targets with increasing difficulty
   final String solution; // One valid expression
   final List<String> alternates; // Alternative solutions
   String userExpression; // User's current expression
@@ -1075,7 +1075,7 @@ class NumberTargetPuzzle {
     this.alternates = const [],
     this.userExpression = '',
     List<bool>? usedNumbers,
-  }) : usedNumbers = usedNumbers ?? List.filled(4, false);
+  }) : usedNumbers = usedNumbers ?? List.filled(numbers.length, false);
 
   factory NumberTargetPuzzle.fromJson(Map<String, dynamic> json) {
     final puzzleData = json;

@@ -1064,11 +1064,11 @@ export class ValidateService {
     const errors: ValidationError[] = [];
 
     // Validate numbers
-    if (!numbers || numbers.length !== 4) {
+    if (!numbers || numbers.length !== 6) {
       errors.push({
         row: -1,
         col: -1,
-        message: "Exactly 4 numbers are required",
+        message: "Exactly 6 numbers are required",
       });
       return { isValid: false, errors };
     }
@@ -1134,50 +1134,86 @@ export class ValidateService {
   }
 
   /**
-   * Find an expression that evaluates to the target using all 4 numbers
+   * Find an expression that evaluates to the target using the given numbers
+   * Uses recursive approach to handle any number of operands
    */
   private findExpression(numbers: number[], target: number): string | null {
+    const targetMap = new Map<number, string>();
+    this.findExpressionsRecursive(numbers, targetMap);
+
+    if (targetMap.has(target)) {
+      return this.formatExpression(targetMap.get(target)!);
+    }
+
+    return null;
+  }
+
+  /**
+   * Recursively find all possible expressions and their results
+   */
+  private findExpressionsRecursive(
+    values: (number | string)[],
+    targetMap: Map<number, string>,
+  ): void {
+    // Base case: single value
+    if (values.length === 1) {
+      const val = values[0];
+      const numVal =
+        typeof val === "string" ? this.evaluateExpression(val) : val;
+      const expr = typeof val === "string" ? val : String(val);
+
+      if (
+        Number.isFinite(numVal) &&
+        Number.isInteger(numVal) &&
+        numVal > 0 &&
+        numVal <= 1000 &&
+        !targetMap.has(numVal)
+      ) {
+        targetMap.set(numVal, expr);
+      }
+      return;
+    }
+
+    // Try all pairs of values and combine them
     const ops = ["+", "-", "*", "/"];
 
-    // Generate all permutations of numbers
-    const perms = this.permutations(numbers);
+    for (let i = 0; i < values.length; i++) {
+      for (let j = i + 1; j < values.length; j++) {
+        const a = values[i];
+        const b = values[j];
+        const aExpr = typeof a === "string" ? a : String(a);
+        const bExpr = typeof b === "string" ? b : String(b);
 
-    for (const perm of perms) {
-      // Try all combinations of operators
-      for (const op1 of ops) {
-        for (const op2 of ops) {
-          for (const op3 of ops) {
-            // Try different parenthesizations
-            const expressions = [
-              // ((a op1 b) op2 c) op3 d
-              `((${perm[0]}${op1}${perm[1]})${op2}${perm[2]})${op3}${perm[3]}`,
-              // (a op1 (b op2 c)) op3 d
-              `(${perm[0]}${op1}(${perm[1]}${op2}${perm[2]}))${op3}${perm[3]}`,
-              // (a op1 b) op2 (c op3 d)
-              `(${perm[0]}${op1}${perm[1]})${op2}(${perm[2]}${op3}${perm[3]})`,
-              // a op1 ((b op2 c) op3 d)
-              `${perm[0]}${op1}((${perm[1]}${op2}${perm[2]})${op3}${perm[3]})`,
-              // a op1 (b op2 (c op3 d))
-              `${perm[0]}${op1}(${perm[1]}${op2}(${perm[2]}${op3}${perm[3]}))`,
-            ];
+        // Remaining values after removing i and j
+        const remaining = values.filter((_, idx) => idx !== i && idx !== j);
 
-            for (const expr of expressions) {
-              try {
-                // Safe evaluation
-                const result = this.evaluateExpression(expr);
-                if (Math.abs(result - target) < 0.0001) {
-                  return this.formatExpression(expr);
-                }
-              } catch {
-                // Invalid expression, continue
+        for (const op of ops) {
+          // Try a op b
+          const expr1 = `(${aExpr}${op}${bExpr})`;
+          try {
+            const val1 = this.evaluateExpression(expr1);
+            if (Number.isFinite(val1)) {
+              this.findExpressionsRecursive([...remaining, expr1], targetMap);
+            }
+          } catch {
+            // Invalid expression
+          }
+
+          // Try b op a (for non-commutative ops)
+          if (op === "-" || op === "/") {
+            const expr2 = `(${bExpr}${op}${aExpr})`;
+            try {
+              const val2 = this.evaluateExpression(expr2);
+              if (Number.isFinite(val2)) {
+                this.findExpressionsRecursive([...remaining, expr2], targetMap);
               }
+            } catch {
+              // Invalid expression
             }
           }
         }
       }
     }
-
-    return null;
   }
 
   /**

@@ -266,6 +266,7 @@ export class PuzzlesService {
       case GameType.KILLER_SUDOKU: {
         const result = this.validateService.validateKillerSudoku(
           puzzleData.cages,
+          puzzleData.grid,
         );
         if (!result.isValid) {
           return {
