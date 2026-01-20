@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import { useAuthStore } from '../stores/authStore'
 
 // Use environment variable in production, proxy in development
@@ -9,6 +9,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 second timeout
 })
 
 // Add auth token to requests
@@ -20,14 +21,62 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Handle auth errors
+// Retry logic for transient failures
+const MAX_RETRIES = 2
+const RETRY_DELAY = 1000
+
+const shouldRetry = (error: AxiosError): boolean => {
+  // Retry on network errors or 5xx server errors
+  if (!error.response) return true // Network error
+  const status = error.response.status
+  return status >= 500 && status < 600
+}
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+// Handle responses and errors with retry
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error: AxiosError) => {
+    const config = error.config
+    if (!config) {
+      return Promise.reject(error)
+    }
+
+    // Get retry count from config (custom property)
+    const retryCount = (config as any).__retryCount || 0
+
+    // Handle 401 - logout
     if (error.response?.status === 401) {
       useAuthStore.getState().logout()
       window.location.href = '/login'
+      return Promise.reject(error)
     }
+
+    // Retry logic for transient failures
+    if (shouldRetry(error) && retryCount < MAX_RETRIES) {
+      (config as any).__retryCount = retryCount + 1
+      console.warn(`API request failed, retrying (${retryCount + 1}/${MAX_RETRIES})...`, error.message)
+      await sleep(RETRY_DELAY * (retryCount + 1)) // Exponential backoff
+      return api(config)
+    }
+
+    // Enhance error message for better debugging
+    if (!error.response) {
+      // Network error - could be CORS, timeout, or server unreachable
+      const enhancedError = new Error(
+        `Network error: Unable to reach the server. This could be a CORS issue, timeout, or the server may be unavailable. URL: ${config.url}`
+      )
+      ;(enhancedError as any).originalError = error
+      console.error('Network error details:', {
+        url: config.url,
+        method: config.method,
+        baseURL: config.baseURL,
+        message: error.message,
+      })
+      return Promise.reject(enhancedError)
+    }
+
     return Promise.reject(error)
   }
 )
@@ -196,6 +245,13 @@ export const generateApi = {
     api.post('/generate/lights-out', { date, difficulty }),
   wordLadder: (date: string, difficulty: Difficulty) =>
     api.post('/generate/word-ladder', { date, difficulty }),
+  wordLadderPreview: (wordLength: 3 | 4 | 5, difficulty: Difficulty) =>
+    api.post<{
+      success: boolean
+      message?: string
+      puzzleData?: { startWord: string; targetWord: string; wordLength: number }
+      solution?: { path: string[]; minSteps: number }
+    }>('/generate/word-ladder/preview', { wordLength, difficulty }),
   connections: (date: string, difficulty: Difficulty) =>
     api.post('/generate/connections', { date, difficulty }),
   mathora: (date: string, difficulty: Difficulty) =>
