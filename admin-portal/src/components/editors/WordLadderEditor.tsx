@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Search, Loader2 } from 'lucide-react'
-import { validateApi } from '../../lib/api'
+import { Search, Loader2, Wand2 } from 'lucide-react'
+import { validateApi, generateApi, Difficulty } from '../../lib/api'
 import ValidationStatus from './shared/ValidationStatus'
 
 interface WordLadderEditorProps {
@@ -84,6 +84,48 @@ export function WordLadderEditor({
     },
   })
 
+  const generateMutation = useMutation({
+    mutationFn: (difficulty: Difficulty) =>
+      generateApi.wordLadderPreview(wordLength, difficulty),
+    onSuccess: (response) => {
+      const result = response.data
+      if (result.success && result.puzzleData && result.solution) {
+        setStartWord(result.puzzleData.startWord)
+        setTargetWord(result.puzzleData.targetWord)
+        setSolution(result.solution)
+        setValidationResult({
+          isValid: true,
+          errors: [],
+        })
+      } else {
+        setValidationResult({
+          isValid: false,
+          errors: [
+            {
+              row: -1,
+              col: -1,
+              message: result.message || 'Could not generate word ladder',
+            },
+          ],
+        })
+        setSolution(null)
+      }
+    },
+    onError: (error: any) => {
+      setValidationResult({
+        isValid: false,
+        errors: [
+          {
+            row: -1,
+            col: -1,
+            message: error.response?.data?.message || 'Generation failed',
+          },
+        ],
+      })
+      setSolution(null)
+    },
+  })
+
   const handleWordLengthChange = useCallback((length: WordLength) => {
     setWordLength(length)
     setStartWord('')
@@ -132,6 +174,13 @@ export function WordLadderEditor({
   }, [startWord, targetWord, wordLength, validateMutation])
 
   const isValidating = validateMutation.isPending
+  const isGenerating = generateMutation.isPending
+
+  // Calculate minimum steps for each difficulty based on word length
+  const getMinSteps = (difficulty: Difficulty) => {
+    const offsets = { easy: -1, medium: 0, hard: 1, expert: 2 }
+    return wordLength + offsets[difficulty]
+  }
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -153,6 +202,35 @@ export function WordLadderEditor({
               }`}
             >
               {length} letters
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Generate Word Path */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Generate Word Path
+        </label>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+          Auto-generate a start and target word pair with the specified minimum steps.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {(['easy', 'medium', 'hard', 'expert'] as Difficulty[]).map((difficulty) => (
+            <button
+              key={difficulty}
+              type="button"
+              onClick={() => generateMutation.mutate(difficulty)}
+              disabled={isGenerating || isValidating}
+              className="flex items-center gap-2 px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-md hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Wand2 className="w-4 h-4" />
+              )}
+              <span className="capitalize">{difficulty}</span>
+              <span className="text-xs opacity-75">({getMinSteps(difficulty)}+ steps)</span>
             </button>
           ))}
         </div>

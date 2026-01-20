@@ -212,6 +212,15 @@ class GenerateWordLadderDto {
   title?: string;
 }
 
+class GenerateWordLadderPreviewDto {
+  @IsIn(["easy", "medium", "hard", "expert"])
+  difficulty: "easy" | "medium" | "hard" | "expert";
+
+  @IsIn([3, 4, 5])
+  @Type(() => Number)
+  wordLength: 3 | 4 | 5;
+}
+
 class GenerateConnectionsDto {
   @IsIn(["easy", "medium", "hard", "expert"])
   difficulty: "easy" | "medium" | "hard" | "expert";
@@ -627,6 +636,52 @@ export class GenerateController {
       title: dto.title || `Word Ladder - ${dto.difficulty}`,
       status: PuzzleStatus.PENDING,
     });
+  }
+
+  @Post("word-ladder/preview")
+  @ApiOperation({
+    summary: "Generate a Word Ladder puzzle preview (without saving)",
+    description:
+      "Generates a word ladder with minimum steps based on word length (n): Easy=n-1, Medium=n, Hard=n+1, Expert=n+2",
+  })
+  async generateWordLadderPreview(@Body() dto: GenerateWordLadderPreviewDto) {
+    const { difficulty, wordLength } = dto;
+
+    // Calculate min steps based on word length
+    // Easy: n-1, Medium: n, Hard: n+1, Expert: n+2
+    const stepOffsets = {
+      easy: -1,
+      medium: 0,
+      hard: 1,
+      expert: 2,
+    };
+
+    const minSteps = wordLength + stepOffsets[difficulty];
+    const maxSteps = minSteps + 2; // Allow some flexibility
+
+    // Use the WordLadderGenerator with custom step requirements
+    const generator = new (await import("../utils/puzzle-generators")).WordLadderGenerator();
+    const result = generator.generateWithSteps(wordLength, minSteps, maxSteps);
+
+    if (!result) {
+      return {
+        success: false,
+        message: `Could not generate a word ladder with ${minSteps}+ steps for ${wordLength}-letter words. Try a different difficulty or word length.`,
+      };
+    }
+
+    return {
+      success: true,
+      puzzleData: {
+        startWord: result.startWord,
+        targetWord: result.targetWord,
+        wordLength: result.startWord.length,
+      },
+      solution: {
+        path: result.path,
+        minSteps: result.path.length - 1,
+      },
+    };
   }
 
   @Post("connections")

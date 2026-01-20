@@ -5394,6 +5394,31 @@ export class WordLadderGenerator {
       return diff === 1;
     });
   }
+
+  /**
+   * Generate a word ladder with specific step requirements
+   * Used by the preview endpoint for custom difficulty generation
+   */
+  generateWithSteps(
+    wordLength: number,
+    minSteps: number,
+    maxSteps: number,
+  ): { startWord: string; targetWord: string; path: string[] } | null {
+    const words =
+      WordLadderGenerator.WORD_LISTS[wordLength] ||
+      WordLadderGenerator.WORD_LISTS[4];
+
+    // Try multiple times to find a valid puzzle
+    let result = this.findValidPuzzle(words, minSteps, maxSteps);
+    let attempts = 0;
+
+    while (!result && attempts < 100) {
+      result = this.findValidPuzzle(words, minSteps, maxSteps);
+      attempts++;
+    }
+
+    return result;
+  }
 }
 
 // Connections Generator
