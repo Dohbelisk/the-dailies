@@ -4,26 +4,38 @@ import { useAuthStore } from '../stores/authStore'
 // Use environment variable in production, proxy in development
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
+// Render cold start handling - services spin down after 15 mins of inactivity
+// First request can take 30-60+ seconds to wake up
+const COLD_START_TIMEOUT = 90000 // 90 seconds for cold starts
+const NORMAL_TIMEOUT = 30000 // 30 seconds for normal requests
+
+// Track if we've successfully connected this session
+let hasConnectedThisSession = false
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 second timeout
+  timeout: COLD_START_TIMEOUT, // Start with cold start timeout
 })
 
-// Add auth token to requests
+// Add auth token to requests and adjust timeout based on session state
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  // Use shorter timeout after first successful connection
+  if (hasConnectedThisSession) {
+    config.timeout = NORMAL_TIMEOUT
+  }
   return config
 })
 
 // Retry logic for transient failures
-const MAX_RETRIES = 2
-const RETRY_DELAY = 1000
+const MAX_RETRIES = 3 // Increased from 2 for cold start scenarios
+const RETRY_DELAY = 2000 // Increased from 1000ms
 
 const shouldRetry = (error: AxiosError): boolean => {
   // Retry on network errors or 5xx server errors
@@ -36,7 +48,11 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 // Handle responses and errors with retry
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Mark that we've successfully connected this session
+    hasConnectedThisSession = true
+    return response
+  },
   async (error: AxiosError) => {
     const config = error.config
     if (!config) {
@@ -64,15 +80,29 @@ api.interceptors.response.use(
     // Enhance error message for better debugging
     if (!error.response) {
       // Network error - could be CORS, timeout, or server unreachable
-      const enhancedError = new Error(
-        `Network error: Unable to reach the server. This could be a CORS issue, timeout, or the server may be unavailable. URL: ${config.url}`
-      )
+      const isTimeout = error.code === 'ECONNABORTED' || error.message.includes('timeout')
+      const isColdStart = !hasConnectedThisSession
+
+      let message = 'Network error: Unable to reach the server.'
+      if (isTimeout && isColdStart) {
+        message = 'Server is waking up (cold start). Please wait a moment and try again, or refresh the page.'
+      } else if (isTimeout) {
+        message = 'Request timed out. The server may be experiencing high load.'
+      } else {
+        message = `Network error: Unable to reach the server. This could be a CORS issue or the server may be unavailable. URL: ${config.url}`
+      }
+
+      const enhancedError = new Error(message)
       ;(enhancedError as any).originalError = error
+      ;(enhancedError as any).isColdStart = isColdStart
       console.error('Network error details:', {
         url: config.url,
         method: config.method,
         baseURL: config.baseURL,
         message: error.message,
+        isTimeout,
+        isColdStart,
+        retryCount,
       })
       return Promise.reject(enhancedError)
     }
