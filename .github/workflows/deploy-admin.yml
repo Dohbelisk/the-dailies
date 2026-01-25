@@ -1,4 +1,4 @@
-name: Deploy Admin Portal
+name: Admin Portal CI
 
 on:
   push:
@@ -7,7 +7,11 @@ on:
     paths:
       - 'admin-portal/**'
       - '.github/workflows/deploy-admin.yml'
-  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'admin-portal/**'
 
 jobs:
   build:
@@ -37,23 +41,4 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
-
-  deploy-production:
-    name: Deploy to Production
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
-      url: ${{ vars.ADMIN_URL }}
-
-    steps:
-      - name: Trigger Render Deploy
-        run: |
-          curl -X POST "${{ secrets.RENDER_ADMIN_DEPLOY_HOOK_URL }}"
-
-      - name: Deployment triggered
-        run: |
-          echo "Admin portal deployment triggered successfully!"
-          echo "Check Render dashboard for deployment status."
+          VITE_API_URL: https://dailies-api.dohbelisk.com/api

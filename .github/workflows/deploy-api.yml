@@ -1,4 +1,4 @@
-name: Deploy API
+name: Backend CI
 
 on:
   push:
@@ -7,15 +7,11 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/deploy-api.yml'
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - production
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
 
 jobs:
   test:
@@ -49,24 +45,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-  deploy-production:
-    name: Deploy to Production
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
-      url: ${{ vars.API_URL }}
-
-    steps:
-      - name: Trigger Render Deploy
-        run: |
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-        env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-
-      - name: Deployment triggered
-        run: |
-          echo "Deployment triggered successfully!"
-          echo "Check Render dashboard for deployment status."

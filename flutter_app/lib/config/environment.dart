@@ -19,7 +19,7 @@ class Environment {
 
   static const String apiUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'https://the-dailies-api.onrender.com/api',
+    defaultValue: 'https://dailies-api.dohbelisk.com/api',
   );
 
   // AdMob configuration - Production IDs (The Dailies)
