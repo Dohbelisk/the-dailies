@@ -1,0 +1,253 @@
+# Version Check Workflow
+# Queries TestFlight and Google Play for current deployed versions
+# Can be triggered manually or by the telegram-bot via `gh workflow run`
+
+name: Check Deployed Versions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-versions:
+    name: Check App Versions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get Codebase Version
+        id: codebase
+        run: |
+          VERSION=$(grep "^version:" flutter_app/pubspec.yaml | sed 's/version: //')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "## Codebase Version" >> $GITHUB_STEP_SUMMARY
+          echo "**$VERSION**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install PyJWT cryptography google-auth google-api-python-client requests
+
+      - name: Check TestFlight Version
+        id: testflight
+        env:
+          APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+        run: |
+          python << 'EOF'
+          import os
+          import time
+          import base64
+          import json
+          import jwt
+          import requests
+
+          # Get credentials from environment
+          key_id = os.environ.get('APP_STORE_CONNECT_API_KEY_KEY_ID')
+          issuer_id = os.environ.get('APP_STORE_CONNECT_API_KEY_ISSUER_ID')
+          key_base64 = os.environ.get('APP_STORE_CONNECT_API_KEY_KEY')
+
+          if not all([key_id, issuer_id, key_base64]):
+              print("::error::Missing App Store Connect API credentials")
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write("version=UNKNOWN\n")
+                  f.write("status=Missing credentials\n")
+              exit(0)
+
+          try:
+              # Decode the private key
+              private_key = base64.b64decode(key_base64).decode('utf-8')
+
+              # Create JWT token
+              now = int(time.time())
+              payload = {
+                  'iss': issuer_id,
+                  'iat': now,
+                  'exp': now + 1200,  # 20 minutes
+                  'aud': 'appstoreconnect-v1'
+              }
+              headers = {
+                  'alg': 'ES256',
+                  'kid': key_id,
+                  'typ': 'JWT'
+              }
+              token = jwt.encode(payload, private_key, algorithm='ES256', headers=headers)
+
+              # Query App Store Connect API for builds
+              # App ID for The Dailies: 6744437941
+              app_id = '6744437941'
+              url = f'https://api.appstoreconnect.apple.com/v1/builds'
+              params = {
+                  'filter[app]': app_id,
+                  'sort': '-uploadedDate',
+                  'limit': 1,
+                  'fields[builds]': 'version,uploadedDate,processingState'
+              }
+
+              response = requests.get(
+                  url,
+                  headers={'Authorization': f'Bearer {token}'},
+                  params=params
+              )
+
+              if response.status_code == 200:
+                  data = response.json()
+                  if data.get('data'):
+                      build = data['data'][0]
+                      version = build['attributes']['version']
+                      uploaded = build['attributes']['uploadedDate']
+                      state = build['attributes']['processingState']
+                      print(f"TestFlight version: {version}")
+                      print(f"Uploaded: {uploaded}")
+                      print(f"State: {state}")
+                      with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                          f.write(f"version={version}\n")
+                          f.write(f"uploaded={uploaded}\n")
+                          f.write(f"status=OK\n")
+                  else:
+                      print("No builds found")
+                      with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                          f.write("version=NO_BUILDS\n")
+                          f.write("status=No builds found\n")
+              else:
+                  print(f"API error: {response.status_code}")
+                  print(response.text)
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write("version=ERROR\n")
+                      f.write(f"status=API error {response.status_code}\n")
+
+          except Exception as e:
+              print(f"Error: {e}")
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write("version=ERROR\n")
+                  f.write(f"status={str(e)[:100]}\n")
+          EOF
+
+      - name: Check Google Play Version
+        id: googleplay
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          python << 'EOF'
+          import os
+          import json
+          from google.oauth2 import service_account
+          from googleapiclient.discovery import build
+
+          sa_json = os.environ.get('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON')
+
+          if not sa_json:
+              print("::error::Missing Google Play service account")
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write("version=UNKNOWN\n")
+                  f.write("status=Missing credentials\n")
+              exit(0)
+
+          try:
+              # Parse service account JSON
+              sa_info = json.loads(sa_json)
+
+              # Create credentials
+              credentials = service_account.Credentials.from_service_account_info(
+                  sa_info,
+                  scopes=['https://www.googleapis.com/auth/androidpublisher']
+              )
+
+              # Build the service
+              service = build('androidpublisher', 'v3', credentials=credentials)
+
+              package_name = 'com.dohbelisk.thedailies'
+
+              # Get internal track info
+              tracks = service.edits().insert(
+                  packageName=package_name,
+                  body={}
+              ).execute()
+
+              edit_id = tracks['id']
+
+              # Get track info
+              track_info = service.edits().tracks().get(
+                  packageName=package_name,
+                  editId=edit_id,
+                  track='internal'
+              ).execute()
+
+              if track_info.get('releases'):
+                  release = track_info['releases'][0]
+                  version_codes = release.get('versionCodes', [])
+                  version_name = release.get('name', 'Unknown')
+                  status = release.get('status', 'Unknown')
+
+                  version_code = version_codes[0] if version_codes else 'Unknown'
+                  print(f"Google Play internal: {version_name} ({version_code})")
+                  print(f"Status: {status}")
+
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write(f"version={version_name}\n")
+                      f.write(f"version_code={version_code}\n")
+                      f.write(f"status=OK\n")
+              else:
+                  print("No releases found on internal track")
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write("version=NO_RELEASES\n")
+                      f.write("status=No releases on internal track\n")
+
+              # Clean up edit
+              service.edits().delete(
+                  packageName=package_name,
+                  editId=edit_id
+              ).execute()
+
+          except Exception as e:
+              print(f"Error: {e}")
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write("version=ERROR\n")
+                  f.write(f"status={str(e)[:100]}\n")
+          EOF
+
+      - name: Generate Summary
+        run: |
+          echo "## Version Comparison" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform | Version | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Codebase | ${{ steps.codebase.outputs.version }} | Source of truth |" >> $GITHUB_STEP_SUMMARY
+          echo "| TestFlight | ${{ steps.testflight.outputs.version }} | ${{ steps.testflight.outputs.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Google Play | ${{ steps.googleplay.outputs.version }} | ${{ steps.googleplay.outputs.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Create JSON output for easy parsing
+          cat > /tmp/versions.json << 'ENDJSON'
+          {
+            "codebase": "${{ steps.codebase.outputs.version }}",
+            "testflight": {
+              "version": "${{ steps.testflight.outputs.version }}",
+              "status": "${{ steps.testflight.outputs.status }}"
+            },
+            "googleplay": {
+              "version": "${{ steps.googleplay.outputs.version }}",
+              "status": "${{ steps.googleplay.outputs.status }}"
+            }
+          }
+          ENDJSON
+
+          echo "## JSON Output" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/versions.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Output Results
+        run: |
+          echo "=== VERSION CHECK RESULTS ==="
+          echo "Codebase: ${{ steps.codebase.outputs.version }}"
+          echo "TestFlight: ${{ steps.testflight.outputs.version }} (${{ steps.testflight.outputs.status }})"
+          echo "Google Play: ${{ steps.googleplay.outputs.version }} (${{ steps.googleplay.outputs.status }})"
+          echo "=== END RESULTS ==="
