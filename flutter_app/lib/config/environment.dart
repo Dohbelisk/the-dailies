@@ -2,7 +2,7 @@
 ///
 /// Values are set at compile time using --dart-define flags.
 ///
-/// Production (default - uses deployed Render API):
+/// Production (default - uses deployed AWS CloudFront API):
 ///   flutter run
 ///   flutter build apk
 ///
@@ -19,7 +19,7 @@ class Environment {
 
   static const String apiUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'https://dailies-api.dohbelisk.com/api',
+    defaultValue: 'https://drpxrj21aeenv.cloudfront.net/api',
   );
 
   // AdMob configuration - Production IDs (The Dailies)
