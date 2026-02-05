@@ -1,0 +1,29 @@
+# Copy this file to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars to version control
+
+aws_region = "us-east-1"
+
+# SSH public key for EC2 access
+# Generate with: ssh-keygen -t ed25519 -C "the-dailies-deployer"
+ssh_public_key = "ssh-ed25519 AAAA... your-email@example.com"
+
+# MongoDB Atlas connection string (from your free M0 cluster)
+mongodb_uri = "mongodb+srv://username:password@cluster.mongodb.net/the-dailies?retryWrites=true&w=majority"
+
+# JWT secret (generate with: openssl rand -base64 32)
+jwt_secret = "your-secure-jwt-secret-here"
+
+# CORS origins (will be set after first deploy)
+cors_origins = ""
+
+# Optional: Anthropic API key for AI puzzle generation
+anthropic_api_key = ""
+
+# Optional: Email configuration
+smtp_user      = ""
+smtp_pass      = ""
+feedback_email = ""
+
+# Optional: GitHub integration
+github_token      = ""
+github_repository = ""

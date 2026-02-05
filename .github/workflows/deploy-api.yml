@@ -1,4 +1,4 @@
-name: Backend CI
+name: Deploy API
 
 on:
   push:
@@ -7,11 +7,15 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/deploy-api.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'backend/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
 
 jobs:
   test:
@@ -45,3 +49,92 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  deploy-production:
+    name: Deploy to AWS EC2
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: ${{ vars.API_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Build
+        working-directory: backend
+        run: npm run build
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy
+          cp -r backend/dist deploy/
+          cp backend/package.json deploy/
+          cp backend/package-lock.json deploy/
+          tar -czf deploy.tar.gz deploy
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          # Copy deployment package
+          scp -i ~/.ssh/id_ed25519 deploy.tar.gz ec2-user@${{ secrets.EC2_HOST }}:/tmp/
+
+          # Execute deployment
+          ssh -i ~/.ssh/id_ed25519 ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            set -e
+
+            cd /opt/the-dailies
+
+            # Extract deployment package
+            tar -xzf /tmp/deploy.tar.gz -C /tmp/
+
+            # Backup current version
+            if [ -d "backend" ]; then
+              rm -rf backend.backup
+              mv backend backend.backup
+            fi
+
+            # Move new version
+            mkdir -p backend
+            mv /tmp/deploy/* backend/
+            rm -rf /tmp/deploy /tmp/deploy.tar.gz
+
+            # Install production dependencies
+            cd backend
+            npm ci --production
+
+            # Restart application with PM2
+            pm2 delete the-dailies-api 2>/dev/null || true
+            pm2 start dist/main.js --name the-dailies-api
+            pm2 save
+
+            echo "Deployment complete!"
+          ENDSSH
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          curl -f http://${{ secrets.EC2_HOST }}/api/puzzles/today || echo "Health check failed, but deployment may still be starting"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f deploy.tar.gz ~/.ssh/id_ed25519

@@ -432,10 +432,10 @@ export class PuzzlesService {
     solution: Record<string, any>,
   ): { isValid: boolean; error?: string } {
     const { numbers, target, targets } = puzzleData;
-    if (!numbers || numbers.length !== 4) {
+    if (!numbers || numbers.length !== 6) {
       return {
         isValid: false,
-        error: "Number Target must have exactly 4 numbers",
+        error: "Number Target must have exactly 6 numbers",
       };
     }
     // Support both single target and targets array formats

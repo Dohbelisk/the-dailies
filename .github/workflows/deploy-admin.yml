@@ -1,4 +1,4 @@
-name: Admin Portal CI
+name: Deploy Admin Portal
 
 on:
   push:
@@ -7,19 +7,15 @@ on:
     paths:
       - 'admin-portal/**'
       - '.github/workflows/deploy-admin.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'admin-portal/**'
+  workflow_dispatch:
 
 jobs:
-  build:
-    name: Build Admin Portal
+  build-and-deploy:
+    name: Build and Deploy to AWS
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: admin-portal
+    environment:
+      name: production
+      url: ${{ vars.ADMIN_URL }}
 
     steps:
       - name: Checkout code
@@ -33,12 +29,50 @@ jobs:
           cache-dependency-path: admin-portal/package-lock.json
 
       - name: Install dependencies
+        working-directory: admin-portal
         run: npm ci
 
       - name: Run linter
+        working-directory: admin-portal
         run: npm run lint
 
       - name: Build
+        working-directory: admin-portal
         run: npm run build
         env:
-          VITE_API_URL: https://dailies-api.dohbelisk.com/api
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy to S3
+        working-directory: admin-portal
+        run: |
+          aws s3 sync dist/ s3://${{ vars.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "max-age=31536000,public" \
+            --exclude "index.html" \
+            --exclude "*.json"
+
+          # Upload index.html and JSON files with no-cache
+          aws s3 cp dist/index.html s3://${{ vars.S3_BUCKET }}/index.html \
+            --cache-control "no-cache,no-store,must-revalidate"
+
+          # Upload any JSON files with short cache
+          find dist -name "*.json" -exec aws s3 cp {} s3://${{ vars.S3_BUCKET }}/{} \
+            --cache-control "max-age=60" \; 2>/dev/null || true
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+      - name: Deployment complete
+        run: |
+          echo "Admin portal deployed successfully!"
+          echo "URL: ${{ vars.ADMIN_URL }}"
