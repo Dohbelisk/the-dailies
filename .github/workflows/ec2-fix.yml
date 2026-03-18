@@ -1,0 +1,84 @@
+name: EC2 Fix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    name: Fix and Restart API
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Fix env and restart
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            set -e
+
+            echo "=== Checking .env file ==="
+            if [ -f /opt/the-dailies/.env ]; then
+              echo "Found .env in parent directory"
+              cat /opt/the-dailies/.env | head -3
+              echo "..."
+
+              # Copy to backend directory so NestJS can find it
+              cp /opt/the-dailies/.env /opt/the-dailies/backend/.env
+              echo "Copied .env to backend/"
+            else
+              echo "ERROR: No .env file found at /opt/the-dailies/.env"
+              exit 1
+            fi
+
+            # Add swap if not present
+            if [ ! -f /swapfile ]; then
+              echo "=== Adding 1GB swap ==="
+              sudo dd if=/dev/zero of=/swapfile bs=128M count=8
+              sudo chmod 600 /swapfile
+              sudo mkswap /swapfile
+              sudo swapon /swapfile
+              echo '/swapfile swap swap defaults 0 0' | sudo tee -a /etc/fstab
+              echo "Swap added"
+            else
+              echo "Swap already exists"
+            fi
+
+            echo "=== Restarting PM2 ==="
+            cd /opt/the-dailies/backend
+            pm2 delete the-dailies-api 2>/dev/null || true
+            pm2 start dist/main.js --name the-dailies-api
+            pm2 save
+
+            echo "=== Waiting 10s for startup ==="
+            sleep 10
+
+            echo "=== PM2 Status ==="
+            pm2 list
+
+            echo "=== Health Check ==="
+            curl -s -o /dev/null -w "HTTP %{http_code}" http://127.0.0.1:3000/api/puzzles/today || echo "Still starting..."
+
+            echo ""
+            echo "=== Recent PM2 Logs ==="
+            pm2 logs the-dailies-api --lines 20 --nostream
+          ENDSSH
+
+      - name: Verify via CloudFront
+        run: |
+          sleep 15
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://drpxrj21aeenv.cloudfront.net/api/puzzles/today")
+          echo "CloudFront health check: HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "API is healthy!"
+          else
+            echo "API may still be starting (got $HTTP_CODE)"
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519
