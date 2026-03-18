@@ -1,0 +1,56 @@
+name: EC2 Diagnose
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    name: Check EC2 Status
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Diagnose EC2
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            echo "=== PM2 STATUS ==="
+            pm2 list
+
+            echo ""
+            echo "=== PM2 LOGS (last 100 lines) ==="
+            pm2 logs the-dailies-api --lines 100 --nostream
+
+            echo ""
+            echo "=== ENV FILE ==="
+            cat /opt/the-dailies/backend/.env 2>/dev/null || echo "No .env file found"
+
+            echo ""
+            echo "=== NGINX STATUS ==="
+            sudo systemctl status nginx --no-pager -l 2>/dev/null || echo "nginx not managed by systemd"
+
+            echo ""
+            echo "=== NGINX CONFIG ==="
+            cat /etc/nginx/conf.d/*.conf 2>/dev/null || echo "No nginx conf.d files"
+
+            echo ""
+            echo "=== DISK SPACE ==="
+            df -h /
+
+            echo ""
+            echo "=== MEMORY ==="
+            free -h
+
+            echo ""
+            echo "=== LISTENING PORTS ==="
+            ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null
+          ENDSSH
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519
