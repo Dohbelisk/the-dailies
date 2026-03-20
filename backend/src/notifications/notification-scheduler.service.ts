@@ -1,8 +1,11 @@
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import { SchedulerRegistry } from "@nestjs/schedule";
-import { Cron } from "@nestjs/schedule";
 import {
   ScheduledNotification,
   ScheduledNotificationDocument,
@@ -10,18 +13,35 @@ import {
 import { NotificationsService } from "./notifications.service";
 
 @Injectable()
-export class NotificationSchedulerService implements OnModuleInit {
+export class NotificationSchedulerService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(NotificationSchedulerService.name);
+  private readonly intervals = new Map<string, NodeJS.Timeout>();
+  private cronCheckInterval: NodeJS.Timeout | null = null;
 
   constructor(
     @InjectModel(ScheduledNotification.name)
     private scheduledModel: Model<ScheduledNotificationDocument>,
-    private schedulerRegistry: SchedulerRegistry,
     private notificationsService: NotificationsService,
   ) {}
 
   async onModuleInit() {
+    // Start the 1-minute cron check for one-time scheduled notifications
+    this.cronCheckInterval = setInterval(
+      () => this.checkScheduledNotifications(),
+      60 * 1000,
+    );
     await this.loadActiveJobs();
+  }
+
+  onModuleDestroy() {
+    // Clean up all intervals
+    if (this.cronCheckInterval) clearInterval(this.cronCheckInterval);
+    for (const interval of this.intervals.values()) {
+      clearInterval(interval);
+    }
+    this.intervals.clear();
   }
 
   /**
@@ -63,17 +83,14 @@ export class NotificationSchedulerService implements OnModuleInit {
     const jobName = `scheduled-${job._id}`;
 
     // Clear existing interval if any
-    try {
-      this.schedulerRegistry.deleteInterval(jobName);
-    } catch {
-      // Not registered yet
-    }
+    const existing = this.intervals.get(jobName);
+    if (existing) clearInterval(existing);
 
     const interval = setInterval(async () => {
       await this.executeJob(job._id.toString());
     }, intervalMs);
 
-    this.schedulerRegistry.addInterval(jobName, interval);
+    this.intervals.set(jobName, interval);
     this.logger.log(
       `Registered recurring job ${jobName} (every ${intervalMs / 1000}s)`,
     );
@@ -103,8 +120,7 @@ export class NotificationSchedulerService implements OnModuleInit {
   /**
    * Every minute, check for one-time scheduled notifications that are due
    */
-  @Cron("* * * * *")
-  async checkScheduledNotifications() {
+  private async checkScheduledNotifications() {
     try {
       const now = new Date();
       const dueNotifications = await this.scheduledModel
@@ -214,10 +230,10 @@ export class NotificationSchedulerService implements OnModuleInit {
     );
 
     // Remove interval if recurring
-    try {
-      this.schedulerRegistry.deleteInterval(`scheduled-${id}`);
-    } catch {
-      // Not registered
+    const existing = this.intervals.get(`scheduled-${id}`);
+    if (existing) {
+      clearInterval(existing);
+      this.intervals.delete(`scheduled-${id}`);
     }
 
     return job;
@@ -250,10 +266,10 @@ export class NotificationSchedulerService implements OnModuleInit {
       { new: true },
     );
 
-    try {
-      this.schedulerRegistry.deleteInterval(`scheduled-${id}`);
-    } catch {
-      // Not registered
+    const cancelExisting = this.intervals.get(`scheduled-${id}`);
+    if (cancelExisting) {
+      clearInterval(cancelExisting);
+      this.intervals.delete(`scheduled-${id}`);
     }
 
     return job;
@@ -263,10 +279,10 @@ export class NotificationSchedulerService implements OnModuleInit {
    * Delete a scheduled notification
    */
   async delete(id: string): Promise<void> {
-    try {
-      this.schedulerRegistry.deleteInterval(`scheduled-${id}`);
-    } catch {
-      // Not registered
+    const deleteExisting = this.intervals.get(`scheduled-${id}`);
+    if (deleteExisting) {
+      clearInterval(deleteExisting);
+      this.intervals.delete(`scheduled-${id}`);
     }
     await this.scheduledModel.findByIdAndDelete(id);
   }
@@ -328,10 +344,10 @@ export class NotificationSchedulerService implements OnModuleInit {
 
     // Re-register if recurring settings changed
     if (dto.cronExpression || dto.isRecurring !== undefined) {
-      try {
-        this.schedulerRegistry.deleteInterval(`scheduled-${id}`);
-      } catch {
-        // Not registered
+      const updateExisting = this.intervals.get(`scheduled-${id}`);
+      if (updateExisting) {
+        clearInterval(updateExisting);
+        this.intervals.delete(`scheduled-${id}`);
       }
 
       if (job?.isRecurring && job?.cronExpression && job?.status === "active") {
