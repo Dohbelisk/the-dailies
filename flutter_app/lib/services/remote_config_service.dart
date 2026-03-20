@@ -169,9 +169,10 @@ class RemoteConfigService extends ChangeNotifier {
 
       if (kDebugMode) {
         print('RemoteConfigService: Initialized');
-        print('  Current version: $_currentVersion+$_buildNumber');
+        print('  Current version: $fullVersion');
         print('  Latest version: ${appConfig.latestVersion}');
         print('  Min version: ${appConfig.minVersion}');
+        print('  Version status: ${checkVersionStatus()}');
         print('  Maintenance: ${appConfig.maintenanceMode}');
       }
     } catch (e) {
@@ -238,7 +239,7 @@ class RemoteConfigService extends ChangeNotifier {
     }
 
     // Check if current app version meets the minimum requirement
-    return _compareVersions(_currentVersion, minVersion) >= 0;
+    return _compareVersions(fullVersion, minVersion) >= 0;
   }
 
   /// Get the minimum app version required for a feature.
@@ -275,18 +276,18 @@ class RemoteConfigService extends ChangeNotifier {
       enabled = false;
       reason = 'Disabled';
     } else {
-      final meetsVersion = _compareVersions(_currentVersion, minVersion) >= 0;
+      final meetsVersion = _compareVersions(fullVersion, minVersion) >= 0;
       enabled = meetsVersion;
       reason = meetsVersion
           ? 'Enabled (v$minVersion+)'
-          : 'Requires v$minVersion (you have v$_currentVersion)';
+          : 'Requires v$minVersion (you have v$fullVersion)';
     }
 
     return FeatureStatus(
       key: configKey,
       enabled: enabled,
       minVersion: minVersion,
-      currentVersion: _currentVersion,
+      currentVersion: fullVersion,
       hasOverride: hasOverride,
       override: override,
       reason: reason,
@@ -371,16 +372,16 @@ class RemoteConfigService extends ChangeNotifier {
     return flags;
   }
 
-  /// Check version status.
+  /// Check version status using full version (version+build).
   VersionStatus checkVersionStatus() {
     final config = _appConfig ?? RemoteAppConfig.defaults();
 
-    final minComparison = _compareVersions(_currentVersion, config.minVersion);
+    final minComparison = _compareVersions(fullVersion, config.minVersion);
     if (minComparison < 0) {
       return VersionStatus.forceUpdate;
     }
 
-    final latestComparison = _compareVersions(_currentVersion, config.latestVersion);
+    final latestComparison = _compareVersions(fullVersion, config.latestVersion);
     if (latestComparison < 0) {
       return VersionStatus.updateAvailable;
     }
@@ -388,21 +389,32 @@ class RemoteConfigService extends ChangeNotifier {
     return VersionStatus.upToDate;
   }
 
-  /// Compare two semantic version strings.
+  /// Compare two version strings, supporting optional build numbers (e.g. "1.0.0+40").
   /// Returns: -1 if v1 < v2, 0 if equal, 1 if v1 > v2
   int _compareVersions(String v1, String v2) {
-    final parts1 = v1.split('.').map((p) => int.tryParse(p) ?? 0).toList();
-    final parts2 = v2.split('.').map((p) => int.tryParse(p) ?? 0).toList();
+    // Split version and build number (e.g. "1.0.0+40" -> "1.0.0" and "40")
+    final v1Parts = v1.split('+');
+    final v2Parts = v2.split('+');
 
-    final maxLength = parts1.length > parts2.length ? parts1.length : parts2.length;
+    final semver1 = v1Parts[0].split('.').map((p) => int.tryParse(p) ?? 0).toList();
+    final semver2 = v2Parts[0].split('.').map((p) => int.tryParse(p) ?? 0).toList();
+
+    final maxLength = semver1.length > semver2.length ? semver1.length : semver2.length;
 
     for (int i = 0; i < maxLength; i++) {
-      final p1 = i < parts1.length ? parts1[i] : 0;
-      final p2 = i < parts2.length ? parts2[i] : 0;
+      final p1 = i < semver1.length ? semver1[i] : 0;
+      final p2 = i < semver2.length ? semver2[i] : 0;
 
       if (p1 < p2) return -1;
       if (p1 > p2) return 1;
     }
+
+    // Semver is equal - compare build numbers if present
+    final build1 = v1Parts.length > 1 ? (int.tryParse(v1Parts[1]) ?? 0) : 0;
+    final build2 = v2Parts.length > 1 ? (int.tryParse(v2Parts[1]) ?? 0) : 0;
+
+    if (build1 < build2) return -1;
+    if (build1 > build2) return 1;
 
     return 0;
   }

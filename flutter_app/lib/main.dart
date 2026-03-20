@@ -435,7 +435,7 @@ class _VersionCheckWrapperState extends State<_VersionCheckWrapper> {
           barrierDismissible: false,
           builder: (_) => ForceUpdateDialog(
             config: config,
-            currentVersion: widget.configService.currentVersion,
+            currentVersion: widget.configService.fullVersion,
           ),
         );
       }
@@ -450,7 +450,7 @@ class _VersionCheckWrapperState extends State<_VersionCheckWrapper> {
           barrierDismissible: true,
           builder: (_) => UpdateAvailableDialog(
             config: config,
-            currentVersion: widget.configService.currentVersion,
+            currentVersion: widget.configService.fullVersion,
           ),
         );
       }

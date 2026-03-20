@@ -275,7 +275,7 @@ Future<void> showVersionCheckDialog(BuildContext context) async {
           barrierDismissible: false,
           builder: (_) => ForceUpdateDialog(
             config: config,
-            currentVersion: configService.currentVersion,
+            currentVersion: configService.fullVersion,
           ),
         );
       }
@@ -288,7 +288,7 @@ Future<void> showVersionCheckDialog(BuildContext context) async {
           barrierDismissible: true,
           builder: (_) => UpdateAvailableDialog(
             config: config,
-            currentVersion: configService.currentVersion,
+            currentVersion: configService.fullVersion,
           ),
         );
       }

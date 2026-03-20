@@ -2,27 +2,27 @@
   "parameters": {
     "app_latest_version": {
       "defaultValue": {
-        "value": "1.0.0"
+        "value": "1.0.0+40"
       },
-      "description": "Latest app version available. Users below this will see 'Update Available' prompt."
+      "description": "Latest app version available (supports build numbers e.g. 1.0.0+40). Users below this will see 'Update Available' prompt."
     },
     "app_min_version": {
       "defaultValue": {
-        "value": "1.0.0"
+        "value": "1.0.0+40"
       },
-      "description": "Minimum supported app version. Users below this will be forced to update."
+      "description": "Minimum supported app version (supports build numbers e.g. 1.0.0+40). Users below this will be forced to update."
     },
     "update_url_ios": {
       "defaultValue": {
-        "value": ""
+        "value": "https://testflight.apple.com/join/WXMQtHpF"
       },
-      "description": "App Store URL for iOS updates"
+      "description": "App Store or TestFlight URL for iOS updates"
     },
     "update_url_android": {
       "defaultValue": {
         "value": ""
       },
-      "description": "Play Store URL for Android updates"
+      "description": "Play Store or Firebase App Distribution URL for Android updates"
     },
     "update_message": {
       "defaultValue": {
