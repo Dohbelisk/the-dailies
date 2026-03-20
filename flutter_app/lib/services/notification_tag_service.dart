@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../models/game_models.dart';
 import 'firebase_service.dart';
@@ -234,6 +235,36 @@ class NotificationTagService {
       await prefs.setString(_lastEvalKey, DateTime.now().toIso8601String());
     } catch (e) {
       debugPrint('NotificationTagService: Error persisting tags - $e');
+    }
+
+    // Also register tags with the backend for dashboard subscriber counts
+    await _registerTagsWithBackend();
+  }
+
+  /// Register current tags with the backend so the dashboard has accurate counts.
+  Future<void> _registerTagsWithBackend() async {
+    try {
+      final authService = AuthService();
+      if (authService.currentUser == null || authService.token == null) return;
+
+      final fcmToken = _firebase.fcmToken;
+      if (fcmToken == null) return;
+
+      final packageInfo = await PackageInfo.fromPlatform();
+      final apiService = ApiService(authService: authService);
+
+      await apiService.registerDevice(
+        fcmToken: fcmToken,
+        platform: Platform.isIOS ? 'ios' : 'android',
+        appVersion: packageInfo.version,
+        tags: _activeTags.toList(),
+      );
+
+      if (kDebugMode) {
+        print('NotificationTagService: Registered ${_activeTags.length} tags with backend');
+      }
+    } catch (e) {
+      debugPrint('NotificationTagService: Error registering tags with backend - $e');
     }
   }
 

@@ -2,13 +2,13 @@
   "parameters": {
     "app_latest_version": {
       "defaultValue": {
-        "value": "1.0.0+40"
+        "value": "1.0.0+41"
       },
       "description": "Latest app version available (supports build numbers e.g. 1.0.0+40). Users below this will see 'Update Available' prompt."
     },
     "app_min_version": {
       "defaultValue": {
-        "value": "1.0.0+40"
+        "value": "1.0.0+41"
       },
       "description": "Minimum supported app version (supports build numbers e.g. 1.0.0+40). Users below this will be forced to update."
     },

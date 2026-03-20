@@ -4,8 +4,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../firebase_options.dart';
 import 'consent_service.dart';
+import 'auth_service.dart';
+import 'api_service.dart';
+import 'notification_tag_service.dart';
 
 /// Core Firebase service for initialization and crash reporting.
 class FirebaseService {
@@ -106,16 +110,47 @@ class FirebaseService {
           print('FirebaseService: FCM token: $_fcmToken');
         }
 
+        // Register device with backend
+        if (_fcmToken != null) {
+          _registerDeviceWithBackend(_fcmToken!);
+        }
+
         // Listen for token refresh
         messaging.onTokenRefresh.listen((token) {
           _fcmToken = token;
           if (kDebugMode) {
             print('FirebaseService: FCM token refreshed: $token');
           }
+          // Re-register with new token
+          _registerDeviceWithBackend(token);
         });
       }
     } catch (e) {
       debugPrint('FirebaseService: Error initializing FCM - $e');
+    }
+  }
+
+  /// Register the device token with the backend for push notification targeting.
+  Future<void> _registerDeviceWithBackend(String token) async {
+    try {
+      final authService = AuthService();
+      if (authService.currentUser == null || authService.token == null) {
+        // Not logged in yet - will register when tags sync after login
+        return;
+      }
+
+      final packageInfo = await PackageInfo.fromPlatform();
+      final tagService = NotificationTagService();
+      final apiService = ApiService(authService: authService);
+
+      await apiService.registerDevice(
+        fcmToken: token,
+        platform: Platform.isIOS ? 'ios' : 'android',
+        appVersion: packageInfo.version,
+        tags: tagService.activeTags.toList(),
+      );
+    } catch (e) {
+      debugPrint('FirebaseService: Error registering device with backend - $e');
     }
   }
 

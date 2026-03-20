@@ -443,6 +443,41 @@ class ApiService {
     }
   }
 
+  // ==================== NOTIFICATION ENDPOINTS ====================
+
+  /// Register device for push notifications with current FCM token and tags
+  Future<bool> registerDevice({
+    required String fcmToken,
+    required String platform,
+    required String appVersion,
+    required List<String> tags,
+  }) async {
+    try {
+      _log.info('Registering device for push notifications', tag: 'Notifications', data: {
+        'platform': platform,
+        'appVersion': appVersion,
+        'tagCount': tags.length,
+      });
+
+      final response = await _post('$baseUrl/notifications/device/register', body: {
+        'fcmToken': fcmToken,
+        'platform': platform,
+        'appVersion': appVersion,
+        'tags': tags,
+      });
+
+      if (response.statusCode == 200) {
+        _log.info('Device registered successfully', tag: 'Notifications');
+        return true;
+      }
+      _log.warning('Device registration failed: ${response.statusCode}', tag: 'Notifications');
+      return false;
+    } catch (e) {
+      _log.warning('Device registration error (non-fatal): $e', tag: 'Notifications');
+      return false;
+    }
+  }
+
   // Mock data for development/offline mode
   List<DailyPuzzle> _getMockPuzzles() {
     final today = DateTime.now();

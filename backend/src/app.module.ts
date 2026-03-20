@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
+import { ScheduleModule } from "@nestjs/schedule";
 import { PuzzlesModule } from "./puzzles/puzzles.module";
 import { ScoresModule } from "./scores/scores.module";
 import { AuthModule } from "./auth/auth.module";
@@ -30,6 +31,7 @@ import { AiModule } from "./ai/ai.module";
       }),
       inject: [ConfigService],
     }),
+    ScheduleModule.forRoot(),
     PuzzlesModule,
     ScoresModule,
     AuthModule,
