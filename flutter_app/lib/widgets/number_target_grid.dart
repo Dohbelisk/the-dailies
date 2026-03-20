@@ -108,19 +108,18 @@ class NumberTargetGrid extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // Numbers row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        // Numbers - wrap into rows of 3
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
           children: puzzle.numbers.asMap().entries.map((entry) {
             final isUsed = usedNumberIndices.contains(entry.key);
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: _NumberButton(
-                number: entry.value,
-                onTap: isUsed ? null : () => onTokenTap('${entry.value}', numberIndex: entry.key),
-                theme: theme,
-                isDisabled: isUsed,
-              ),
+            return _NumberButton(
+              number: entry.value,
+              onTap: isUsed ? null : () => onTokenTap('${entry.value}', numberIndex: entry.key),
+              theme: theme,
+              isDisabled: isUsed,
             );
           }).toList(),
         ),
@@ -297,12 +296,16 @@ class _TargetCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: target.completed ? Colors.green : fgColor.withValues(alpha: 0.7),
-                letterSpacing: 1.5,
-                fontWeight: FontWeight.bold,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: target.completed ? Colors.green : fgColor.withValues(alpha: 0.7),
+                  letterSpacing: 1.5,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(height: 4),
@@ -317,12 +320,17 @@ class _TargetCard extends StatelessWidget {
                   ),
                 if (target.completed)
                   const SizedBox(width: 4),
-                Text(
-                  '${target.target}',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    color: target.completed ? Colors.green : fgColor,
-                    fontWeight: FontWeight.bold,
-                    decoration: target.completed ? TextDecoration.lineThrough : null,
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '${target.target}',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        color: target.completed ? Colors.green : fgColor,
+                        fontWeight: FontWeight.bold,
+                        decoration: target.completed ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
                   ),
                 ),
               ],

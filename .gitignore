@@ -50,6 +50,9 @@ coverage/
 .claude/plugins/
 .envrc
 
+# Puzzle vault (generated puzzle JSONs)
+.puzzle-vault/
+
 # Terraform
 terraform/.terraform/
 terraform/.terraform.lock.hcl

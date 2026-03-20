@@ -4761,8 +4761,20 @@ export class PipesGenerator {
     "yellow",
     "orange",
     "purple",
-    "pink",
+    "maroon",
     "cyan",
+    "pink",
+    "lime",
+    "teal",
+    "coral",
+    "navy",
+    "gold",
+    "crimson",
+    "olive",
+    "indigo",
+    "salmon",
+    "violet",
+    "tan",
   ];
 
   generate(difficulty: "easy" | "medium" | "hard" | "expert"): {

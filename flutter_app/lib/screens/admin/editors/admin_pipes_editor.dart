@@ -28,7 +28,8 @@ class _AdminPipesEditorState extends State<AdminPipesEditor> {
   List<String> _errors = [];
 
   static const List<String> _availableColors = [
-    'red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'
+    'red', 'blue', 'green', 'yellow', 'orange', 'purple', 'maroon', 'cyan', 'pink', 'lime',
+    'teal', 'coral', 'navy', 'gold', 'crimson', 'olive', 'indigo', 'salmon', 'violet', 'tan',
   ];
 
   @override
@@ -57,38 +58,42 @@ class _AdminPipesEditorState extends State<AdminPipesEditor> {
     _validate();
   }
 
+  static const Map<String, Color> _colorMap = {
+    'red': Color(0xFFE53935),
+    'blue': Color(0xFF1E88E5),
+    'green': Color(0xFF43A047),
+    'yellow': Color(0xFFFDD835),
+    'orange': Color(0xFFFB8C00),
+    'purple': Color(0xFF8E24AA),
+    'maroon': Color(0xFF880E4F),
+    'cyan': Color(0xFF00ACC1),
+    'pink': Color(0xFFEC407A),
+    'lime': Color(0xFFC0CA33),
+    'teal': Color(0xFF00897B),
+    'coral': Color(0xFFFF7043),
+    'navy': Color(0xFF283593),
+    'gold': Color(0xFFFFB300),
+    'crimson': Color(0xFFB71C1C),
+    'olive': Color(0xFF827717),
+    'indigo': Color(0xFF5C6BC0),
+    'salmon': Color(0xFFE57373),
+    'violet': Color(0xFF7B1FA2),
+    'tan': Color(0xFFD7CCC8),
+  };
+
   Color _getColorValue(String name) {
-    switch (name.toLowerCase()) {
-      case 'red':
-        return Colors.red;
-      case 'blue':
-        return Colors.blue;
-      case 'green':
-        return Colors.green;
-      case 'yellow':
-        return Colors.yellow;
-      case 'purple':
-        return Colors.purple;
-      case 'orange':
-        return Colors.orange;
-      case 'pink':
-        return Colors.pink;
-      case 'cyan':
-        return Colors.cyan;
-      default:
-        return Colors.grey;
-    }
+    return _colorMap[name.toLowerCase()] ?? Colors.grey;
   }
 
   void _validate() {
     final errors = <String>[];
 
     // Check grid size
-    if (_rows < 3 || _rows > 10) {
-      errors.add('Rows must be between 3 and 10');
+    if (_rows < 3 || _rows > 15) {
+      errors.add('Rows must be between 3 and 15');
     }
-    if (_cols < 3 || _cols > 10) {
-      errors.add('Columns must be between 3 and 10');
+    if (_cols < 3 || _cols > 15) {
+      errors.add('Columns must be between 3 and 15');
     }
 
     // Check endpoints come in pairs
@@ -197,7 +202,7 @@ class _AdminPipesEditorState extends State<AdminPipesEditor> {
           children: [
             DropdownButton<int>(
               value: _rows,
-              items: [3, 4, 5, 6, 7, 8, 9, 10].map((r) =>
+              items: List.generate(13, (i) => i + 3).map((r) =>
                   DropdownMenuItem(value: r, child: Text('$r rows'))).toList(),
               onChanged: (value) {
                 if (value != null) _resizeGrid(value, _cols);
@@ -206,7 +211,7 @@ class _AdminPipesEditorState extends State<AdminPipesEditor> {
             const SizedBox(width: 16),
             DropdownButton<int>(
               value: _cols,
-              items: [3, 4, 5, 6, 7, 8, 9, 10].map((c) =>
+              items: List.generate(13, (i) => i + 3).map((c) =>
                   DropdownMenuItem(value: c, child: Text('$c cols'))).toList(),
               onChanged: (value) {
                 if (value != null) _resizeGrid(_rows, value);
@@ -239,55 +244,61 @@ class _AdminPipesEditorState extends State<AdminPipesEditor> {
         const SizedBox(height: 8),
 
         // Grid
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: theme.dividerColor),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(_rows, (row) {
-              return Row(
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final editorCellSize = (constraints.maxWidth / _cols).clamp(24.0, 40.0);
+            final dotSize = (editorCellSize * 0.6).clamp(14.0, 24.0);
+            return Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: theme.dividerColor),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: List.generate(_cols, (col) {
-                  final endpoint = _endpoints.firstWhere(
-                    (e) => e.row == row && e.col == col,
-                    orElse: () => _Endpoint(color: '', row: -1, col: -1),
-                  );
-                  final hasEndpoint = endpoint.row >= 0;
+                children: List.generate(_rows, (row) {
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(_cols, (col) {
+                      final endpoint = _endpoints.firstWhere(
+                        (e) => e.row == row && e.col == col,
+                        orElse: () => _Endpoint(color: '', row: -1, col: -1),
+                      );
+                      final hasEndpoint = endpoint.row >= 0;
 
-                  return GestureDetector(
-                    onTap: () => _toggleEndpoint(row, col),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: hasEndpoint
-                            ? _getColorValue(endpoint.color).withValues(alpha: 0.3)
-                            : null,
-                        border: Border.all(
-                          color: theme.dividerColor.withValues(alpha: 0.5),
+                      return GestureDetector(
+                        onTap: () => _toggleEndpoint(row, col),
+                        child: Container(
+                          width: editorCellSize,
+                          height: editorCellSize,
+                          decoration: BoxDecoration(
+                            color: hasEndpoint
+                                ? _getColorValue(endpoint.color).withValues(alpha: 0.3)
+                                : null,
+                            border: Border.all(
+                              color: theme.dividerColor.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: hasEndpoint
+                              ? Center(
+                                  child: Container(
+                                    width: dotSize,
+                                    height: dotSize,
+                                    decoration: BoxDecoration(
+                                      color: _getColorValue(endpoint.color),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                    ),
+                                  ),
+                                )
+                              : null,
                         ),
-                      ),
-                      child: hasEndpoint
-                          ? Center(
-                              child: Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: _getColorValue(endpoint.color),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
-                                ),
-                              ),
-                            )
-                          : null,
-                    ),
+                      );
+                    }),
                   );
                 }),
-              );
-            }),
-          ),
+              ),
+            );
+          },
         ),
         const SizedBox(height: 16),
 

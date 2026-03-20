@@ -28,8 +28,20 @@ class PipesGrid extends StatelessWidget {
     'yellow': Color(0xFFFDD835),
     'orange': Color(0xFFFB8C00),
     'purple': Color(0xFF8E24AA),
-    'pink': Color(0xFFEC407A),
+    'maroon': Color(0xFF880E4F),
     'cyan': Color(0xFF00ACC1),
+    'pink': Color(0xFFEC407A),
+    'lime': Color(0xFFC0CA33),
+    'teal': Color(0xFF00897B),
+    'coral': Color(0xFFFF7043),
+    'navy': Color(0xFF283593),
+    'gold': Color(0xFFFFB300),
+    'crimson': Color(0xFFB71C1C),
+    'olive': Color(0xFF827717),
+    'indigo': Color(0xFF5C6BC0),
+    'salmon': Color(0xFFE57373),
+    'violet': Color(0xFF7B1FA2),
+    'tan': Color(0xFFD7CCC8),
   };
 
   Color _getPipeColor(String colorName) {
@@ -95,7 +107,7 @@ class PipesGrid extends StatelessWidget {
     final theme = Theme.of(context);
     final cellSize = (constraints.maxWidth.clamp(0, constraints.maxHeight) /
             puzzle.cols)
-        .clamp(30.0, 60.0);
+        .clamp(20.0, 60.0);
     final gridWidth = cellSize * puzzle.cols;
     final gridHeight = cellSize * puzzle.rows;
 
