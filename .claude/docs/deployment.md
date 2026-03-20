@@ -7,17 +7,22 @@ Automated CI/CD pipelines in `.github/workflows/`:
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | `ci.yml` | PRs to develop/main, push to develop | Runs tests for backend, admin portal, and Flutter |
-| `deploy-api.yml` | Push to main (backend changes) | Deploys API to Render |
-| `deploy-admin.yml` | Push to main (admin-portal changes) | Deploys Admin Portal to Render |
+| `deploy-api.yml` | Push to main (backend changes) | Tests, builds, deploys API to AWS EC2 via SSH |
+| `deploy-admin.yml` | Push to main (admin-portal changes) | Deploys Admin Portal to AWS S3 + CloudFront |
+| `ec2-fix.yml` | Manual dispatch | SSH to EC2: restore .env, add swap, restart PM2 |
+| `version-check.yml` | Manual dispatch | Query TestFlight and Google Play versions |
 | `release.yml` | Push to main, manual dispatch | Auto-bumps version, builds iOS/Android, deploys to TestFlight & Firebase |
 | `deploy-ios.yml` | Manual dispatch | Manual iOS TestFlight deployment |
 | `deploy-android.yml` | Manual dispatch | Manual Android Firebase deployment |
 
 ## Required GitHub Secrets
 
-### Backend/Admin
-- `RENDER_DEPLOY_HOOK_URL` - Render deploy hook URL for API service
-- `RENDER_ADMIN_DEPLOY_HOOK_URL` - Render deploy hook URL for Admin Portal
+### Backend/Admin (AWS)
+- `EC2_SSH_PRIVATE_KEY` - SSH private key for EC2 instance
+- `EC2_HOST` - EC2 instance hostname/IP
+- `AWS_ACCESS_KEY_ID` - AWS access key for S3/CloudFront deployments
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key
+- `CLOUDFRONT_DISTRIBUTION_ID` - CloudFront distribution ID for admin portal
 
 ### iOS Code Signing
 - `IOS_CERTIFICATE_BASE64` - Base64-encoded .p12 distribution certificate
@@ -41,12 +46,22 @@ Automated CI/CD pipelines in `.github/workflows/`:
 - `ADMIN_URL` - Production Admin Portal URL
 - `VITE_API_URL` - API URL for admin portal build
 
-## Setting up Render Deploy Hooks
+## AWS Infrastructure
 
-1. Go to your Render service dashboard
-2. Navigate to Settings → Deploy Hook
-3. Copy the hook URL
-4. Add it as a secret in GitHub: Settings → Secrets and variables → Actions
+### API (EC2)
+- NestJS backend runs on EC2 behind nginx reverse proxy
+- PM2 process manager (`the-dailies-api`)
+- CloudFront CDN: `https://drpxrj21aeenv.cloudfront.net`
+- `.env` stored at `/opt/the-dailies/.env` (copied to `backend/.env` on deploy)
+- Deploy creates backup at `backend.backup/` before replacing
+
+### Admin Portal (S3 + CloudFront)
+- Static React build deployed to S3 bucket
+- CloudFront CDN: `https://d32a0jpb36axzc.cloudfront.net`
+
+### Deploy recovery
+- If API is down after deploy, run `ec2-fix.yml` workflow manually
+- It restores `.env`, adds swap if missing, and restarts PM2
 
 ## Setting up iOS Code Signing
 
@@ -60,19 +75,13 @@ Automated CI/CD pipelines in `.github/workflows/`:
    ```
 5. Create App Store Connect API key for Fastlane upload
 
-## Docker
+## Docker (Local Development)
 
 ```bash
 docker-compose up -d
 ```
 
 Containers: MongoDB 7, NestJS API, React Admin
-
-## Render.com
-
-Configuration in `render.yaml`:
-- Backend: Node runtime, health check at `/api/puzzles/today`
-- Admin: Static site with SPA rewrite
 
 ## Environment Variables
 

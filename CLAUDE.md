@@ -148,7 +148,7 @@ db.dropDatabase()              # Reset (then re-seed)
 - [ ] Seed initial feature flags
 
 ### Completed
-- [x] Game vetting (12/13 ready)
+- [x] Game vetting (13/13 ready - all puzzle types including Word Search)
 - [x] iOS TestFlight CI/CD
 - [x] Android Firebase App Distribution CI/CD
 - [x] iOS subscription in App Store Connect
@@ -156,3 +156,9 @@ db.dropDatabase()              # Reset (then re-seed)
 - [x] Push notifications backend
 - [x] Achievements system
 - [x] Super user puzzle editor (in-app editing for all 13 puzzle types)
+- [x] Migrate API and admin portal from Render to AWS (EC2 + S3 + CloudFront)
+- [x] Admin portal sidebar with Today/Tomorrow quick puzzle links
+- [x] Pipes editor test play mode (interactive drag-to-draw)
+- [x] Number Target multi-tier targets and responsive layout
+- [x] Word Forge dictionary auto-upsert on clue save
+- [x] Claude Code puzzle generation skills (all 13 types + push)

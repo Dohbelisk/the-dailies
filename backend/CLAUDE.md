@@ -60,6 +60,7 @@ Dictionary {
   word: string (unique, indexed)
   length: number (indexed)
   letters: string[] (sorted unique letters, indexed)
+  clue?: string
 }
 
 // Score Schema
@@ -220,11 +221,13 @@ DELETE /api/config/admin/flags/:id         # Delete feature flag
 
 ### Dictionary Routes
 ```
-GET  /api/dictionary/validate?word=X       # Check if word is valid
-POST /api/dictionary/validate-many         # Check multiple words
-POST /api/dictionary/validate-for-puzzle   # Check word is valid for puzzle letters
-GET  /api/dictionary/count                 # Get total word count
-GET  /api/dictionary/status                # Get dictionary status
+GET   /api/dictionary/validate?word=X       # Check if word is valid
+POST  /api/dictionary/validate-many         # Check multiple words
+POST  /api/dictionary/validate-for-puzzle   # Check word is valid for puzzle letters
+GET   /api/dictionary/count                 # Get total word count
+GET   /api/dictionary/status                # Get dictionary status
+GET   /api/dictionary/words                 # List words (paginated, filterable)
+PATCH /api/dictionary/words/bulk-clues      # Bulk update/add clues (upserts unknown words)
 ```
 
 ### Push Notifications Routes (require JWT)

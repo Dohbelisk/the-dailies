@@ -44,16 +44,17 @@ JSON structure for each puzzle type stored in the `puzzleData` field.
 
 ```json
 {
-  "rows": 10, "cols": 10,
-  "theme": "Programming",
-  "grid": [["F","L","U",...], ...],  // Uppercase letters
+  "rows": 12, "cols": 12,
+  "theme": "Ocean",                   // Optional theme displayed in app
+  "grid": [["S","T","A",...], ...],   // Uppercase letters (12x12 default)
   "words": [{
-    "word": "FLUTTER",
+    "word": "STARFISH",
     "startRow": 0, "startCol": 0,
-    "endRow": 0, "endCol": 6
+    "endRow": 0, "endCol": 7
   }]
 }
 ```
+Words can be placed in 8 directions: horizontal (L-R, R-L), vertical (top-down, bottom-up), and 4 diagonals. Grid sizes: 5x5 to 15x15. Direction is inferred from start/end coordinates.
 
 ## Word Forge
 
@@ -97,11 +98,18 @@ JSON structure for each puzzle type stored in the `puzzleData` field.
 
 ```json
 {
-  "numbers": [2, 5, 7, 3],           // 4 numbers to use
-  "target": 24,                       // Target to reach
-  "solutions": ["(7-5)*(3+2)*2", ...] // Valid expressions
+  "numbers": [3, 5, 7, 8, 12, 15],   // 6 numbers to use
+  "target": 312,                       // Main target (medium tier)
+  "targets": [                         // 5 difficulty-tiered targets
+    { "target": 20, "difficulty": "extraEasy" },
+    { "target": 56, "difficulty": "easy" },
+    { "target": 312, "difficulty": "medium" },
+    { "target": 495, "difficulty": "hard" },
+    { "target": 1260, "difficulty": "expert" }
+  ]
 }
 ```
+Solution includes expressions for each target tier. Each number can only be used once per expression. Division must yield whole numbers.
 
 ## Ball Sort
 
@@ -122,14 +130,15 @@ JSON structure for each puzzle type stored in the `puzzleData` field.
 
 ```json
 {
-  "rows": 5, "cols": 5,
+  "rows": 8, "cols": 8,
   "endpoints": [                       // 2 endpoints per color
     { "color": "red", "row": 0, "col": 0 },
     { "color": "red", "row": 4, "col": 4 }
   ],
-  "bridges": []                        // Optional bridge cells [row, col]
+  "bridges": []                        // Reserved for future use
 }
 ```
+Grid sizes: 5x5 to 12x12. Supports 20 colors: red, blue, green, yellow, orange, purple, pink, cyan, maroon, lime, teal, coral, navy, gold, crimson, olive, indigo, salmon, violet, tan. Solution contains paths (ordered cell arrays per color) that fill the entire grid with no overlaps.
 
 ## Lights Out
 

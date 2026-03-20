@@ -2,6 +2,8 @@
 
 Backend generators located in `backend/src/utils/puzzle-generators.ts`.
 
+Puzzles can also be generated via Claude Code skills (see `.claude/skills/`) which create puzzle JSON files in the local vault at `.puzzle-vault/{DATE}/` and optionally push to production via the API.
+
 ## Generator Algorithms
 
 ### SudokuGenerator
@@ -18,8 +20,10 @@ Backend generators located in `backend/src/utils/puzzle-generators.ts`.
 - Auto-numbers clues left-to-right, top-to-bottom
 
 ### WordSearchGenerator
-- Places words in 8 directions (including diagonals)
+- Places words in 8 directions (horizontal, vertical, 4 diagonals + reverse)
 - Fills remaining cells with random A-Z
+- Supports optional theme field
+- Grid sizes: 5x5 to 15x15 (default 12x12)
 
 ### WordForgeGenerator
 - Selects 7 unique letters with good word coverage
@@ -33,17 +37,19 @@ Backend generators located in `backend/src/utils/puzzle-generators.ts`.
 - Grid sizes: easy 5x5, medium 10x10, hard 12x12, expert 15x15
 
 ### NumberTargetGenerator
-- Generates 4 random numbers and a target
-- Verifies at least one valid solution exists
-- Target ranges: easy 10, medium 24, hard 100, expert 50-500
+- Generates 6 numbers and 5 difficulty-tiered targets (extraEasy, easy, medium, hard, expert)
+- Each target has a valid solution expression using a subset of the 6 numbers
+- Number ranges scale with difficulty (easy 1-9, medium 1-15, hard 1-25, expert 1-50)
 
 ### BallSortGenerator
 - Creates tube puzzles with colored balls
 - Ensures solvability with empty tubes
 
 ### PipesGenerator
-- Places color endpoints on grid
-- Validates paths don't cross
+- Backtracking algorithm generates full-grid paths (20 attempts, snake pattern fallback)
+- Grid sizes: easy 5x5, medium 6x6, hard 7x7, expert 8x8 (admin supports up to 12x12)
+- 20 supported colors, minimum 3-cell path length per color
+- Also generated via Claude Code skill using MITM numberlink algorithm (`~/.claude/scripts/generate_pipes.py`)
 
 ### LightsOutGenerator
 - Creates solvable light toggle puzzles
@@ -82,8 +88,35 @@ POST /api/generate/word-search     # Generate Word Search
 POST /api/generate/word-forge      # Generate Word Forge
 POST /api/generate/nonogram        # Generate Nonogram
 POST /api/generate/number-target   # Generate Number Target
+POST /api/generate/ball-sort       # Generate Ball Sort
+POST /api/generate/pipes           # Generate Pipes
+POST /api/generate/lights-out      # Generate Lights Out
+POST /api/generate/word-ladder     # Generate Word Ladder
+POST /api/generate/connections     # Generate Connections
+POST /api/generate/mathora         # Generate Mathora
 POST /api/generate/week            # Generate full week (all puzzle types)
 ```
+
+## Claude Code Skills (Local Generation)
+
+Puzzles can also be generated locally via skills, saved to `.puzzle-vault/{DATE}/`, and pushed to production:
+
+| Skill | Command |
+|-------|---------|
+| `/generate-sudoku` | Generates with Python uniqueness solver |
+| `/generate-killer-sudoku` | Generates with Python uniqueness solver |
+| `/generate-crossword` | Uses Python AC-3 constraint solver + AI clues |
+| `/generate-word-search` | AI-designed themed grids |
+| `/generate-word-forge` | AI-curated word lists with clues |
+| `/generate-nonogram` | AI-designed pixel art patterns |
+| `/generate-number-target` | Multi-tier targets with expressions |
+| `/generate-ball-sort` | Scrambled tube puzzles with solution |
+| `/generate-pipes` | MITM numberlink algorithm (Python script) |
+| `/generate-lights-out` | Backwards generation from solved state |
+| `/generate-word-ladder` | AI-verified word chains |
+| `/generate-connections` | AI-designed categories with red herrings |
+| `/generate-mathora` | Forward-designed operation chains |
+| `/push-puzzles` | Push all vault puzzles for a date to production |
 
 ## Validation Endpoints
 

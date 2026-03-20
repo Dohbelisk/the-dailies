@@ -94,9 +94,9 @@ Cross-platform mobile application using Flutter with Provider pattern for state 
 | Word Search | Drag selection with direction validation (straight lines/diagonals only) |
 | Word Forge | 7-letter honeycomb, center letter required, 4+ letter words, pangram bonuses |
 | Nonogram | Fill/mark mode toggle, row/column clue validation, haptic feedback on drag |
-| Number Target | Expression builder with +, -, ×, ÷, auto-complete when result matches target |
+| Number Target | Expression builder with +, -, x, /, multi-tier targets (extraEasy-expert), Wrap layout for number buttons, FittedBox labels |
 | Ball Sort | Tube selection, ball movement validation |
-| Pipes | Endpoint connections, pipe rotation |
+| Pipes | Drag-to-draw paths between color endpoints, path truncation, 20 color support |
 | Lights Out | Toggle grid cells and neighbors |
 | Word Ladder | Single letter changes between words |
 | Connections | Group 16 words into 4 categories |
