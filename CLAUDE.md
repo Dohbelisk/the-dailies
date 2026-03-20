@@ -126,7 +126,7 @@ db.dropDatabase()              # Reset (then re-seed)
 | Word Forge, Nonogram, Number Target | Ready | Fully tested |
 | Ball Sort, Pipes, Lights Out | Ready | Fully tested |
 | Word Ladder, Connections, Mathora | Ready | Fully tested |
-| Word Search | Inactive | Quality improvements needed |
+| Word Search | Ready | Diagonals, theme display, all grid sizes |
 
 ---
 

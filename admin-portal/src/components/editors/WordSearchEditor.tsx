@@ -22,7 +22,11 @@ interface WordSearchEditorProps {
   className?: string
 }
 
-type GridSize = 8 | 10 | 12 | 15
+type GridSize = 5 | 6 | 7 | 8 | 10 | 12 | 15
+
+const CELL_SIZE: Record<GridSize, number> = {
+  5: 40, 6: 36, 7: 32, 8: 28, 10: 24, 12: 22, 15: 18,
+}
 
 // Direction vectors for 8 directions
 const DIRECTIONS = [
@@ -273,7 +277,7 @@ export function WordSearchEditor({
           Grid Size
         </label>
         <div className="flex gap-2 flex-wrap">
-          {([8, 10, 12, 15] as GridSize[]).map((size) => (
+          {([5, 6, 7, 8, 10, 12, 15] as GridSize[]).map((size) => (
             <button
               key={size}
               type="button"
@@ -366,17 +370,18 @@ export function WordSearchEditor({
         <div className="overflow-auto">
           <div
             className="inline-grid gap-0 border-2 border-gray-700 dark:border-gray-400"
-            style={{ gridTemplateColumns: `repeat(${cols}, 28px)` }}
+            style={{ gridTemplateColumns: `repeat(${cols}, ${CELL_SIZE[rows as GridSize] || 24}px)` }}
           >
             {grid.map((row, rowIdx) =>
               row.map((cell, colIdx) => {
                 const isHighlighted = highlightedCells.has(`${rowIdx},${colIdx}`)
+                const cellPx = CELL_SIZE[rows as GridSize] || 24
 
                 return (
                   <div
                     key={`${rowIdx}-${colIdx}`}
-                    className={`w-7 h-7 flex items-center justify-center
-                               text-sm font-bold uppercase
+                    className={`flex items-center justify-center
+                               font-bold uppercase
                                border border-gray-200 dark:border-gray-700
                                ${isHighlighted
                                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200'
@@ -384,6 +389,7 @@ export function WordSearchEditor({
                                  ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
                                }`}
+                    style={{ width: cellPx, height: cellPx, fontSize: Math.max(10, cellPx - 10) }}
                   >
                     {cell || '·'}
                   </div>
