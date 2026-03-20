@@ -236,7 +236,7 @@ export const dictionaryApi = {
   bulkAddWords: (words: string[]) =>
     api.post('/dictionary/words/bulk', { words }),
   updateCluesBulk: (clues: { word: string; clue: string }[]) =>
-    api.patch<{ updated: number; notFound: string[] }>('/dictionary/words/bulk-clues', { clues }),
+    api.patch<{ updated: number; added: number }>('/dictionary/words/bulk-clues', { clues }),
   bulkDeleteWords: (words: string[]) =>
     api.delete<{ deleted: number }>('/dictionary/words/bulk', { data: { words } }),
 }

@@ -289,45 +289,34 @@ export class DictionaryService {
    */
   async updateCluesBulk(
     clues: { word: string; clue: string }[],
-  ): Promise<{ updated: number; notFound: string[] }> {
-    const notFound: string[] = [];
+  ): Promise<{ updated: number; added: number }> {
     let updated = 0;
+    let added = 0;
 
-    // Use bulkWrite for efficiency
-    const operations = clues.map((c) => ({
-      updateOne: {
-        filter: { word: c.word.toUpperCase() },
-        update: { $set: { clue: c.clue } },
-      },
-    }));
+    // Use bulkWrite with upsert to add missing words automatically
+    const operations = clues.map((c) => {
+      const word = c.word.toUpperCase();
+      const letters = [...new Set(word.split(""))].sort();
+      return {
+        updateOne: {
+          filter: { word },
+          update: {
+            $set: { clue: c.clue },
+            $setOnInsert: { word, length: word.length, letters },
+          },
+          upsert: true,
+        },
+      };
+    });
 
     const result = await this.dictionaryModel.bulkWrite(operations, {
       ordered: false,
     });
 
-    updated = result.modifiedCount + result.upsertedCount;
+    updated = result.modifiedCount;
+    added = result.upsertedCount;
 
-    // Find which words weren't updated (didn't exist)
-    if (updated < clues.length) {
-      const updatedWords = new Set(
-        (
-          await this.dictionaryModel
-            .find({
-              word: { $in: clues.map((c) => c.word.toUpperCase()) },
-            })
-            .select("word")
-            .lean()
-        ).map((w) => w.word),
-      );
-
-      for (const c of clues) {
-        if (!updatedWords.has(c.word.toUpperCase())) {
-          notFound.push(c.word);
-        }
-      }
-    }
-
-    return { updated, notFound };
+    return { updated, added };
   }
 
   /**

@@ -136,7 +136,11 @@ export function WordForgeEditor({
     mutationFn: (clues: { word: string; clue: string }[]) => dictionaryApi.updateCluesBulk(clues),
     onSuccess: (response) => {
       setCluesSaved(true)
-      alert(`Successfully updated ${response.data.updated} clues!${response.data.notFound.length > 0 ? `\n\nWords not found: ${response.data.notFound.join(', ')}` : ''}`)
+      const { updated, added } = response.data
+      const parts = []
+      if (updated > 0) parts.push(`${updated} clues updated`)
+      if (added > 0) parts.push(`${added} new words added to dictionary`)
+      alert(parts.join(', ') || 'No changes needed')
     },
     onError: (error: any) => {
       alert(error.response?.data?.message || 'Failed to save clues')
