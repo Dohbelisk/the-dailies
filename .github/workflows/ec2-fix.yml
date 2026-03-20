@@ -22,18 +22,21 @@ jobs:
             set -e
 
             echo "=== Checking .env file ==="
-            if [ -f /opt/the-dailies/.env ]; then
-              echo "Found .env in parent directory"
-              cat /opt/the-dailies/.env | head -3
-              echo "..."
-
-              # Copy to backend directory so NestJS can find it
+            if [ -f /opt/the-dailies/backend/.env ]; then
+              echo "Found .env in backend directory already"
+            elif [ -f /opt/the-dailies/.env ]; then
+              echo "Found .env in parent directory, copying to backend/"
               cp /opt/the-dailies/.env /opt/the-dailies/backend/.env
-              echo "Copied .env to backend/"
+            elif [ -f /opt/the-dailies/backend.backup/.env ]; then
+              echo "Found .env in backup, restoring to backend/ and parent"
+              cp /opt/the-dailies/backend.backup/.env /opt/the-dailies/backend/.env
+              cp /opt/the-dailies/backend.backup/.env /opt/the-dailies/.env
             else
-              echo "ERROR: No .env file found at /opt/the-dailies/.env"
+              echo "ERROR: No .env file found anywhere"
               exit 1
             fi
+            echo ".env contents (first 3 lines):"
+            head -3 /opt/the-dailies/backend/.env
 
             # Add swap if not present
             if [ ! -f /swapfile ]; then

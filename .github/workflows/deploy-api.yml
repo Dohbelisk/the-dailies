@@ -118,6 +118,14 @@ jobs:
             mv /tmp/deploy/* backend/
             rm -rf /tmp/deploy /tmp/deploy.tar.gz
 
+            # Restore .env file (check parent dir, then backup)
+            if [ -f /opt/the-dailies/.env ]; then
+              cp /opt/the-dailies/.env backend/.env
+            elif [ -f /opt/the-dailies/backend.backup/.env ]; then
+              cp /opt/the-dailies/backend.backup/.env backend/.env
+              cp /opt/the-dailies/backend.backup/.env /opt/the-dailies/.env
+            fi
+
             # Install production dependencies
             cd backend
             npm ci --production
