@@ -144,9 +144,9 @@ function PipesPlayMode({ size, endpoints, solution, onExit }: PlayModeProps) {
 
   const isComplete = completionStatus.connected === completionStatus.total && completionStatus.filledCells === completionStatus.totalCells
 
-  const getCellSize = () => {
+  const getCellSize = useCallback(() => {
     return Math.min(48, Math.floor(480 / size))
-  }
+  }, [size])
 
   const getCellFromEvent = useCallback((e: React.MouseEvent | React.TouchEvent): [number, number] | null => {
     if (!gridRef.current) return null
@@ -164,7 +164,7 @@ function PipesPlayMode({ size, endpoints, solution, onExit }: PlayModeProps) {
     const row = Math.floor((clientY - rect.top) / cellSize)
     if (row >= 0 && row < size && col >= 0 && col < size) return [row, col]
     return null
-  }, [size])
+  }, [size, getCellSize])
 
   const isAdjacent = (a: [number, number], b: [number, number]) => {
     return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) === 1
