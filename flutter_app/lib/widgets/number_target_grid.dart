@@ -108,21 +108,29 @@ class NumberTargetGrid extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // Numbers - wrap into rows of 3
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 8,
-          children: puzzle.numbers.asMap().entries.map((entry) {
-            final isUsed = usedNumberIndices.contains(entry.key);
-            return _NumberButton(
-              number: entry.value,
-              onTap: isUsed ? null : () => onTokenTap('${entry.value}', numberIndex: entry.key),
-              theme: theme,
-              isDisabled: isUsed,
-            );
-          }).toList(),
-        ),
+        // Numbers - evenly split into two rows
+        ...() {
+          final entries = puzzle.numbers.asMap().entries.toList();
+          final half = (entries.length / 2).ceil();
+          final rows = [entries.sublist(0, half), entries.sublist(half)];
+          return rows.map((row) => Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: row.asMap().entries.map((e) {
+              final entry = e.value;
+              final isUsed = usedNumberIndices.contains(entry.key);
+              return Padding(
+                padding: EdgeInsets.only(left: e.key > 0 ? 8 : 0),
+                child: _NumberButton(
+                  number: entry.value,
+                  onTap: isUsed ? null : () => onTokenTap('${entry.value}', numberIndex: entry.key),
+                  theme: theme,
+                  isDisabled: isUsed,
+                ),
+              );
+            }).toList(),
+          )).toList();
+        }(),
+        const SizedBox(height: 8),
         const SizedBox(height: 16),
 
         // Operators - all in one row

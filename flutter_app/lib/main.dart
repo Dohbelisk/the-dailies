@@ -22,6 +22,7 @@ import 'services/notification_service.dart';
 import 'services/achievements_service.dart';
 import 'services/dictionary_service.dart';
 import 'services/logging_service.dart';
+import 'services/notification_tag_service.dart';
 import 'providers/theme_provider.dart';
 import 'providers/game_provider.dart';
 import 'screens/home_screen.dart';
@@ -170,6 +171,15 @@ void main() async {
     }
   }).catchError((e) {
     log.warning('Dictionary sync failed: $e', tag: 'Dictionary');
+  });
+
+  // Initialize notification tags and sync in background (non-blocking)
+  NotificationTagService().initialize().then((_) {
+    NotificationTagService().evaluateAndSync().then((_) {
+      log.logServiceInit('NotificationTagService');
+    });
+  }).catchError((e) {
+    log.logServiceInit('NotificationTagService', success: false, error: e.toString());
   });
 
   log.info('App initialization complete', tag: 'Init');

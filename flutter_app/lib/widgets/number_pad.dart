@@ -6,6 +6,10 @@ class NumberPad extends StatefulWidget {
   final VoidCallback onClearTap;
   final VoidCallback onNotesTap;
   final VoidCallback onHintTap;
+  /// Called when undo is tapped. If null, undo button is hidden.
+  final VoidCallback? onUndoTap;
+  /// Whether undo is available (controls enabled/disabled state)
+  final bool canUndo;
   /// Set of numbers (1-9) that have all 9 instances placed and should be disabled
   final Set<int> completedNumbers;
   /// Whether to show calculator toggle button (for Killer Sudoku)
@@ -18,6 +22,8 @@ class NumberPad extends StatefulWidget {
     required this.onClearTap,
     required this.onNotesTap,
     required this.onHintTap,
+    this.onUndoTap,
+    this.canUndo = false,
     this.completedNumbers = const {},
     this.showCalculator = false,
   });
@@ -235,16 +241,16 @@ class _NumberPadState extends State<NumberPad> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
+                  if (!_calculatorMode) SizedBox(width: buttonSize / 2),
                   ...List.generate(4, (index) {
                     final number = index + 6;
                     final isDisabled = !_calculatorMode && !widget.notesMode && widget.completedNumbers.contains(number);
                     return _buildNumberButton(context, number, isDisabled, buttonSize, buttonHeight, fontSize);
                   }),
-                  // Show 0 button in calculator mode, otherwise empty space
                   if (_calculatorMode)
                     _buildNumberButton(context, 0, false, buttonSize, buttonHeight, fontSize)
                   else
-                    SizedBox(width: buttonSize),
+                    SizedBox(width: buttonSize / 2),
                 ],
               ),
 
@@ -293,6 +299,13 @@ class _NumberPadState extends State<NumberPad> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
+                    if (widget.onUndoTap != null)
+                      _buildActionButton(
+                        context,
+                        icon: Icons.undo_rounded,
+                        label: 'Undo',
+                        onTap: widget.canUndo ? widget.onUndoTap : null,
+                      ),
                     _buildActionButton(
                       context,
                       icon: Icons.backspace_outlined,

@@ -12,6 +12,7 @@ import '../services/audio_service.dart';
 import '../services/challenge_service.dart';
 import '../services/api_service.dart';
 import '../services/game_state_service.dart';
+import '../services/notification_tag_service.dart';
 import '../widgets/sudoku_grid.dart';
 import '../widgets/killer_sudoku_grid.dart';
 import '../widgets/crossword_grid.dart';
@@ -292,6 +293,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _confettiController.play();
       _audioService.playComplete();
       _showCompletionDialog();
+      // Refresh notification tags in background (streak, milestones, etc.)
+      NotificationTagService().refresh();
     }
   }
 
@@ -1074,6 +1077,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 _audioService.playTap();
               },
               onHintTap: () => _handleHintTap(gameProvider),
+              onUndoTap: () {
+                gameProvider.undoSudoku();
+                _audioService.playTap();
+              },
+              canUndo: gameProvider.canUndoSudoku,
             ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(begin: 0.2, end: 0),
             const SizedBox(height: 16),
           ],
@@ -1263,6 +1271,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 _audioService.playTap();
               },
               onHintTap: () => _handleHintTap(gameProvider),
+              onUndoTap: () {
+                gameProvider.undoSudoku();
+                _audioService.playTap();
+              },
+              canUndo: gameProvider.canUndoSudoku,
             ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(begin: 0.2, end: 0),
             const SizedBox(height: 16),
           ],
@@ -1402,8 +1415,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
             ),
-            if (selectedClue != null)
-              _buildClueDisplay(context, selectedClue),
             Expanded(
               flex: 2,
               child: _buildCluesList(context, gameProvider),
@@ -1446,35 +1457,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildClueDisplay(BuildContext context, CrosswordClue clue) {
-    final theme = Theme.of(context);
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              '${clue.number}${clue.direction == 'across' ? 'A' : 'D'}',
-              style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onPrimary, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Text(clue.clue, style: theme.textTheme.bodyMedium)),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildCluesList(BuildContext context, GameProvider gameProvider) {
     final theme = Theme.of(context);

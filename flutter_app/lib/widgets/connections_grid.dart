@@ -147,17 +147,14 @@ class ConnectionsGrid extends StatelessWidget {
                 tooltip: 'Shuffle words',
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: puzzle.selectedWords.isEmpty || puzzle.isGameOver
-                      ? null
-                      : onClear,
-                  child: const Text('Clear'),
-                ),
+              OutlinedButton(
+                onPressed: puzzle.selectedWords.isEmpty || puzzle.isGameOver
+                    ? null
+                    : onClear,
+                child: const Text('Clear'),
               ),
               const SizedBox(width: 12),
               Expanded(
-                flex: 2,
                 child: FilledButton(
                   onPressed: puzzle.selectedWords.length == 4 && !puzzle.isGameOver
                       ? onSubmit

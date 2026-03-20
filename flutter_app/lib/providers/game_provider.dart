@@ -17,6 +17,7 @@ class GameProvider extends ChangeNotifier {
   bool _notesMode = false;
   SudokuPuzzle? _sudokuPuzzle;
   KillerSudokuPuzzle? _killerSudokuPuzzle;
+  final List<_SudokuUndoEntry> _sudokuUndoHistory = [];
   
   // Crossword specific state
   CrosswordPuzzle? _crosswordPuzzle;
@@ -72,6 +73,7 @@ class GameProvider extends ChangeNotifier {
   bool get notesMode => _notesMode;
   SudokuPuzzle? get sudokuPuzzle => _sudokuPuzzle;
   KillerSudokuPuzzle? get killerSudokuPuzzle => _killerSudokuPuzzle;
+  bool get canUndoSudoku => _sudokuUndoHistory.isNotEmpty;
   
   CrosswordPuzzle? get crosswordPuzzle => _crosswordPuzzle;
   CrosswordClue? get selectedClue => _selectedClue;
@@ -515,6 +517,7 @@ class GameProvider extends ChangeNotifier {
     // Clear all puzzle-specific state
     _sudokuPuzzle = null;
     _killerSudokuPuzzle = null;
+    _sudokuUndoHistory.clear();
     _crosswordPuzzle = null;
     _wordSearchPuzzle = null;
     _wordForgePuzzle = null;
@@ -646,11 +649,22 @@ class GameProvider extends ChangeNotifier {
     final puzzle = _sudokuPuzzle ?? _killerSudokuPuzzle;
     if (puzzle == null) return null;
 
+    final row = _selectedRow!;
+    final col = _selectedCol!;
+
     // Can't modify initial cells
-    if (puzzle.initialGrid[_selectedRow!][_selectedCol!] != null) return null;
+    if (puzzle.initialGrid[row][col] != null) return null;
 
     if (_notesMode) {
-      final notes = puzzle.notes[_selectedRow!][_selectedCol!];
+      final notes = puzzle.notes[row][col];
+      // Save undo entry for note toggle
+      _sudokuUndoHistory.add(_SudokuUndoEntry(
+        row: row,
+        col: col,
+        previousValue: puzzle.grid[row][col],
+        previousNotes: Set<int>.from(notes),
+        affectedNotes: {},
+      ));
       if (notes.contains(number)) {
         notes.remove(number);
       } else {
@@ -659,20 +673,70 @@ class GameProvider extends ChangeNotifier {
       notifyListeners();
       return null; // Notes mode, no right/wrong
     } else {
+      // Save undo entry before modifying (capture notes that will be removed from related cells)
+      final affectedNotes = _captureAffectedNotes(row, col, number, puzzle);
+      _sudokuUndoHistory.add(_SudokuUndoEntry(
+        row: row,
+        col: col,
+        previousValue: puzzle.grid[row][col],
+        previousNotes: Set<int>.from(puzzle.notes[row][col]),
+        affectedNotes: affectedNotes,
+      ));
+
       // Check if valid
-      final isValid = puzzle.isValidPlacement(_selectedRow!, _selectedCol!, number);
+      final isValid = puzzle.isValidPlacement(row, col, number);
       if (!isValid) {
         _mistakes++;
       }
-      puzzle.grid[_selectedRow!][_selectedCol!] = number;
-      puzzle.notes[_selectedRow!][_selectedCol!].clear();
+      puzzle.grid[row][col] = number;
+      puzzle.notes[row][col].clear();
 
       // Remove this number from notes in related cells (same row, column, box, cage)
-      _removeNoteFromRelatedCells(_selectedRow!, _selectedCol!, number, puzzle);
+      _removeNoteFromRelatedCells(row, col, number, puzzle);
 
       notifyListeners();
       return isValid;
     }
+  }
+
+  /// Capture notes that will be affected by placing a number, for undo purposes.
+  Map<String, Set<int>> _captureAffectedNotes(int row, int col, int number, SudokuPuzzle puzzle) {
+    final affected = <String, Set<int>>{};
+
+    void capture(int r, int c) {
+      if (puzzle.notes[r][c].contains(number)) {
+        affected['$r,$c'] = Set<int>.from(puzzle.notes[r][c]);
+      }
+    }
+
+    // Same row
+    for (int c = 0; c < 9; c++) {
+      if (c != col) capture(row, c);
+    }
+    // Same column
+    for (int r = 0; r < 9; r++) {
+      if (r != row) capture(r, col);
+    }
+    // Same box
+    final boxRow = (row ~/ 3) * 3;
+    final boxCol = (col ~/ 3) * 3;
+    for (int r = boxRow; r < boxRow + 3; r++) {
+      for (int c = boxCol; c < boxCol + 3; c++) {
+        if (r != row || c != col) capture(r, c);
+      }
+    }
+    // Killer Sudoku cage
+    if (_killerSudokuPuzzle != null) {
+      final cageInfo = _killerSudokuPuzzle!.getCageForCell(row, col);
+      if (cageInfo != null) {
+        final cage = _killerSudokuPuzzle!.cages[cageInfo[0]];
+        for (final cell in cage.cells) {
+          if (cell[0] != row || cell[1] != col) capture(cell[0], cell[1]);
+        }
+      }
+    }
+
+    return affected;
   }
 
   /// Remove a number from notes in cells that see the given cell
@@ -718,14 +782,55 @@ class GameProvider extends ChangeNotifier {
 
   void clearCell() {
     if (_selectedRow == null || _selectedCol == null) return;
-    
+
     final puzzle = _sudokuPuzzle ?? _killerSudokuPuzzle;
     if (puzzle == null) return;
-    
-    if (puzzle.initialGrid[_selectedRow!][_selectedCol!] != null) return;
-    
-    puzzle.grid[_selectedRow!][_selectedCol!] = null;
-    puzzle.notes[_selectedRow!][_selectedCol!].clear();
+
+    final row = _selectedRow!;
+    final col = _selectedCol!;
+    if (puzzle.initialGrid[row][col] != null) return;
+
+    // Only save undo if there's something to clear
+    if (puzzle.grid[row][col] != null || puzzle.notes[row][col].isNotEmpty) {
+      _sudokuUndoHistory.add(_SudokuUndoEntry(
+        row: row,
+        col: col,
+        previousValue: puzzle.grid[row][col],
+        previousNotes: Set<int>.from(puzzle.notes[row][col]),
+        affectedNotes: {},
+      ));
+    }
+
+    puzzle.grid[row][col] = null;
+    puzzle.notes[row][col].clear();
+    notifyListeners();
+  }
+
+  /// Undo the most recent Sudoku/Killer Sudoku move.
+  void undoSudoku() {
+    if (_sudokuUndoHistory.isEmpty) return;
+
+    final puzzle = _sudokuPuzzle ?? _killerSudokuPuzzle;
+    if (puzzle == null) return;
+
+    final entry = _sudokuUndoHistory.removeLast();
+
+    // Restore the cell value and notes
+    puzzle.grid[entry.row][entry.col] = entry.previousValue;
+    puzzle.notes[entry.row][entry.col] = Set<int>.from(entry.previousNotes);
+
+    // Restore affected notes in related cells
+    for (final affected in entry.affectedNotes.entries) {
+      final parts = affected.key.split(',');
+      final r = int.parse(parts[0]);
+      final c = int.parse(parts[1]);
+      puzzle.notes[r][c] = Set<int>.from(affected.value);
+    }
+
+    // Move selection to the undone cell
+    _selectedRow = entry.row;
+    _selectedCol = entry.col;
+
     notifyListeners();
   }
 
@@ -871,28 +976,52 @@ class GameProvider extends ChangeNotifier {
     return true;
   }
 
-  /// Find the next incomplete clue after the current one
+  /// Find the next incomplete clue, prioritizing the same orientation.
+  /// Only switches orientation when all clues in the current direction are complete.
   CrosswordClue? _findNextIncompleteClue() {
     if (_crosswordPuzzle == null || _selectedClue == null) return null;
 
-    final allClues = _crosswordPuzzle!.clues;
-    final currentIndex = allClues.indexOf(_selectedClue!);
+    final direction = _selectedClue!.direction;
+    final sameDir = direction == 'across'
+        ? _crosswordPuzzle!.acrossClues
+        : _crosswordPuzzle!.downClues;
+    final otherDir = direction == 'across'
+        ? _crosswordPuzzle!.downClues
+        : _crosswordPuzzle!.acrossClues;
 
-    // Search from after current clue to the end
-    for (int i = currentIndex + 1; i < allClues.length; i++) {
-      if (!_isClueComplete(allClues[i])) {
-        return allClues[i];
-      }
-    }
+    // Search same orientation first (after current clue, then wrap around)
+    final result = _findNextInList(sameDir, _selectedClue!, (c) => !_isClueComplete(c));
+    if (result != null) return result;
 
-    // Wrap around: search from start to current clue
-    for (int i = 0; i < currentIndex; i++) {
-      if (!_isClueComplete(allClues[i])) {
-        return allClues[i];
-      }
+    // All same-orientation clues complete - search other orientation from the start
+    for (final clue in otherDir) {
+      if (!_isClueComplete(clue)) return clue;
     }
 
     // All clues are complete
+    return null;
+  }
+
+  /// Search a sorted clue list starting after [current], wrapping around.
+  CrosswordClue? _findNextInList(
+    List<CrosswordClue> clues,
+    CrosswordClue current,
+    bool Function(CrosswordClue) test,
+  ) {
+    final currentIndex = clues.indexOf(current);
+    final startAfter = currentIndex == -1 ? 0 : currentIndex + 1;
+
+    // Search from after current to end
+    for (int i = startAfter; i < clues.length; i++) {
+      if (test(clues[i])) return clues[i];
+    }
+
+    // Wrap around to start
+    final end = currentIndex == -1 ? clues.length : currentIndex;
+    for (int i = 0; i < end; i++) {
+      if (test(clues[i])) return clues[i];
+    }
+
     return null;
   }
 
@@ -978,31 +1107,31 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  /// Find the next clue that is filled but has errors
+  /// Find the next clue that is filled but has errors, prioritizing same orientation.
   CrosswordClue? _findNextIncorrectClue() {
     if (_crosswordPuzzle == null || _selectedClue == null) return null;
 
-    final allClues = _crosswordPuzzle!.clues;
-    final currentIndex = allClues.indexOf(_selectedClue!);
+    bool isIncorrect(CrosswordClue c) => _isClueComplete(c) && !_isClueCorrect(c);
 
-    // Search from after current clue to the end
-    for (int i = currentIndex + 1; i < allClues.length; i++) {
-      if (_isClueComplete(allClues[i]) && !_isClueCorrect(allClues[i])) {
-        return allClues[i];
-      }
-    }
+    final direction = _selectedClue!.direction;
+    final sameDir = direction == 'across'
+        ? _crosswordPuzzle!.acrossClues
+        : _crosswordPuzzle!.downClues;
+    final otherDir = direction == 'across'
+        ? _crosswordPuzzle!.downClues
+        : _crosswordPuzzle!.acrossClues;
 
-    // Wrap around: search from start to current clue
-    for (int i = 0; i < currentIndex; i++) {
-      if (_isClueComplete(allClues[i]) && !_isClueCorrect(allClues[i])) {
-        return allClues[i];
-      }
+    // Search same orientation first
+    final result = _findNextInList(sameDir, _selectedClue!, isIncorrect);
+    if (result != null) return result;
+
+    // Search other orientation
+    for (final clue in otherDir) {
+      if (isIncorrect(clue)) return clue;
     }
 
     // Check current clue itself
-    if (_isClueComplete(_selectedClue!) && !_isClueCorrect(_selectedClue!)) {
-      return _selectedClue;
-    }
+    if (isIncorrect(_selectedClue!)) return _selectedClue;
 
     return null;
   }
@@ -2614,5 +2743,24 @@ class ConnectionsSubmitResult {
     required this.message,
     this.category,
     this.isGameOver = false,
+  });
+}
+
+/// Represents a single undo-able action in Sudoku/Killer Sudoku.
+class _SudokuUndoEntry {
+  final int row;
+  final int col;
+  final int? previousValue;
+  final Set<int> previousNotes;
+  /// Notes in related cells that were modified (e.g. auto-removed when placing a number).
+  /// Key format: "row,col", value: the full set of notes before modification.
+  final Map<String, Set<int>> affectedNotes;
+
+  _SudokuUndoEntry({
+    required this.row,
+    required this.col,
+    required this.previousValue,
+    required this.previousNotes,
+    required this.affectedNotes,
   });
 }

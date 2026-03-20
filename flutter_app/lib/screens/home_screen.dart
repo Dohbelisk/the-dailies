@@ -360,24 +360,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _buildActionChip(
-                                icon: Icons.people_outline_rounded,
-                                label: 'Friends',
-                                onTap: _handleFriendsPressed,
-                                theme: theme,
-                              ).animate(controller: _headerController)
-                                .fadeIn(delay: 200.ms, duration: 400.ms)
-                                .slideX(begin: -0.1, end: 0),
-                              const SizedBox(width: 8),
-                              _buildActionChip(
-                                icon: Icons.emoji_events_outlined,
-                                label: 'Challenges',
-                                onTap: _handleChallengesPressed,
-                                theme: theme,
-                              ).animate(controller: _headerController)
-                                .fadeIn(delay: 250.ms, duration: 400.ms)
-                                .slideX(begin: -0.1, end: 0),
-                              const SizedBox(width: 8),
+                              if (RemoteConfigService().isFeatureEnabled('feature_friends')) ...[
+                                _buildActionChip(
+                                  icon: Icons.people_outline_rounded,
+                                  label: 'Friends',
+                                  onTap: _handleFriendsPressed,
+                                  theme: theme,
+                                ).animate(controller: _headerController)
+                                  .fadeIn(delay: 200.ms, duration: 400.ms)
+                                  .slideX(begin: -0.1, end: 0),
+                                const SizedBox(width: 8),
+                              ],
+                              if (RemoteConfigService().isFeatureEnabled('feature_challenges')) ...[
+                                _buildActionChip(
+                                  icon: Icons.emoji_events_outlined,
+                                  label: 'Challenges',
+                                  onTap: _handleChallengesPressed,
+                                  theme: theme,
+                                ).animate(controller: _headerController)
+                                  .fadeIn(delay: 250.ms, duration: 400.ms)
+                                  .slideX(begin: -0.1, end: 0),
+                                const SizedBox(width: 8),
+                              ],
                               _buildActionChip(
                                 icon: Icons.history_rounded,
                                 label: 'Archive',
@@ -405,20 +409,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ).animate(controller: _headerController)
                                 .fadeIn(delay: 350.ms, duration: 400.ms)
                                 .slideX(begin: -0.1, end: 0),
-                              const SizedBox(width: 8),
-                              _buildActionChip(
-                                icon: Icons.emoji_events_rounded,
-                                label: 'Badges',
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const AchievementsScreen(),
+                              if (RemoteConfigService().isFeatureEnabled('feature_achievements')) ...[
+                                const SizedBox(width: 8),
+                                _buildActionChip(
+                                  icon: Icons.emoji_events_rounded,
+                                  label: 'Badges',
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const AchievementsScreen(),
+                                    ),
                                   ),
-                                ),
-                                theme: theme,
-                              ).animate(controller: _headerController)
-                                .fadeIn(delay: 400.ms, duration: 400.ms)
-                                .slideX(begin: -0.1, end: 0),
+                                  theme: theme,
+                                ).animate(controller: _headerController)
+                                  .fadeIn(delay: 400.ms, duration: 400.ms)
+                                  .slideX(begin: -0.1, end: 0),
+                              ],
                             ],
                           ),
                         ),

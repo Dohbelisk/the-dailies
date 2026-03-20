@@ -15,6 +15,9 @@ import {
   ChevronDown,
   Sun,
   Sunrise,
+  Circle,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react'
 
 const navItems = [
@@ -37,6 +40,7 @@ interface PuzzleMenuItem {
   id: string
   gameType: GameType
   label: string
+  status: string
 }
 
 function DaySection({
@@ -64,6 +68,7 @@ function DaySection({
               id: p._id || p.id,
               gameType: p.gameType as GameType,
               label: GAME_TYPE_LABELS[p.gameType as GameType] || p.gameType,
+              status: p.status || 'pending',
             }))
             .sort((a, b) => a.label.localeCompare(b.label))
           setPuzzles(items)
@@ -97,7 +102,7 @@ function DaySection({
                 key={p.id}
                 to={`/puzzles/${p.id}/edit`}
                 className={({ isActive }) =>
-                  `block px-4 py-2 text-sm rounded-lg transition-colors ${
+                  `flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-colors ${
                     isActive
                       ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
                       : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
@@ -105,6 +110,13 @@ function DaySection({
                 }
                 onClick={onNavigate}
               >
+                {p.status === 'active' ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                ) : p.status === 'pending' ? (
+                  <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                ) : (
+                  <Circle className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 shrink-0" />
+                )}
                 {p.label}
               </NavLink>
             ))

@@ -112,7 +112,6 @@ class KillerSudokuGrid extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.1),
@@ -121,8 +120,7 @@ class KillerSudokuGrid extends StatelessWidget {
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+        child: ClipRect(
           child: CustomPaint(
             painter: _KillerSudokuGridPainter(
               puzzle: puzzle,

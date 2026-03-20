@@ -80,11 +80,11 @@ class LightsOutGrid extends StatelessWidget {
   }
 
   Widget _buildGrid(BuildContext context, BoxConstraints constraints) {
-    final maxSize = constraints.maxWidth.clamp(0, constraints.maxHeight);
-    final cellSize = (maxSize / puzzle.cols).clamp(40.0, 80.0);
-    final gridWidth = cellSize * puzzle.cols;
-    final gridHeight = cellSize * puzzle.rows;
     final gap = 4.0;
+    final maxSize = constraints.maxWidth.clamp(0.0, constraints.maxHeight);
+    final cellSize = ((maxSize - gap * (puzzle.cols - 1)) / puzzle.cols).clamp(40.0, 80.0);
+    final gridWidth = cellSize * puzzle.cols + gap * (puzzle.cols - 1);
+    final gridHeight = cellSize * puzzle.rows + gap * (puzzle.rows - 1);
 
     return Center(
       child: SizedBox(

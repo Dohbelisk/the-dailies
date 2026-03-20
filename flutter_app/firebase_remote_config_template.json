@@ -56,15 +56,21 @@
     },
     "feature_challenges": {
       "defaultValue": {
-        "value": "1.0.0"
+        "value": ""
       },
       "description": "Min app version for challenges feature. Empty = disabled."
     },
     "feature_friends": {
       "defaultValue": {
-        "value": "1.0.0"
+        "value": ""
       },
       "description": "Min app version for friends/social feature. Empty = disabled."
+    },
+    "feature_achievements": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "Min app version for achievements/badges feature. Empty = disabled."
     }
   },
   "version": {

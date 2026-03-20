@@ -149,8 +149,9 @@ class RemoteConfigService extends ChangeNotifier {
         'maintenance_message': 'We are currently undergoing maintenance. Please try again later.',
         // Version-based feature flags (min app version required, empty = disabled)
         'feature_debug_menu': '',  // Disabled by default
-        'feature_challenges': '1.0.0',  // Enabled for all versions
-        'feature_friends': '1.0.0',  // Enabled for all versions
+        'feature_challenges': '',  // Disabled for v1 launch
+        'feature_friends': '',  // Disabled for v1 launch
+        'feature_achievements': '',  // Disabled for v1 launch
         'feature_display_inactive_games': '',  // Disabled by default - shows inactive games when enabled
       });
 
@@ -352,6 +353,7 @@ class RemoteConfigService extends ChangeNotifier {
       'feature_debug_menu',
       'feature_challenges',
       'feature_friends',
+      'feature_achievements',
       'feature_display_inactive_games',
     };
     keys.addAll(_flagOverrides.keys);
