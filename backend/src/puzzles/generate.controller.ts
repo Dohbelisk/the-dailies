@@ -378,7 +378,7 @@ export class GenerateController {
       solution,
       targetTime: targetTimes[dto.difficulty],
       title: dto.title || `Word Search - ${dto.theme || "Mixed"}`,
-      status: PuzzleStatus.INACTIVE, // Word Search is currently removed from circulation
+      status: PuzzleStatus.PENDING,
     });
   }
 
@@ -1224,7 +1224,7 @@ export class GenerateController {
             difficulty
           ],
           title: `Word Search - ${themeData.theme}`,
-          status: PuzzleStatus.INACTIVE, // Word Search is currently removed from circulation
+          status: PuzzleStatus.PENDING,
         });
         createdPuzzles.push(wordSearch);
       }

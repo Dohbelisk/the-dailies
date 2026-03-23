@@ -9,7 +9,11 @@ async function bootstrap() {
   // Enable CORS - allow configured origins or all in production
   const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",")
-    : ["http://localhost:3000", "http://localhost:5173"];
+    : [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:4242",
+      ];
 
   app.enableCors({
     origin: allowedOrigins,

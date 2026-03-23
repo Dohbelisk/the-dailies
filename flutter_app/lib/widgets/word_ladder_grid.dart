@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/game_models.dart';
 import 'keyboard_input.dart';
 
-class WordLadderGrid extends StatelessWidget {
+class WordLadderGrid extends StatefulWidget {
   final WordLadderPuzzle puzzle;
   final String currentInput;
   final Function(String) onLetterTap;
@@ -27,6 +27,78 @@ class WordLadderGrid extends StatelessWidget {
   });
 
   @override
+  State<WordLadderGrid> createState() => _WordLadderGridState();
+}
+
+class _WordLadderGridState extends State<WordLadderGrid> {
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _gapKey = GlobalKey();
+  int _prevStartLen = 0;
+  int _prevTargetLen = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _prevStartLen = widget.puzzle.pathFromStart.length;
+    _prevTargetLen = widget.puzzle.pathFromTarget.length;
+    _scrollToGapAfterBuild();
+  }
+
+  @override
+  void didUpdateWidget(WordLadderGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newStartLen = widget.puzzle.pathFromStart.length;
+    final newTargetLen = widget.puzzle.pathFromTarget.length;
+    if (newStartLen != _prevStartLen || newTargetLen != _prevTargetLen) {
+      _prevStartLen = newStartLen;
+      _prevTargetLen = newTargetLen;
+      _scrollToGapAfterBuild();
+    }
+  }
+
+  void _scrollToGapAfterBuild() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToGap();
+    });
+  }
+
+  void _scrollToGap() {
+    final gapContext = _gapKey.currentContext;
+    if (gapContext == null || !_scrollController.hasClients) return;
+
+    final scrollBox = _scrollController.position.context.storageContext.findRenderObject();
+    final gapBox = gapContext.findRenderObject();
+    if (scrollBox == null || gapBox == null) return;
+
+    final gapBoxRendered = gapBox as RenderBox;
+    final scrollBoxRendered = scrollBox as RenderBox;
+
+    // Get the gap's position relative to the scroll view
+    final gapOffset = gapBoxRendered.localToGlobal(Offset.zero, ancestor: scrollBoxRendered);
+    final gapHeight = gapBoxRendered.size.height;
+    final viewportHeight = _scrollController.position.viewportDimension;
+
+    // Calculate where we want to scroll: center the gap in the viewport
+    final gapCenter = _scrollController.offset + gapOffset.dy + gapHeight / 2;
+    final targetOffset = (gapCenter - viewportHeight / 2).clamp(
+      _scrollController.position.minScrollExtent,
+      _scrollController.position.maxScrollExtent,
+    );
+
+    _scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -43,7 +115,7 @@ class WordLadderGrid extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Steps: ${puzzle.currentSteps}',
+                'Steps: ${widget.puzzle.currentSteps}',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -51,7 +123,7 @@ class WordLadderGrid extends StatelessWidget {
               Row(
                 children: [
                   FilledButton.tonal(
-                    onPressed: (puzzle.pathFromStart.length <= 1 && puzzle.pathFromTarget.length <= 1) ? null : onUndo,
+                    onPressed: (widget.puzzle.pathFromStart.length <= 1 && widget.puzzle.pathFromTarget.length <= 1) ? null : widget.onUndo,
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -63,7 +135,7 @@ class WordLadderGrid extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   IconButton.outlined(
-                    onPressed: (puzzle.pathFromStart.length <= 1 && puzzle.pathFromTarget.length <= 1) ? null : onReset,
+                    onPressed: (widget.puzzle.pathFromStart.length <= 1 && widget.puzzle.pathFromTarget.length <= 1) ? null : widget.onReset,
                     icon: const Icon(Icons.refresh, size: 20),
                     tooltip: 'Reset puzzle',
                   ),
@@ -90,8 +162,10 @@ class WordLadderGrid extends StatelessWidget {
 
   Widget _buildLadder(BuildContext context) {
     final theme = Theme.of(context);
+    final puzzle = widget.puzzle;
 
     return SingleChildScrollView(
+      controller: _scrollController,
       child: Column(
         children: [
           // Target path (building down from target)
@@ -115,22 +189,29 @@ class WordLadderGrid extends StatelessWidget {
 
           // Gap between paths (if not complete)
           if (!puzzle.isComplete) ...[
-            const SizedBox(height: 8),
-            for (int i = 0; i < 3; i++)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: theme.colorScheme.outline.withAlpha(77),
+            Column(
+              key: _gapKey,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                for (int i = 0; i < 3; i++)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: theme.colorScheme.outline.withAlpha(77),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            const SizedBox(height: 8),
+                const SizedBox(height: 8),
+              ],
+            ),
           ] else ...[
             Icon(
+              key: _gapKey,
               Icons.arrow_downward,
               size: 20,
               color: theme.colorScheme.primary,
@@ -227,19 +308,19 @@ class WordLadderGrid extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         // Message display
-        if (message != null && message!.isNotEmpty) ...[
+        if (widget.message != null && widget.message!.isNotEmpty) ...[
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: messageSuccess == true
+              color: widget.messageSuccess == true
                   ? theme.colorScheme.primaryContainer
                   : theme.colorScheme.errorContainer,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              message!,
+              widget.message!,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: messageSuccess == true
+                color: widget.messageSuccess == true
                     ? theme.colorScheme.onPrimaryContainer
                     : theme.colorScheme.onErrorContainer,
                 fontWeight: FontWeight.w500,
@@ -268,7 +349,7 @@ class WordLadderGrid extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Letter boxes for input
-                  for (int i = 0; i < puzzle.wordLength; i++) ...[
+                  for (int i = 0; i < widget.puzzle.wordLength; i++) ...[
                     if (i > 0) const SizedBox(width: 6),
                     Container(
                       width: 44,
@@ -277,15 +358,15 @@ class WordLadderGrid extends StatelessWidget {
                         color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: i < currentInput.length
+                          color: i < widget.currentInput.length
                               ? theme.colorScheme.primary
                               : theme.colorScheme.outline.withAlpha(128),
-                          width: i < currentInput.length ? 2 : 1,
+                          width: i < widget.currentInput.length ? 2 : 1,
                         ),
                       ),
                       child: Center(
                         child: Text(
-                          i < currentInput.length ? currentInput[i] : '',
+                          i < widget.currentInput.length ? widget.currentInput[i] : '',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: theme.colorScheme.onSurface,
@@ -297,8 +378,8 @@ class WordLadderGrid extends StatelessWidget {
                   const SizedBox(width: 16),
                   // Add button
                   FilledButton(
-                    onPressed: currentInput.length == puzzle.wordLength
-                        ? onSubmit
+                    onPressed: widget.currentInput.length == widget.puzzle.wordLength
+                        ? widget.onSubmit
                         : null,
                     child: const Text('Add'),
                   ),
@@ -310,8 +391,8 @@ class WordLadderGrid extends StatelessWidget {
         const SizedBox(height: 12),
         // Keyboard
         KeyboardInput(
-          onLetterTap: onLetterTap,
-          onDeleteTap: onDeleteTap,
+          onLetterTap: widget.onLetterTap,
+          onDeleteTap: widget.onDeleteTap,
         ),
       ],
     );

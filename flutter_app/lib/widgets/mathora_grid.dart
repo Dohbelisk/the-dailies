@@ -157,28 +157,28 @@ class MathoraGrid extends StatelessWidget {
           const SizedBox(height: 16),
         ],
 
-        // Operations grid
+        // Operations grid - max 4x4 (16 tiles)
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          child: Center(
+            child: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 4,
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
               childAspectRatio: 1.0,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: puzzle.operations.take(16).map((operation) {
+                return _OperationButton(
+                  operation: operation,
+                  onTap: puzzle.isGameOver
+                      ? null
+                      : () => onOperationTap(operation),
+                  theme: theme,
+                  isDark: isDark,
+                );
+              }).toList(),
             ),
-            itemCount: puzzle.operations.length,
-            itemBuilder: (context, index) {
-              final operation = puzzle.operations[index];
-              return _OperationButton(
-                operation: operation,
-                onTap: puzzle.isGameOver
-                    ? null
-                    : () => onOperationTap(operation),
-                theme: theme,
-                isDark: isDark,
-              );
-            },
           ),
         ),
 

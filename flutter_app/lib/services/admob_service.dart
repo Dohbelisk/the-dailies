@@ -41,12 +41,8 @@ class AdMobService {
     }
   }
 
-  // Test device IDs - add your devices here for testing
-  // These devices will receive test ads instead of production ads
-  static const List<String> _testDeviceIds = [
-    '19B2DE06B1B773E16D5E4985BE11A2C7', // Samsung SM N970U1
-    // Add more test device IDs as needed
-  ];
+  // Test device IDs - add your devices here for local testing
+  static const List<String> _testDeviceIds = [];
 
   // Initialize AdMob
   Future<void> initialize() async {

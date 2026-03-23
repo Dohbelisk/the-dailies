@@ -994,7 +994,7 @@ class WordForgeWordList extends StatelessWidget {
                         : null,
                   ),
                   child: Text(
-                    word.toLowerCase(),
+                    word.toUpperCase(),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: isPangram ? FontWeight.bold : FontWeight.normal,
                       color: isPangram

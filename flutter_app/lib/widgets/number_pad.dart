@@ -167,11 +167,8 @@ class _NumberPadState extends State<NumberPad> {
           // For 5 buttons with gaps, calculate optimal size
           final availableWidth = constraints.maxWidth;
           const buttonCount = 5;
-          const gapCount = buttonCount - 1;
-          const minGap = 8.0;
 
           // Calculate button size to fill available space nicely
-          // Use 85% of slot width to leave comfortable gaps
           final slotWidth = availableWidth / buttonCount;
           final buttonSize = (slotWidth * 0.85).clamp(44.0, 72.0);
           final buttonHeight = (buttonSize * 1.1).clamp(50.0, 80.0);

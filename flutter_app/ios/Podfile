@@ -1,5 +1,5 @@
-# Firebase requires iOS 13.0 minimum
-platform :ios, '13.0'
+# iOS 14.0 minimum - required for modern ad SDK and ATT framework
+platform :ios, '14.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'

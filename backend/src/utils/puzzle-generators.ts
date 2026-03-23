@@ -5773,7 +5773,7 @@ export class MathoraGenerator {
       case "medium":
         return {
           moves: 4,
-          operationCount: 15,
+          operationCount: 16,
           targetRange: { min: 100, max: 500 },
           startRange: { min: 5, max: 30 },
         };
@@ -5787,7 +5787,7 @@ export class MathoraGenerator {
       case "expert":
         return {
           moves: 6,
-          operationCount: 18,
+          operationCount: 16,
           targetRange: { min: 500, max: 2000 },
           startRange: { min: 2, max: 20 },
         };
