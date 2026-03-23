@@ -179,6 +179,11 @@ jobs:
           cd ..
           git pull origin main
 
+      - name: Setup Xcode (latest stable)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
