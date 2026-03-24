@@ -1360,16 +1360,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (clueIndex == -1) return;
 
-    // Scroll to the clue (approximate height per item ~48-56 pixels for dense ListTile)
+    // Scroll to center the clue in the visible area
     final scrollController = isAcross ? _acrossScrollController : _downScrollController;
     const itemHeight = 52.0;
-    final targetOffset = (clueIndex * itemHeight).clamp(
-      0.0,
-      scrollController.hasClients ? scrollController.position.maxScrollExtent : double.infinity,
-    );
 
     // Only scroll if controller is attached
     if (scrollController.hasClients) {
+      final viewportHeight = scrollController.position.viewportDimension;
+      final targetOffset = (clueIndex * itemHeight - (viewportHeight - itemHeight) / 2).clamp(
+        0.0,
+        scrollController.position.maxScrollExtent,
+      );
+
       scrollController.animateTo(
         targetOffset,
         duration: const Duration(milliseconds: 300),

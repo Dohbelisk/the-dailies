@@ -456,22 +456,36 @@ class _NonogramGridState extends State<NonogramGrid> {
               SizedBox(
                 width: cellSize,
                 height: colClueHeight,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    for (final clue in widget.puzzle.colClues[c])
-                      SizedBox(
-                        height: clueUnitSize,
-                        child: Center(
-                          child: Text(
-                            '$clue',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
+                child: Builder(
+                  builder: (context) {
+                    final completedIndices = widget.puzzle.getCompletedColClueIndices(c);
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        for (int ci = 0; ci < widget.puzzle.colClues[c].length; ci++)
+                          SizedBox(
+                            height: clueUnitSize,
+                            child: Center(
+                              child: Text(
+                                '${widget.puzzle.colClues[c][ci]}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: completedIndices.contains(ci)
+                                      ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
+                                      : null,
+                                  decoration: completedIndices.contains(ci)
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  decorationColor: completedIndices.contains(ci)
+                                      ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
+                                      : null,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ),
           ],
@@ -484,23 +498,37 @@ class _NonogramGridState extends State<NonogramGrid> {
               SizedBox(
                 width: rowClueWidth,
                 height: cellSize,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    for (final clue in widget.puzzle.rowClues[r])
-                      SizedBox(
-                        width: clueUnitSize,
-                        child: Center(
-                          child: Text(
-                            '$clue',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
+                child: Builder(
+                  builder: (context) {
+                    final completedIndices = widget.puzzle.getCompletedRowClueIndices(r);
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        for (int ci = 0; ci < widget.puzzle.rowClues[r].length; ci++)
+                          SizedBox(
+                            width: clueUnitSize,
+                            child: Center(
+                              child: Text(
+                                '${widget.puzzle.rowClues[r][ci]}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: completedIndices.contains(ci)
+                                      ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
+                                      : null,
+                                  decoration: completedIndices.contains(ci)
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  decorationColor: completedIndices.contains(ci)
+                                      ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
+                                      : null,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    const SizedBox(width: 4),
-                  ],
+                        const SizedBox(width: 4),
+                      ],
+                    );
+                  },
                 ),
               ),
               // Grid cells

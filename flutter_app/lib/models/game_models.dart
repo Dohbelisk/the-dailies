@@ -1073,6 +1073,109 @@ class NonogramPuzzle {
     }
     return count;
   }
+
+  /// Get indices of definitively completed clue numbers for a row
+  Set<int> getCompletedRowClueIndices(int row) {
+    return _getCompletedClueIndices(userGrid[row], rowClues[row]);
+  }
+
+  /// Get indices of definitively completed clue numbers for a column
+  Set<int> getCompletedColClueIndices(int col) {
+    final columnCells = List.generate(rows, (r) => userGrid[r][col]);
+    return _getCompletedClueIndices(columnCells, colClues[col]);
+  }
+
+  Set<int> _getCompletedClueIndices(List<int?> line, List<int> clues) {
+    // If clue is just [0], completed when no cells are filled
+    if (clues.length == 1 && clues[0] == 0) {
+      return line.any((c) => c == 1) ? {} : {0};
+    }
+
+    // Check if the entire line is complete
+    if (_isLineComplete(line, clues)) {
+      return Set.from(List.generate(clues.length, (i) => i));
+    }
+
+    // Find sealed runs for partial matching
+    final sealedRuns = _findSealedRuns(line);
+    if (sealedRuns.isEmpty) return {};
+
+    // Forward matching: sealed runs from left to clues from left
+    int forwardCount = 0;
+    int runIdx = 0;
+    for (int ci = 0; ci < clues.length && runIdx < sealedRuns.length; ci++) {
+      if (sealedRuns[runIdx] == clues[ci]) {
+        forwardCount++;
+        runIdx++;
+      } else {
+        break;
+      }
+    }
+
+    // Backward matching: sealed runs from right to clues from right
+    int backwardCount = 0;
+    runIdx = sealedRuns.length - 1;
+    for (int ci = clues.length - 1; ci >= 0 && runIdx >= 0; ci--) {
+      if (sealedRuns[runIdx] == clues[ci]) {
+        backwardCount++;
+        runIdx--;
+      } else {
+        break;
+      }
+    }
+
+    // Prevent double-counting if forward and backward matched the same runs
+    if (forwardCount + backwardCount > sealedRuns.length) {
+      backwardCount = sealedRuns.length - forwardCount;
+    }
+
+    final completed = <int>{};
+    for (int i = 0; i < forwardCount; i++) {
+      completed.add(i);
+    }
+    for (int i = 0; i < backwardCount; i++) {
+      completed.add(clues.length - 1 - i);
+    }
+
+    return completed;
+  }
+
+  /// Check if a line is fully complete (clues match and no ambiguity remains)
+  bool _isLineComplete(List<int?> line, List<int> clues) {
+    final extracted = _extractClues(line);
+    if (!_cluesMatch(extracted, clues)) return false;
+    // Ensure no unmarked cell is adjacent to a filled cell (run could extend)
+    for (int i = 0; i < line.length; i++) {
+      if (line[i] == null || line[i] == 0) {
+        if (i > 0 && line[i - 1] == 1) return false;
+        if (i < line.length - 1 && line[i + 1] == 1) return false;
+      }
+    }
+    return true;
+  }
+
+  /// Find sealed runs: consecutive filled cells bounded by X (-1) or edge on both sides
+  List<int> _findSealedRuns(List<int?> line) {
+    final runs = <int>[];
+    int i = 0;
+    while (i < line.length) {
+      if (line[i] == 1) {
+        final start = i;
+        while (i < line.length && line[i] == 1) {
+          i++;
+        }
+        final runLength = i - start;
+        final leftSealed = (start == 0) || (line[start - 1] == -1);
+        final rightSealed = (i == line.length) || (line[i] == -1);
+        if (leftSealed && rightSealed) {
+          runs.add(runLength);
+        }
+      } else {
+        i++;
+      }
+    }
+    return runs;
+  }
 }
 
 // Number Target specific models
